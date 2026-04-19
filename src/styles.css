@@ -582,3 +582,117 @@
 }
 
 @keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+
+@layer components {
+  .login-shell {
+    min-height: 100vh;
+    display: grid; place-items: center;
+    background: var(--bg);
+    padding: 40px 20px;
+  }
+  .login-card {
+    width: 100%; max-width: 400px;
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    display: flex; flex-direction: column; gap: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  }
+  .login-card h1 {
+    margin: 0; font-size: 22px; font-weight: 500; letter-spacing: -0.01em;
+  }
+  .login-card .hint { margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+  .login-card .btn.login-oidc { justify-content: center; padding: 10px 14px; }
+  .separator {
+    position: relative; text-align: center; color: var(--text-mute); font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .separator::before, .separator::after {
+    content: ''; position: absolute; top: 50%; width: calc(50% - 20px); height: 1px; background: var(--border);
+  }
+  .separator::before { left: 0; }
+  .separator::after { right: 0; }
+  .root-admin-form { display: flex; flex-direction: column; gap: 10px; }
+  .root-admin-label { font-size: 12px; color: var(--text-dim); }
+  .root-admin-input {
+    padding: 10px 12px; border: 1px solid var(--border-2);
+    background: var(--bg); color: var(--text); border-radius: 6px;
+    font-family: var(--mono); font-size: 13px;
+    outline: none;
+  }
+  .root-admin-input:focus { border-color: var(--accent); }
+  .notice { font-size: 12px; color: var(--text-dim); padding: 8px 10px; border-radius: 6px; background: var(--bg-2); border: 1px solid var(--border); }
+  .notice.error { color: var(--sev-high); border-color: rgba(255,122,107,0.3); background: rgba(255,122,107,0.08); }
+
+  .user-menu { position: relative; display: flex; align-items: center; gap: 8px; }
+  .user-menu .avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent-dim); color: var(--accent);
+    display: grid; place-items: center; font-weight: 600; font-size: 11px;
+    font-family: var(--mono); border: 1px solid var(--accent);
+  }
+  .user-menu .user-name { font-size: 12px; color: var(--text-dim); }
+  .user-menu .role-chip {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 1px 6px; border-radius: 4px;
+    background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent);
+    font-family: var(--mono);
+  }
+  .user-menu .signout {
+    padding: 4px 10px; border-radius: 6px;
+    background: var(--bg-2); border: 1px solid var(--border);
+    color: var(--text-dim); font-size: 11px;
+  }
+  .user-menu .signout:hover { color: var(--text); border-color: var(--border-2); }
+
+  .users-view { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+  .users-view header { display: flex; align-items: center; gap: 12px; }
+  .users-view header h2 { margin: 0; font-weight: 500; letter-spacing: -0.01em; }
+  .users-view header .grow { flex: 1; }
+  .users-table {
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  }
+  .users-table .row-header,
+  .users-table .user-row {
+    display: grid; grid-template-columns: 1.5fr 2fr 1fr 1fr 180px; gap: 12px;
+    padding: 10px 14px; align-items: center;
+  }
+  .users-table .row-header {
+    background: var(--bg-1); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-mute); border-bottom: 1px solid var(--border);
+  }
+  .users-table .user-row + .user-row { border-top: 1px solid var(--border); }
+  .users-table .user-row { font-size: 13px; background: var(--bg); }
+  .users-table .user-row:hover { background: var(--bg-1); }
+  .users-table .user-row .name { font-weight: 500; }
+  .users-table .user-row .email { color: var(--text-dim); font-family: var(--mono); font-size: 11px; }
+  .users-table .user-row .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 6px; vertical-align: middle;
+  }
+  .users-table .user-row .status-dot.active { background: var(--accent); }
+  .users-table .user-row .status-dot.disabled { background: var(--text-mute); }
+  .users-table .user-row select {
+    background: var(--bg-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; font-size: 12px; padding: 3px 6px;
+    font-family: var(--sans);
+  }
+  .users-table .user-row .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+  .user-form {
+    border: 1px dashed var(--border-2); border-radius: 8px; padding: 16px;
+    background: var(--bg-1); display: grid; gap: 10px;
+    grid-template-columns: 1fr 2fr 1fr 1fr auto;
+    align-items: end;
+  }
+  .user-form label { font-size: 10px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.08em; }
+  .user-form .field { display: flex; flex-direction: column; gap: 4px; }
+  .user-form input, .user-form select {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 10px; font-size: 13px;
+    font-family: var(--sans); outline: none;
+  }
+  .user-form input:focus { border-color: var(--accent); }
+}
+

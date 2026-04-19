@@ -12,6 +12,52 @@ The primary user is an alert/finding observer — think SRE or security analyst 
     -  Acknowledge, and perform "other supported operations" (snooze, escalate, assign, resolve, add notes — to be confirmed against the spec)
     -  Navigate related model entities (repos, clusters, services) for context
 
+## Development
+
+```sh
+npm install
+npm run dev         # Vite dev server on http://localhost:5173
+npm test            # Vitest suite
+npm run typecheck   # vue-tsc --noEmit
+npm run build       # vue-tsc + vite build → dist/
+```
+
+Runtime configuration is served as `/config.js` and sets `window.EMELAND_UI_CONFIG`. For local dev the file under `public/config.js` enables the root-admin login with the token `dev-root-admin`. Override OIDC settings at deploy time via the Helm chart's ConfigMap — **never** commit a production token hash into `public/config.js`.
+
+## Authentication
+
+Two login paths:
+
+- **OIDC** (PKCE authorization code flow via `oidc-client-ts`). Enable with `config.oidc.enabled=true` and point `config.oidc.authority` at your identity provider. Role-gating reads `roles`/`groups` from the ID token.
+- **Root-admin token** — a break-glass login. The raw token lives only in a Kubernetes Secret; the UI only sees a SHA-256 hash in the runtime config, so comparing the user's input client-side never leaks the secret. Use this only for recovery.
+
+Admins see a **Users** view for managing console access (role/status/CRUD). The underlying store is a client-side mock today — replace with real API calls once the admin endpoints land.
+
+## Deployment
+
+A production image and Helm chart are included.
+
+```sh
+# build and push the image
+docker build -t ghcr.io/emeland-io/emeland-ui:0.1.0 .
+docker push ghcr.io/emeland-io/emeland-ui:0.1.0
+
+# install the chart
+helm upgrade --install emeland-ui deploy/helm/emeland-ui \
+  --namespace emeland --create-namespace \
+  --set config.oidc.enabled=true \
+  --set config.oidc.authority=https://auth.example.com/realms/emeland \
+  --set ingress.enabled=true \
+  --set ingress.className=nginx \
+  --set ingress.hosts[0].host=console.example.com
+
+# retrieve the auto-generated root-admin token
+kubectl -n emeland get secret emeland-ui-root-admin \
+  -o jsonpath='{.data.token}' | base64 -d
+```
+
+The chart generates the root-admin token on first install (`randAlphaNum 48`) and reuses it across upgrades via `lookup`. Override with `--set rootAdmin.tokenOverride=…` or disable with `--set rootAdmin.enabled=false`. `helm lint` and `helm template` succeed on defaults and on the overrides above.
+
 ## Notes for Claude Code on Frontend Programming
 
 You are a Senior Front-End Developer and an Expert in Vue 3, Vite, JavaScript, TypeScript, HTML, CSS and modern UI/UX frameworks (e.g., TailwindCSS, Headless UI, Radix Vue). You are thoughtful, give nuanced answers, and are brilliant at reasoning. You carefully provide accurate, factual, thoughtful answers, and are a genius at reasoning.

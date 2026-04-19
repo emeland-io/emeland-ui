@@ -1,0 +1,96 @@
+## Number of nginx replicas.
+replicaCount: 2
+
+image:
+  repository: ghcr.io/emeland-io/emeland-ui
+  tag: ""  # defaults to .Chart.AppVersion when empty
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 101
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 101
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: emeland-ui.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 75
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+  name: ""
+
+## Runtime configuration injected into /config.js at deploy time.
+config:
+  oidc:
+    ## Enable the OIDC login flow.
+    enabled: false
+    ## e.g. "https://keycloak.example.com/realms/emeland"
+    authority: ""
+    clientId: emeland-ui
+    scope: "openid profile email"
+    ## When empty the UI defaults to ${origin}/oidc/callback
+    redirectUri: ""
+    postLogoutRedirectUri: ""
+  api:
+    ## Where the modelsrv API is reachable from the browser.
+    baseUrl: "http://localhost:8080"
+
+## Root-admin break-glass login. A token is auto-generated on first install and
+## kept across upgrades. Retrieve it with:
+##   kubectl -n <ns> get secret <release>-emeland-ui-root-admin \
+##     -o jsonpath='{.data.token}' | base64 -d
+rootAdmin:
+  enabled: true
+  ## Override the auto-generated token. Leave empty in production.
+  tokenOverride: ""
+  ## Where the Secret lives; set this if you want to reuse an out-of-band Secret
+  ## instead of the chart-managed one.
+  existingSecret: ""
+  ## Length of the generated token.
+  tokenLength: 48

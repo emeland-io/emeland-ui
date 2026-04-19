@@ -1,0 +1,18 @@
+apiVersion: v2
+name: emeland-ui
+description: EmELand Observer Console — web frontend for the EmELand modelsrv.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.24.0-0"
+home: https://github.com/emeland-io/emeland-ui
+sources:
+  - https://github.com/emeland-io/emeland-ui
+maintainers:
+  - name: EmELand maintainers
+    email: maintainers@emeland.io
+keywords:
+  - emeland
+  - observability
+  - vue
+  - nginx

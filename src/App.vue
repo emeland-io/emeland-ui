@@ -6,13 +6,16 @@ import FindingDetail from "./components/FindingDetail.vue";
 import FindingRow from "./components/FindingRow.vue";
 import Icon from "./components/Icon.vue";
 import LandscapeView from "./components/LandscapeView.vue";
+import LoginView from "./components/LoginView.vue";
 import Modal from "./components/Modal.vue";
 import RulesView from "./components/RulesView.vue";
 import SensorsView from "./components/SensorsView.vue";
 import Sidebar, { type SidebarCounts } from "./components/Sidebar.vue";
 import TopBar from "./components/TopBar.vue";
 import TweaksPanel from "./components/TweaksPanel.vue";
+import UsersView from "./components/UsersView.vue";
 
+import { useAuth } from "./lib/auth";
 import { CONTEXTS, FINDING_TYPES, FINDINGS, SENSORS } from "./lib/data";
 import type {
   ActiveView,
@@ -48,6 +51,8 @@ type ModalState = { kind: ModalKind; target: Finding };
 
 type Group = { label: string | null; items: Finding[] };
 
+const auth = useAuth();
+
 const active = ref<ActiveView>("inbox");
 const selectedId = ref<string>(FINDINGS[0].findingId);
 const query = ref("");
@@ -59,14 +64,15 @@ const selection = ref<Set<string>>(new Set());
 const modal = ref<ModalState | null>(null);
 const local = reactive<LocalState>({ overrides: {}, notes: {}, tickets: {} });
 
-onMounted(() => {
+onMounted(async () => {
   try {
     const raw = window.localStorage.getItem(TWEAKS_STORAGE_KEY);
     if (raw) Object.assign(tweaks, { ...TWEAK_DEFAULTS, ...(JSON.parse(raw) as Partial<Tweaks>) });
   } catch {
-    // fall through — keep defaults
+    // keep defaults
   }
   tweaksHydrated.value = true;
+  await auth.init();
 });
 
 watch(
@@ -81,6 +87,14 @@ watch(
     }
   },
   { immediate: true, deep: true }
+);
+
+// When the admin role is revoked, kick the user off admin-only views.
+watch(
+  () => auth.isAdmin.value,
+  (isAdmin) => {
+    if (!isAdmin && active.value === "users") active.value = "inbox";
+  }
 );
 
 const enrichedFindings = computed<Finding[]>(() =>
@@ -160,7 +174,7 @@ const handleAction = (action: DetailAction, finding: Finding | null, payload?: s
     applyToIds(ids, (id) => {
       local.overrides[id] = {
         state: "acknowledged",
-        ackedBy: "you",
+        ackedBy: auth.user.value?.name ?? "you",
         ackedAt: new Date().toISOString(),
       };
     });
@@ -168,7 +182,7 @@ const handleAction = (action: DetailAction, finding: Finding | null, payload?: s
     applyToIds(ids, (id) => {
       local.overrides[id] = {
         state: "snoozed",
-        snoozedBy: "you",
+        snoozedBy: auth.user.value?.name ?? "you",
         snoozedUntil: new Date(Date.now() + 4 * 3600_000).toISOString(),
       };
     });
@@ -197,7 +211,7 @@ const handleAction = (action: DetailAction, finding: Finding | null, payload?: s
     applyToIds(ids, (id) => {
       local.notes[id] = [
         ...(local.notes[id] ?? []),
-        { by: "you", at: new Date().toISOString(), text: payload ?? "" },
+        { by: auth.user.value?.name ?? "you", at: new Date().toISOString(), text: payload ?? "" },
       ];
     });
   }
@@ -269,13 +283,13 @@ const handleModalSubmit = (payload: string) => {
   } else if (current.kind === "assign") {
     local.notes[current.target.findingId] = [
       ...(local.notes[current.target.findingId] ?? []),
-      { by: "you", at: new Date().toISOString(), text: `Assigned to ${payload}` },
+      { by: auth.user.value?.name ?? "you", at: new Date().toISOString(), text: `Assigned to ${payload}` },
     ];
   } else if (current.kind === "link") {
     local.tickets[current.target.findingId] = payload;
     local.notes[current.target.findingId] = [
       ...(local.notes[current.target.findingId] ?? []),
-      { by: "you", at: new Date().toISOString(), text: `Linked ticket: ${payload}` },
+      { by: auth.user.value?.name ?? "you", at: new Date().toISOString(), text: `Linked ticket: ${payload}` },
     ];
   }
   modal.value = null;
@@ -291,7 +305,12 @@ const handleSearchMiniInput = (e: Event) => {
 };
 
 const handleActivateView = (view: ActiveView) => {
+  if (view === "users" && !auth.isAdmin.value) return;
   active.value = view;
+};
+
+const handleSignOut = async () => {
+  await auth.logout();
 };
 
 const sensors = Object.values(SENSORS);
@@ -302,9 +321,20 @@ const severityDotColor = (severity: Severity) =>
 </script>
 
 <template>
-  <div class="app" :class="{ dense: tweaks.density === 'dense' }">
-    <TopBar :query="query" @update:query="handleQueryUpdate" />
-    <Sidebar :active="active" :counts="counts" @activate="handleActivateView" />
+  <LoginView v-if="!auth.isAuthenticated.value" />
+  <div v-else class="app" :class="{ dense: tweaks.density === 'dense' }">
+    <TopBar
+      :query="query"
+      :user="auth.user.value"
+      @update:query="handleQueryUpdate"
+      @sign-out="handleSignOut"
+    />
+    <Sidebar
+      :active="active"
+      :counts="counts"
+      :is-admin="auth.isAdmin.value"
+      @activate="handleActivateView"
+    />
 
     <div v-if="isFindingTab" class="main" :class="{ 'full-detail': tweaks.layout === 'full-detail' }">
       <div class="list-pane">
@@ -420,6 +450,7 @@ const severityDotColor = (severity: Severity) =>
       <LandscapeView v-else-if="active === 'explorer'" />
       <ClassesView v-else-if="active === 'classes'" />
       <RulesView v-else-if="active === 'rules'" />
+      <UsersView v-else-if="active === 'users' && auth.isAdmin.value" />
       <div v-else-if="active === 'settings'" class="empty">
         Settings — API server URL, auth, notifications
       </div>

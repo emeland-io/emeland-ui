@@ -64,6 +64,30 @@ Always verify endpoints, request/response shapes, and the exact set of supported
 - Integration-test flows by mounting the root component (or the view under test) with `@vue/test-utils` `mount()` and asserting on rendered DOM + user interactions (prefer `trigger('click')` / typing into `<input>` via `setValue`).
 - Reset `localStorage` and the `<html data-theme>` attribute in a `beforeEach` hook — the tweaks panel persists there.
 
+## Authentication
+
+Two login methods, both layered on top of a runtime config served as `/config.js`:
+
+- **OIDC** (`oidc-client-ts`, PKCE authorization code flow) — disabled by default; enable with `config.oidc.enabled=true` and point `config.oidc.authority` at your identity provider. The UI handles the callback when the URL has `?code=…` and clears the query string afterwards.
+- **Root-admin token** — break-glass path that compares a user-supplied token against `config.rootAdmin.tokenSha256`. The raw token lives only in a Kubernetes Secret; the public config only sees the hash. Treat this as recovery-only.
+
+Role gating reads `roles` (or `groups`) from the OIDC ID token. Root-admin logins always get `roles: ["admin"]`.
+
+`src/lib/auth.ts` owns the state and exposes `useAuth()`; tests skip the UI by calling `__setUserForTests(...)`. Users listed in `src/lib/users.ts` are a client-side mock — replace with real API calls when the admin endpoints land.
+
+## Deployment
+
+- `Dockerfile` — multi-stage (Node build → nginx:1.27-alpine); nginx listens on **8080** (non-root); `deploy/nginx/default.conf` enforces SPA fallback, immutable hashes on `/assets/*`, and `no-store` on `/config.js`.
+- `deploy/helm/emeland-ui/` — chart that deploys the UI.
+  - `templates/bootstrap.yaml` renders the **root-admin Secret and runtime ConfigMap in one pass** so both carry the same SHA-256. On first install the chart generates a `randAlphaNum(tokenLength)` token; on upgrades it reuses the existing value via `lookup` (idempotent).
+  - Retrieve the generated token:
+    ```sh
+    kubectl -n <ns> get secret <release>-emeland-ui-root-admin \
+      -o jsonpath='{.data.token}' | base64 -d
+    ```
+  - Override permanently with `--set rootAdmin.tokenOverride=…` or bring your own Secret via `--set rootAdmin.existingSecret=…`.
+  - `helm lint` and `helm template` are green on default values and on the overrides shown in `NOTES.txt`.
+
 ## Working style
 
 - The README instructs: plan first (step-by-step / pseudocode), confirm with the user, then write code. Honor this for non-trivial features.

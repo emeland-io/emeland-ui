@@ -85,7 +85,21 @@ export type ActiveView =
   | "sensors"
   | "classes"
   | "rules"
+  | "users"
   | "settings";
+
+export type UserRole = "admin" | "observer" | "viewer";
+
+export type UserStatus = "active" | "disabled";
+
+export type ManagedUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: string;
+};
 
 export type DetailAction =
   | "ack"

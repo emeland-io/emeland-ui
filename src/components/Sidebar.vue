@@ -19,47 +19,59 @@ type IconName =
   | "radar"
   | "book"
   | "cog"
-  | "filter";
+  | "filter"
+  | "user";
 
 type NavItem = {
   id: ActiveView;
   label: string;
   icon: IconName;
   count?: number;
+  requiresAdmin?: boolean;
 };
 
-type NavGroup = { group: string; items: NavItem[] };
+type NavGroup = { group: string; items: NavItem[]; requiresAdmin?: boolean };
 
-type Props = { active: ActiveView; counts: SidebarCounts };
+type Props = { active: ActiveView; counts: SidebarCounts; isAdmin: boolean };
 type Emits = { activate: [view: ActiveView] };
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-const nav = (): NavGroup[] => [
-  {
-    group: "Triage",
-    items: [
-      { id: "inbox", label: "Alert inbox", icon: "bell", count: props.counts.open },
-      { id: "acknowledged", label: "Acknowledged", icon: "check", count: props.counts.acknowledged },
-      { id: "snoozed", label: "Snoozed", icon: "snooze", count: props.counts.snoozed },
-      { id: "resolved", label: "Resolved", icon: "resolve", count: props.counts.resolved },
-    ],
-  },
-  {
-    group: "Landscape",
-    items: [
-      { id: "explorer", label: "Model explorer", icon: "map" },
-      { id: "sensors", label: "Sensors", icon: "radar", count: 4 },
-      { id: "classes", label: "Finding classes", icon: "book", count: 6 },
-      { id: "rules", label: "Filter rules", icon: "filter", count: 6 },
-    ],
-  },
-  {
-    group: "System",
-    items: [{ id: "settings", label: "Settings", icon: "cog" }],
-  },
-];
+const nav = (): NavGroup[] => {
+  const groups: NavGroup[] = [
+    {
+      group: "Triage",
+      items: [
+        { id: "inbox", label: "Alert inbox", icon: "bell", count: props.counts.open },
+        { id: "acknowledged", label: "Acknowledged", icon: "check", count: props.counts.acknowledged },
+        { id: "snoozed", label: "Snoozed", icon: "snooze", count: props.counts.snoozed },
+        { id: "resolved", label: "Resolved", icon: "resolve", count: props.counts.resolved },
+      ],
+    },
+    {
+      group: "Landscape",
+      items: [
+        { id: "explorer", label: "Model explorer", icon: "map" },
+        { id: "sensors", label: "Sensors", icon: "radar", count: 4 },
+        { id: "classes", label: "Finding classes", icon: "book", count: 6 },
+        { id: "rules", label: "Filter rules", icon: "filter", count: 6 },
+      ],
+    },
+    {
+      group: "Admin",
+      requiresAdmin: true,
+      items: [
+        { id: "users", label: "Users", icon: "user", requiresAdmin: true },
+      ],
+    },
+    {
+      group: "System",
+      items: [{ id: "settings", label: "Settings", icon: "cog" }],
+    },
+  ];
+  return groups.filter((group) => !group.requiresAdmin || props.isAdmin);
+};
 
 const handleClick = (id: ActiveView) => emit("activate", id);
 

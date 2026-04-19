@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "oidc-client-ts": "^3.5.0",
     "vue": "^3.4.38"
   },
   "devDependencies": {

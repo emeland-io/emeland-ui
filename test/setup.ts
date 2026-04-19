@@ -2,6 +2,10 @@ import "@testing-library/jest-dom/vitest";
 
 import { beforeEach } from "vitest";
 
+import { resetAuthStateForTests } from "@/lib/auth";
+import { resetRuntimeConfigForTests } from "@/lib/config";
+import { resetUsersForTests } from "@/lib/users";
+
 // Node 22+ ships an experimental localStorage that can shadow jsdom's. Replace
 // it with a fresh in-memory implementation before every test so state doesn't leak.
 const installMemoryStorage = () => {
@@ -27,4 +31,7 @@ const installMemoryStorage = () => {
 beforeEach(() => {
   installMemoryStorage();
   document.documentElement.removeAttribute("data-theme");
+  resetRuntimeConfigForTests();
+  resetAuthStateForTests();
+  resetUsersForTests();
 });

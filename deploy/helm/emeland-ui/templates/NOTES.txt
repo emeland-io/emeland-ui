@@ -1,0 +1,38 @@
+EmELand Observer Console has been installed.
+
+Release:    {{ .Release.Name }}
+Namespace:  {{ .Release.Namespace }}
+Image:      {{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}
+
+1. Reach the UI
+{{- if .Values.ingress.enabled }}
+   Configured ingress hosts:
+   {{- range .Values.ingress.hosts }}
+     - http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+   {{- end }}
+{{- else if eq .Values.service.type "LoadBalancer" }}
+   Wait for the LoadBalancer to receive an address:
+     kubectl -n {{ .Release.Namespace }} get svc -w {{ include "emeland-ui.fullname" . }}
+{{- else }}
+   Port-forward to try it locally:
+     kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "emeland-ui.fullname" . }} 8080:{{ .Values.service.port }}
+     # then open http://localhost:8080
+{{- end }}
+
+2. Sign in
+{{- if .Values.config.oidc.enabled }}
+   OIDC authority:   {{ .Values.config.oidc.authority }}
+   Redirect URI:     {{ default (printf "<origin>/oidc/callback") .Values.config.oidc.redirectUri }}
+   Make sure the OIDC client is configured to allow this redirect URI.
+{{- else }}
+   OIDC is disabled. Enable it via --set config.oidc.enabled=true --set config.oidc.authority=<url>.
+{{- end }}
+{{- if .Values.rootAdmin.enabled }}
+
+3. Root-admin break-glass token
+   Retrieve the generated token:
+     kubectl -n {{ .Release.Namespace }} get secret {{ include "emeland-ui.rootAdminSecretName" . }} \
+       -o jsonpath='{.data.token}' | base64 -d && echo
+   The SHA-256 of this token is baked into /config.js so the UI can verify it
+   without a backend. Rotate by deleting the Secret and re-running `helm upgrade`.
+{{- end }}

@@ -3,6 +3,23 @@ import { mount, type VueWrapper } from "@vue/test-utils";
 import { nextTick } from "vue";
 
 import App from "@/App.vue";
+import { __setUserForTests } from "@/lib/auth";
+
+const signInAsObserver = () =>
+  __setUserForTests({
+    sub: "observer-1",
+    name: "Observer One",
+    roles: ["observer"],
+    source: "oidc",
+  });
+
+const signInAsAdmin = () =>
+  __setUserForTests({
+    sub: "root-admin",
+    name: "Root Admin",
+    roles: ["admin"],
+    source: "root-admin",
+  });
 
 const firstOpenFinding = 'Context "checkout-eu" has no ContextType set';
 const preAckedFinding = 'Node "gpu-worker-07.eu-west-1" has no NodeType';
@@ -35,6 +52,7 @@ const chipFor = (wrapper: VueWrapper, ariaLabel: string) =>
 describe("Observer Console — navigation and counts", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    signInAsObserver();
   });
 
   it("renders the inbox by default with open findings", async () => {
@@ -84,6 +102,7 @@ describe("Observer Console — navigation and counts", () => {
 describe("Observer Console — filtering", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    signInAsObserver();
   });
 
   it("filters findings by severity chip", async () => {
@@ -120,6 +139,7 @@ describe("Observer Console — filtering", () => {
 describe("Observer Console — single-finding actions", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    signInAsObserver();
   });
 
   it("selects a finding and shows its detail", async () => {
@@ -218,6 +238,7 @@ describe("Observer Console — single-finding actions", () => {
 describe("Observer Console — bulk actions", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    signInAsObserver();
   });
 
   it("bulk-acknowledges selected findings", async () => {
@@ -242,10 +263,40 @@ describe("Observer Console — bulk actions", () => {
   });
 });
 
+describe("Observer Console — admin gating", () => {
+  it("does not render the Users nav for non-admin observers", async () => {
+    signInAsObserver();
+    const wrapper = mountApp();
+    await flush();
+    const labels = wrapper.findAll(".sidebar .nav-item").map((n) => n.attributes("aria-label"));
+    expect(labels).not.toContain("Users");
+  });
+
+  it("renders the Users view for an admin", async () => {
+    signInAsAdmin();
+    const wrapper = mountApp();
+    await flush();
+    const labels = wrapper.findAll(".sidebar .nav-item").map((n) => n.attributes("aria-label"));
+    expect(labels).toContain("Users");
+
+    await activateNav(wrapper, /^users$/i);
+    expect(wrapper.find(".users-table").exists()).toBe(true);
+  });
+
+  it("shows the LoginView when not authenticated", async () => {
+    // No signIn helper call — user is unauthenticated.
+    const wrapper = mountApp();
+    await flush();
+    expect(wrapper.find(".login-shell").exists()).toBe(true);
+    expect(wrapper.find(".topbar").exists()).toBe(false);
+  });
+});
+
 describe("Observer Console — tweaks", () => {
   beforeEach(() => {
     window.localStorage.clear();
     document.documentElement.removeAttribute("data-theme");
+    signInAsObserver();
   });
 
   it("opens the tweaks panel and switches theme on <html>", async () => {

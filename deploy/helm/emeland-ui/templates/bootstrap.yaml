@@ -1,0 +1,64 @@
+{{/*
+  Bootstrap template — renders the root-admin Secret AND the runtime ConfigMap
+  from a single $token scope so both always agree on the SHA-256 hash. Splitting
+  them into two files would cause `randAlphaNum` to be invoked twice, producing
+  mismatched hashes on first install.
+*/}}
+{{- $secretName := include "emeland-ui.rootAdminSecretName" . -}}
+{{- $existing := lookup "v1" "Secret" .Release.Namespace $secretName -}}
+{{- $token := "" -}}
+{{- if .Values.rootAdmin.enabled -}}
+{{-   if .Values.rootAdmin.tokenOverride -}}
+{{-     $token = .Values.rootAdmin.tokenOverride -}}
+{{-   else if and $existing (hasKey $existing.data "token") -}}
+{{-     $token = index $existing.data "token" | b64dec -}}
+{{-   else -}}
+{{-     $token = randAlphaNum (.Values.rootAdmin.tokenLength | int) -}}
+{{-   end -}}
+{{- end -}}
+{{- $tokenHash := "" -}}
+{{- if and .Values.rootAdmin.enabled $token -}}
+{{-   $tokenHash = sha256sum $token -}}
+{{- end -}}
+{{- if and .Values.rootAdmin.enabled (not .Values.rootAdmin.existingSecret) -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $secretName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "emeland-ui.labels" . | nindent 4 }}
+  annotations:
+    "emeland.io/token-rotation": "manual"
+type: Opaque
+stringData:
+  token: {{ $token | quote }}
+  tokenSha256: {{ $tokenHash | quote }}
+---
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "emeland-ui.fullname" . }}-runtime
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "emeland-ui.labels" . | nindent 4 }}
+data:
+  config.js: |-
+    window.EMELAND_UI_CONFIG = {
+      oidc: {
+        enabled: {{ .Values.config.oidc.enabled }},
+        authority: {{ .Values.config.oidc.authority | quote }},
+        clientId: {{ .Values.config.oidc.clientId | quote }},
+        scope: {{ .Values.config.oidc.scope | quote }},
+        redirectUri: {{ .Values.config.oidc.redirectUri | quote }},
+        postLogoutRedirectUri: {{ .Values.config.oidc.postLogoutRedirectUri | quote }}
+      },
+      rootAdmin: {
+        enabled: {{ .Values.rootAdmin.enabled }},
+        tokenSha256: {{ $tokenHash | quote }}
+      },
+      api: {
+        baseUrl: {{ .Values.config.api.baseUrl | quote }}
+      }
+    };

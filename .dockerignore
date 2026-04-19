@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.github
+.vite
+.vscode
+.idea
+coverage
+test
+**/*.log
+.DS_Store
+Dockerfile
+.dockerignore
+deploy/helm
