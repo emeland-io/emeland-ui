@@ -10,7 +10,9 @@
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "dev:token": "node scripts/dev-root-token.mjs",
+    "dev:token:reset": "node scripts/dev-root-token.mjs --reset"
   },
   "dependencies": {
     "oidc-client-ts": "^3.5.0",

@@ -28,7 +28,17 @@ npm run typecheck   # vue-tsc --noEmit
 npm run build       # vue-tsc + vite build → dist/
 ```
 
-Runtime configuration is served as `/config.js` and sets `window.EMELAND_UI_CONFIG`. For local dev the file under `public/config.js` enables the root-admin login with the token `dev-root-admin`. Override OIDC settings at deploy time via the Helm chart's ConfigMap — **never** commit a production token hash into `public/config.js`.
+Runtime configuration is served as `/config.js` and sets `window.EMELAND_UI_CONFIG`. For local dev the file under `public/config.js` enables the root-admin login with the token **`dev-root-admin`** — paste that on the login screen and you're in.
+
+To use a different token locally:
+
+```sh
+npm run dev:token                          # generate a random token, print it, patch public/config.js
+npm run dev:token -- --token=my-own-token  # use a specific token
+npm run dev:token:reset                    # restore the checked-in default before committing
+```
+
+Reload the browser after running the script so the new `/config.js` is picked up. Override OIDC settings at deploy time via the Helm chart's ConfigMap — **never** commit a production token hash into `public/config.js`.
 
 ## Authentication
 

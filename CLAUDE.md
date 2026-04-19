@@ -77,7 +77,7 @@ Role gating reads `roles` (or `groups`) from the OIDC ID token. Root-admin login
 
 ## Deployment
 
-- `Dockerfile` — multi-stage (Node build → nginx:1.27-alpine); nginx listens on **8080** (non-root); `deploy/nginx/default.conf` enforces SPA fallback, immutable hashes on `/assets/*`, and `no-store` on `/config.js`.
+- `Dockerfile` — multi-stage (Node build → nginx:1.27-alpine); nginx listens on **8080** (non-root); `deploy/nginx/default.conf` enforces SPA fallback, immutable hashes on `/assets/*`, and `no-store` on `/config.js`. The image overlays `deploy/nginx/config.prod.js` on top of the Vite public default so a standalone `docker run` **fails closed** (both OIDC and root-admin disabled) — production tokens only ever come from the Helm ConfigMap overlay, never from the baked-in image layer.
 - `deploy/helm/emeland-ui/` — chart that deploys the UI.
   - `templates/bootstrap.yaml` renders the **root-admin Secret and runtime ConfigMap in one pass** so both carry the same SHA-256. On first install the chart generates a `randAlphaNum(tokenLength)` token; on upgrades it reuses the existing value via `lookup` (idempotent).
   - Retrieve the generated token:
