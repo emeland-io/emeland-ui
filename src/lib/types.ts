@@ -86,3 +86,13 @@ export type ActiveView =
   | "classes"
   | "rules"
   | "settings";
+
+export type DetailAction =
+  | "ack"
+  | "snooze"
+  | "reopen"
+  | "resolveModal"
+  | "assign"
+  | "link"
+  | "comment"
+  | "resolve";

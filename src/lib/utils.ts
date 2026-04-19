@@ -27,6 +27,3 @@ export const TWEAK_DEFAULTS: Tweaks = {
   layout: "split",
   showResolved: false,
 };
-
-export const classNames = (...parts: Array<string | false | null | undefined>): string =>
-  parts.filter(Boolean).join(" ");

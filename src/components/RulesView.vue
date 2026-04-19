@@ -1,7 +1,4 @@
-"use client";
-
-import { classNames } from "@/lib/utils";
-
+<script setup lang="ts">
 type Rule = {
   id: string;
   phase: string;
@@ -68,58 +65,50 @@ const RULES: Rule[] = [
     desc: "Fires when SystemInstance has no Context set. Optional; disable for greenfield ingestion.",
   },
 ];
+</script>
 
-export const RulesView = () => (
-  <div style={{ padding: 22 }}>
-    <h2 style={{ fontWeight: 500, letterSpacing: "-0.01em", margin: 0 }}>Filter rules</h2>
-    <p style={{ color: "var(--text-dim)", maxWidth: 640 }}>
+<template>
+  <div :style="{ padding: '22px' }">
+    <h2 :style="{ fontWeight: 500, letterSpacing: '-0.01em', margin: 0 }">Filter rules</h2>
+    <p :style="{ color: 'var(--text-dim)', maxWidth: '640px' }">
       Findings are side-effects of filter functions registered in the <code>eventfilter.Chain</code>. Each rule
       inspects model events and upserts or deletes findings. Finding UUIDs are deterministic (UUID v5 from subject +
       kind) so applying the same event repeatedly produces exactly one finding.
     </p>
-    <div style={{ marginTop: 20, border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
-      {RULES.map((r, i) => (
-        <div
-          key={r.id}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "44px 200px 220px 1fr 80px 80px",
-            gap: 16,
-            padding: "12px 16px",
-            alignItems: "center",
-            borderTop: i ? "1px solid var(--border)" : 0,
-            background: i % 2 ? "var(--bg-1)" : "var(--bg)",
-            opacity: r.enabled ? 1 : 0.55,
-          }}
-        >
-          <div className={classNames("toggle", r.enabled && "on")} />
-          <div>
-            <div className="mono" style={{ fontSize: 12, color: "var(--accent)" }}>
-              {r.kind}
-            </div>
-            <div className="mono" style={{ fontSize: 10, color: "var(--text-mute)" }}>
-              {r.id}
-            </div>
-          </div>
-          <div className="mono" style={{ fontSize: 11, color: "var(--text-dim)" }}>
-            {r.scope}
-          </div>
-          <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{r.desc}</div>
-          <div className="mono" style={{ fontSize: 11, color: "var(--text-mute)" }}>
-            {r.phase}
-          </div>
-          <div
-            className="mono"
-            style={{
-              fontSize: 12,
-              color: r.fires > 0 ? "var(--sev-high)" : "var(--text-mute)",
-              textAlign: "right",
-            }}
-          >
-            ×{r.fires}
-          </div>
+    <div :style="{ marginTop: '20px', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }">
+      <div
+        v-for="(rule, i) in RULES"
+        :key="rule.id"
+        :style="{
+          display: 'grid',
+          gridTemplateColumns: '44px 200px 220px 1fr 80px 80px',
+          gap: '16px',
+          padding: '12px 16px',
+          alignItems: 'center',
+          borderTop: i ? '1px solid var(--border)' : 0,
+          background: i % 2 ? 'var(--bg-1)' : 'var(--bg)',
+          opacity: rule.enabled ? 1 : 0.55,
+        }"
+      >
+        <div class="toggle" :class="{ on: rule.enabled }" />
+        <div>
+          <div class="mono" :style="{ fontSize: '12px', color: 'var(--accent)' }">{{ rule.kind }}</div>
+          <div class="mono" :style="{ fontSize: '10px', color: 'var(--text-mute)' }">{{ rule.id }}</div>
         </div>
-      ))}
+        <div class="mono" :style="{ fontSize: '11px', color: 'var(--text-dim)' }">{{ rule.scope }}</div>
+        <div :style="{ fontSize: '12px', color: 'var(--text-dim)' }">{{ rule.desc }}</div>
+        <div class="mono" :style="{ fontSize: '11px', color: 'var(--text-mute)' }">{{ rule.phase }}</div>
+        <div
+          class="mono"
+          :style="{
+            fontSize: '12px',
+            color: rule.fires > 0 ? 'var(--sev-high)' : 'var(--text-mute)',
+            textAlign: 'right',
+          }"
+        >
+          ×{{ rule.fires }}
+        </div>
+      </div>
     </div>
   </div>
-);
+</template>
