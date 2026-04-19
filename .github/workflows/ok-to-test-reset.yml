@@ -1,0 +1,52 @@
+# Companion to ci.yml. Without this workflow the `ok-to-test` label would be a
+# one-shot blanket trust: a maintainer labels a fork PR, then the fork author
+# pushes a malicious commit, and CI happily runs it. This job removes the
+# label on every synchronize from a fork, forcing a fresh maintainer review
+# after new commits.
+name: ok-to-test · reset
+
+on:
+  pull_request_target:
+    types: [synchronize]
+    branches: [main]
+
+permissions:
+  # Only write access to issues/PRs — no code is checked out or executed here.
+  pull-requests: write
+
+jobs:
+  reset:
+    # Skip when the PR branch lives in this same repo; those commits are
+    # already trusted, so stripping the label would be noisy churn.
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Remove ok-to-test label after fork push
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const label = "ok-to-test";
+            const hasLabel = context.payload.pull_request.labels.some(
+              (l) => l.name === label
+            );
+            if (!hasLabel) {
+              core.info(`PR #${context.issue.number} does not carry ${label}; nothing to do.`);
+              return;
+            }
+            await github.rest.issues.removeLabel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              name: label,
+            });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body:
+                "🔒 Removed the `ok-to-test` label because a new commit was pushed " +
+                "from a fork. A maintainer must re-review the changes and re-apply " +
+                "the label before CI will run again.",
+            });
+            core.info(`Stripped ${label} from PR #${context.issue.number}.`);

@@ -1,0 +1,59 @@
+# Lets maintainers grant CI access by commenting `/ok-to-test` on a PR. The
+# label trigger in ci.yml picks it up and runs the pipeline. This is friendlier
+# than hunting for the label dropdown on every external contribution.
+name: ok-to-test · command
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  apply-label:
+    # Only act on PR comments that contain `/ok-to-test` (as the whole word).
+    if: >-
+      github.event.issue.pull_request != null &&
+      contains(github.event.comment.body, '/ok-to-test')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verify commenter permissions and apply label
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const label = "ok-to-test";
+            const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: context.payload.comment.user.login,
+            });
+            const trusted = ["admin", "maintain", "write"].includes(perm.permission);
+            if (!trusted) {
+              core.info(
+                `Ignoring /ok-to-test from @${context.payload.comment.user.login} ` +
+                `(permission=${perm.permission}).`
+              );
+              await github.rest.reactions.createForIssueComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: context.payload.comment.id,
+                content: "-1",
+              });
+              return;
+            }
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: [label],
+            });
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: "rocket",
+            });
+            core.info(`Applied ${label} on behalf of @${context.payload.comment.user.login}.`);

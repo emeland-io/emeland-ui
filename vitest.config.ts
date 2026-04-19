@@ -16,5 +16,17 @@ export default defineConfig({
     setupFiles: ["./test/setup.ts"],
     css: false,
     include: ["test/**/*.test.{ts,tsx}"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "lcov", "json-summary"],
+      reportsDirectory: "./coverage",
+      include: ["src/**/*.{ts,vue}"],
+      exclude: [
+        "src/main.ts",
+        "src/vue-shims.d.ts",
+        "src/**/*.d.ts",
+        "src/lib/types.ts",
+      ],
+    },
   },
 });

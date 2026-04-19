@@ -1,0 +1,79 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "docker:pinDigests",
+    "helpers:pinGitHubActionDigests",
+    ":semanticCommits",
+    ":enableVulnerabilityAlertsWithLabel(security)"
+  ],
+  "timezone": "Europe/Berlin",
+  "schedule": ["before 6am on monday"],
+  "labels": ["dependencies"],
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 10,
+  "rangeStrategy": "bump",
+  "postUpdateOptions": ["npmDedupe"],
+  "packageRules": [
+    {
+      "description": "Pin every GitHub Action by commit SHA and keep the trailing version comment up to date.",
+      "matchManagers": ["github-actions"],
+      "pinDigests": true,
+      "commitMessagePrefix": "ci",
+      "semanticCommitType": "ci",
+      "semanticCommitScope": "actions"
+    },
+    {
+      "description": "Group the Vue toolchain so one PR bumps Vue + tooling together.",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["vue", "vue-tsc", "@vue/tsconfig", "@vitejs/plugin-vue"],
+      "matchPackagePrefixes": ["@vue/"],
+      "groupName": "vue toolchain"
+    },
+    {
+      "description": "Group the test stack (vitest + testing libraries + coverage).",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["vitest", "jsdom", "@vue/test-utils"],
+      "matchPackagePrefixes": ["@testing-library/", "@vitest/"],
+      "groupName": "test stack"
+    },
+    {
+      "description": "Lint and build tools can be bumped together.",
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "typescript",
+        "vite",
+        "tailwindcss",
+        "postcss",
+        "autoprefixer",
+        "eslint",
+        "eslint-config-next"
+      ],
+      "groupName": "tooling"
+    },
+    {
+      "description": "Wait a few days before opening PRs for npm packages — dodges hot-dropped broken releases.",
+      "matchManagers": ["npm"],
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "description": "Roll base-image digest updates into a single PR.",
+      "matchManagers": ["dockerfile"],
+      "groupName": "container base images"
+    },
+    {
+      "description": "Helm chart dependencies + values.yaml image references.",
+      "matchManagers": ["helm-values", "helm-requirements", "helmv3"],
+      "groupName": "helm"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "minimumReleaseAge": null,
+    "schedule": ["at any time"]
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"]
+  }
+}

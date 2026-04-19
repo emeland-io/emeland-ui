@@ -1,4 +1,10 @@
 # emeland-ui
+
+[![ci](https://github.com/emeland-io/emeland-ui/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/emeland-io/emeland-ui/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/emeland-io/emeland-ui/branch/main/graph/badge.svg)](https://codecov.io/gh/emeland-io/emeland-ui)
+[![CodeFactor](https://www.codefactor.io/repository/github/emeland-io/emeland-ui/badge)](https://www.codefactor.io/repository/github/emeland-io/emeland-ui)
+[![License](https://img.shields.io/github/license/emeland-io/emeland-ui)](./LICENSE)
+
 A web front end for the EmELand modelsrv. It acts as a dashboard to your modelsrv setup as well as allowing browsing the EmELand model visually.
 
 The emeland API spec can be found here: <https://github.com/emeland-io/openapi/tree/main/api/openapi>
