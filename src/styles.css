@@ -257,7 +257,7 @@
   .finding-list { overflow-y: auto; flex: 1; }
   .finding-list .row {
     display: grid;
-    grid-template-columns: 6px 20px 20px 1fr 90px 72px 54px;
+    grid-template-columns: 6px 1fr 90px 72px 54px;
     gap: 12px; align-items: center;
     padding: 10px 14px 10px 0;
     border-bottom: 1px solid var(--border);
@@ -535,18 +535,135 @@
     transform: rotate(-45deg) translate(1px,-1px);
   }
 
-  .landscape-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 10px; padding: 18px;
+  /* Model explorer — three-pane layout. */
+  .explorer {
+    display: grid;
+    grid-template-columns: 220px minmax(280px, 1fr) minmax(420px, 1.3fr);
+    height: calc(100vh - 48px);
+    overflow: hidden;
   }
-  .resource-tile {
-    padding: 12px; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius);
-    display: flex; flex-direction: column; gap: 4px;
+  .explorer-types {
+    border-right: 1px solid var(--border);
+    background: var(--bg-1);
+    overflow-y: auto;
+    display: flex; flex-direction: column;
   }
-  .resource-tile .type { font-family: var(--mono); font-size: 10px; color: var(--accent); }
-  .resource-tile .name { font-size: 14px; }
-  .resource-tile .uuid { font-family: var(--mono); font-size: 10px; color: var(--text-mute); }
-  .resource-tile .findings { font-size: 11px; color: var(--sev-high); margin-top: 4px; }
+  .explorer-section-header {
+    padding: 14px 12px 6px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-mute);
+  }
+  .explorer-type {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 12px; margin: 0 6px; border-radius: 5px;
+    color: var(--text-dim); font-size: 13px;
+    cursor: pointer; user-select: none;
+  }
+  .explorer-type:hover { background: var(--bg-2); color: var(--text); }
+  .explorer-type.active {
+    background: var(--accent-dim); color: var(--text);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+  .explorer-type-name { flex: 1; }
+  .explorer-type-count {
+    font-family: var(--mono); font-size: 11px; color: var(--text-mute);
+  }
+  .explorer-type.active .explorer-type-count { color: var(--accent); }
+
+  .explorer-list {
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+    background: var(--bg);
+  }
+  .explorer-list-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .explorer-list-title {
+    font-size: 13px; font-weight: 500; letter-spacing: -0.01em;
+  }
+  .explorer-search {
+    flex: 1; min-width: 120px;
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg-2); border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px 8px;
+  }
+  .explorer-search input {
+    background: transparent; border: 0; outline: 0; color: var(--text); font-size: 12px;
+    width: 100%; font-family: var(--mono);
+  }
+  .explorer-list-body { flex: 1; overflow-y: auto; }
+  .explorer-resource {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .explorer-resource:hover { background: var(--bg-1); }
+  .explorer-resource.active { background: var(--bg-2); box-shadow: inset 2px 0 0 var(--accent); }
+  .explorer-resource-name { font-size: 13px; color: var(--text); }
+  .explorer-resource-id { font-family: var(--mono); font-size: 10px; color: var(--text-mute); }
+
+  .explorer-detail {
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+    background: var(--bg-1);
+    min-width: 0;
+  }
+  .explorer-detail .detail-body { padding: 22px; display: flex; flex-direction: column; gap: 24px; }
+
+  .relation-group {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .relation-group:last-child { border-bottom: 0; }
+  .relation-name {
+    font-family: var(--mono); font-size: 11px; color: var(--text-mute);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .relation-targets { display: flex; flex-wrap: wrap; gap: 6px; }
+  .relation-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border-radius: 5px;
+    background: var(--bg-2); border: 1px solid var(--border);
+    color: var(--text); font-size: 12px;
+    cursor: pointer; transition: all 0.08s;
+  }
+  .relation-link:hover { background: var(--bg-3); border-color: var(--accent); }
+  .relation-link .relation-type {
+    font-family: var(--mono); font-size: 10px; color: var(--accent);
+    padding: 1px 6px; border-radius: 3px; background: var(--accent-dim);
+  }
+  .relation-link .relation-target { color: var(--text); }
+
+  /* Node graph view — directed graph of pipeline nodes. */
+  .graph-shell { display: flex; flex-direction: column; gap: 16px; padding: 22px; }
+  .graph-shell h2 { margin: 0; font-weight: 500; letter-spacing: -0.01em; }
+  .graph-shell p { margin: 0; color: var(--text-dim); max-width: 720px; }
+  .graph-canvas {
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg-1);
+    padding: 16px; overflow: auto;
+  }
+  .graph-canvas svg { display: block; }
+  .graph-node-rect { fill: var(--bg-2); stroke: var(--border-2); }
+  .graph-node-rect.sensor { stroke: var(--sev-low); }
+  .graph-node-rect.filter { stroke: var(--accent); }
+  .graph-node-rect.injector { stroke: var(--state-snooze); }
+  .graph-node-label { fill: var(--text); font-family: var(--mono); font-size: 11px; }
+  .graph-node-kind { fill: var(--text-mute); font-family: var(--mono); font-size: 10px; }
+  .graph-edge { stroke: var(--text-mute); stroke-width: 1.4; fill: none; }
+  .graph-edge-head { fill: var(--text-mute); }
+  .graph-legend { display: flex; gap: 16px; font-size: 11px; color: var(--text-dim); }
+  .graph-legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; border: 1.5px solid; }
+  .graph-legend-swatch.sensor { border-color: var(--sev-low); }
+  .graph-legend-swatch.filter { border-color: var(--accent); }
+  .graph-legend-swatch.injector { border-color: var(--state-snooze); }
 
   .modal-backdrop {
     position: fixed; inset: 0; background: rgba(0,0,0,0.55);

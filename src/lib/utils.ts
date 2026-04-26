@@ -25,5 +25,4 @@ export const TWEAK_DEFAULTS: Tweaks = {
   density: "comfortable",
   groupBy: "none",
   layout: "split",
-  showResolved: false,
 };

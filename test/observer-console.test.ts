@@ -22,8 +22,6 @@ const signInAsAdmin = () =>
   });
 
 const firstOpenFinding = 'Context "checkout-eu" has no ContextType set';
-const preAckedFinding = 'Node "gpu-worker-07.eu-west-1" has no NodeType';
-const snoozedFinding = 'Context "sso-prod" has no ContextType set';
 
 const mountApp = () => mount(App, { attachTo: document.body });
 
@@ -33,7 +31,6 @@ const flush = async () => {
 };
 
 const listRows = (wrapper: VueWrapper) => wrapper.findAll(".finding-list .row");
-
 const rowTexts = (wrapper: VueWrapper) => listRows(wrapper).map((row) => row.text());
 
 const navItemFor = (wrapper: VueWrapper, label: RegExp) =>
@@ -49,37 +46,27 @@ const activateNav = async (wrapper: VueWrapper, label: RegExp) => {
 const chipFor = (wrapper: VueWrapper, ariaLabel: string) =>
   wrapper.findAll(".filters .chip").find((chip) => chip.attributes("aria-label") === ariaLabel);
 
-describe("Observer Console — navigation and counts", () => {
+describe("Observer Console — findings list", () => {
   beforeEach(() => {
     window.localStorage.clear();
     signInAsObserver();
   });
 
-  it("renders the inbox by default with open findings", async () => {
+  it("renders the findings list by default with all findings", async () => {
     const wrapper = mountApp();
     await flush();
     const texts = rowTexts(wrapper);
     expect(texts.some((t) => t.includes(firstOpenFinding))).toBe(true);
-    expect(texts.some((t) => t.includes(preAckedFinding))).toBe(false);
-    expect(texts.some((t) => t.includes(snoozedFinding))).toBe(false);
+    expect(listRows(wrapper).length).toBe(11);
   });
 
-  it("sidebar shows the correct counts from the mock data", async () => {
+  it("sidebar shows the total finding count and no triage tabs", async () => {
     const wrapper = mountApp();
     await flush();
-    expect(navItemFor(wrapper, /alert inbox/i)?.find(".count").text()).toBe("8");
-    expect(navItemFor(wrapper, /acknowledged/i)?.find(".count").text()).toBe("1");
-    expect(navItemFor(wrapper, /^snoozed$/i)?.find(".count").text()).toBe("1");
-    expect(navItemFor(wrapper, /^resolved$/i)?.find(".count").text()).toBe("1");
-  });
-
-  it("switches to the Acknowledged tab and shows the pre-acked finding", async () => {
-    const wrapper = mountApp();
-    await flush();
-    await activateNav(wrapper, /acknowledged/i);
-    const texts = rowTexts(wrapper);
-    expect(texts.some((t) => t.includes(preAckedFinding))).toBe(true);
-    expect(texts.some((t) => t.includes(firstOpenFinding))).toBe(false);
+    expect(navItemFor(wrapper, /^findings$/i)?.find(".count").text()).toBe("11");
+    expect(navItemFor(wrapper, /^acknowledged$/i)).toBeUndefined();
+    expect(navItemFor(wrapper, /^snoozed$/i)).toBeUndefined();
+    expect(navItemFor(wrapper, /^resolved$/i)).toBeUndefined();
   });
 
   it("renders the Sensors view when activated", async () => {
@@ -136,7 +123,7 @@ describe("Observer Console — filtering", () => {
   });
 });
 
-describe("Observer Console — single-finding actions", () => {
+describe("Observer Console — finding detail", () => {
   beforeEach(() => {
     window.localStorage.clear();
     signInAsObserver();
@@ -152,114 +139,101 @@ describe("Observer Console — single-finding actions", () => {
     expect(heading.text()).toBe(firstOpenFinding);
   });
 
-  it("acknowledges a finding and moves it to the Acknowledged tab", async () => {
+  it("does not render triage actions on the detail pane", async () => {
     const wrapper = mountApp();
     await flush();
-    const row = listRows(wrapper).find((r) => r.text().includes(firstOpenFinding));
-    await row?.trigger("click");
-    await flush();
-    const ackButton = wrapper
-      .findAll(".actions .btn")
-      .find((b) => b.text().trim().startsWith("Acknowledge"));
-    await ackButton?.trigger("click");
-    await flush();
-
-    expect(rowTexts(wrapper).some((t) => t.includes(firstOpenFinding))).toBe(false);
-
-    await activateNav(wrapper, /acknowledged/i);
-    expect(rowTexts(wrapper).some((t) => t.includes(firstOpenFinding))).toBe(true);
-  });
-
-  it("re-opens an acknowledged finding", async () => {
-    const wrapper = mountApp();
-    await flush();
-    await activateNav(wrapper, /acknowledged/i);
-    const row = listRows(wrapper).find((r) => r.text().includes(preAckedFinding));
-    await row?.trigger("click");
-    await flush();
-    const reopen = wrapper.findAll(".actions .btn").find((b) => /re-open/i.test(b.text()));
-    await reopen?.trigger("click");
-    await flush();
-
-    await activateNav(wrapper, /alert inbox/i);
-    expect(rowTexts(wrapper).some((t) => t.includes(preAckedFinding))).toBe(true);
-  });
-
-  it("snoozes a finding and moves it to the Snoozed tab", async () => {
-    const wrapper = mountApp();
-    await flush();
-    const row = listRows(wrapper).find((r) => r.text().includes(firstOpenFinding));
-    await row?.trigger("click");
-    await flush();
-    const snooze = wrapper.findAll(".actions .btn").find((b) => /snooze 4h/i.test(b.text()));
-    await snooze?.trigger("click");
-    await flush();
-
-    await activateNav(wrapper, /^snoozed$/i);
-    expect(rowTexts(wrapper).some((t) => t.includes(firstOpenFinding))).toBe(true);
-  });
-
-  it("resolves a finding via the modal with a reason", async () => {
-    const wrapper = mountApp();
-    await flush();
-    const row = listRows(wrapper).find((r) => r.text().includes(firstOpenFinding));
-    await row?.trigger("click");
-    await flush();
-    const resolve = wrapper.findAll(".actions .btn").find((b) => /resolve…/i.test(b.text()));
-    await resolve?.trigger("click");
-    await flush();
-
-    const modal = wrapper.find(".modal");
-    expect(modal.exists()).toBe(true);
-    await modal.find("textarea").setValue("deploy landed");
-    const resolveButton = modal.findAll(".btn").find((b) => b.text().trim() === "Resolve");
-    await resolveButton?.trigger("click");
-    await flush();
-
-    await activateNav(wrapper, /^resolved$/i);
-    expect(rowTexts(wrapper).some((t) => t.includes(firstOpenFinding))).toBe(true);
-  });
-
-  it("posts a comment and surfaces it in the activity timeline", async () => {
-    const wrapper = mountApp();
-    await flush();
-    const row = listRows(wrapper).find((r) => r.text().includes(firstOpenFinding));
-    await row?.trigger("click");
-    await flush();
-    const textarea = wrapper.find(".composer textarea");
-    await textarea.setValue("pinged maya");
-    const post = wrapper.findAll(".composer .btn").find((b) => /post note/i.test(b.text()));
-    await post?.trigger("click");
-    await flush();
-    expect(wrapper.find(".timeline").text()).toContain("pinged maya");
+    const detailButtons = wrapper.findAll(".detail-pane .actions .btn").map((b) => b.text());
+    for (const text of detailButtons) {
+      expect(text).not.toMatch(/acknowledge|snooze|resolve|assign|link ticket/i);
+    }
+    expect(wrapper.find(".composer").exists()).toBe(false);
   });
 });
 
-describe("Observer Console — bulk actions", () => {
+describe("Observer Console — model explorer", () => {
   beforeEach(() => {
     window.localStorage.clear();
     signInAsObserver();
   });
 
-  it("bulk-acknowledges selected findings", async () => {
+  it("renders resource types in the left rail when activated", async () => {
     const wrapper = mountApp();
     await flush();
-    const checkboxes = wrapper.findAll(".finding-list .cb");
-    await checkboxes[0].trigger("click");
-    await checkboxes[1].trigger("click");
+    await activateNav(wrapper, /model explorer/i);
+    const types = wrapper.findAll(".explorer-types .explorer-type");
+    const labels = types.map((t) => t.attributes("aria-label"));
+    expect(labels).toContain("type Context");
+    expect(labels).toContain("type Node");
+    expect(labels).toContain("type NodeType");
+  });
+
+  it("filters the resource list when typing in the search input", async () => {
+    const wrapper = mountApp();
     await flush();
-
-    const selectionBar = wrapper.find(".selection-bar");
-    expect(selectionBar.exists()).toBe(true);
-    expect(selectionBar.text()).toContain("2 selected");
-
-    const ackButton = selectionBar.findAll(".btn").find((b) => /acknowledge/i.test(b.text()));
-    await ackButton?.trigger("click");
+    await activateNav(wrapper, /model explorer/i);
+    // Switch to Component type so we have multiple to filter.
+    const componentType = wrapper
+      .findAll(".explorer-types .explorer-type")
+      .find((t) => t.attributes("aria-label") === "type Component");
+    await componentType?.trigger("click");
     await flush();
+    const search = wrapper.find(".explorer-search input");
+    await search.setValue("checkout");
+    await flush();
+    const visible = wrapper.findAll(".explorer-resource").map((r) => r.attributes("aria-label"));
+    expect(visible).toContain("resource checkout-worker");
+    expect(visible).not.toContain("resource ml-trainer");
+  });
 
-    await activateNav(wrapper, /^acknowledged$/i);
-    // Pre-acked finding + the two we just acked → 3 rows.
-    expect(listRows(wrapper).length).toBe(3);
+  it("navigates to a related resource when clicking a relation", async () => {
+    const wrapper = mountApp();
+    await flush();
+    await activateNav(wrapper, /model explorer/i);
+    // Default selection is the first Context — pick checkout-worker via Component type instead.
+    const componentType = wrapper
+      .findAll(".explorer-types .explorer-type")
+      .find((t) => t.attributes("aria-label") === "type Component");
+    await componentType?.trigger("click");
+    await flush();
+    const checkoutWorker = wrapper
+      .findAll(".explorer-resource")
+      .find((r) => r.attributes("aria-label") === "resource checkout-worker");
+    await checkoutWorker?.trigger("click");
+    await flush();
+    // The relation chip "API · payments-v3" should be clickable.
+    const apiRelation = wrapper
+      .findAll(".relation-link")
+      .find((r) => r.attributes("aria-label") === "go to API payments-v3");
+    expect(apiRelation).toBeDefined();
+    await apiRelation?.trigger("click");
+    await flush();
+    // Header should now show the API resource.
+    expect(wrapper.find(".explorer-detail .detail-header h1").text()).toBe("payments-v3");
+    // And the API type should be active in the left rail.
+    const activeType = wrapper.find(".explorer-types .explorer-type.active");
+    expect(activeType.attributes("aria-label")).toBe("type API");
+  });
+});
+
+describe("Observer Console — node graph", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    signInAsObserver();
+  });
+
+  it("renders a directed graph of nodes when activated", async () => {
+    const wrapper = mountApp();
+    await flush();
+    await activateNav(wrapper, /node graph/i);
+    const svg = wrapper.find(".graph-canvas svg");
+    expect(svg.exists()).toBe(true);
+    // Sensors + filters from the model.
+    expect(wrapper.text()).toContain("git-main");
+    expect(wrapper.text()).toContain("structural-0");
+    expect(wrapper.text()).toContain("reference-1");
+    // Edges = number of subscriber relations across nodes.
+    const edges = svg.findAll("g[aria-label='edges'] > g");
+    expect(edges.length).toBeGreaterThan(0);
   });
 });
 
@@ -284,7 +258,6 @@ describe("Observer Console — admin gating", () => {
   });
 
   it("shows the LoginView when not authenticated", async () => {
-    // No signIn helper call — user is unauthenticated.
     const wrapper = mountApp();
     await flush();
     expect(wrapper.find(".login-shell").exists()).toBe(true);

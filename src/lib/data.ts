@@ -119,7 +119,6 @@ export const FINDINGS: Finding[] = [
     ],
     contextId: "ctx-payments",
     sensor: "git-main",
-    state: "open",
   },
   {
     findingId: "7a3f2c1e-4b8d-5e9f-a0b1-c2d3e4f56002",
@@ -145,7 +144,6 @@ export const FINDINGS: Finding[] = [
     annotations: [{ key: "sensor", value: "git-main" }],
     contextId: "ctx-payments",
     sensor: "git-main",
-    state: "open",
   },
   {
     findingId: "7a3f2c1e-4b8d-5e9f-a0b1-c2d3e4f56003",
@@ -167,7 +165,6 @@ export const FINDINGS: Finding[] = [
     ],
     contextId: "ctx-ml-platform",
     sensor: "k8s-us",
-    state: "open",
   },
   {
     findingId: "7a3f2c1e-4b8d-5e9f-a0b1-c2d3e4f56004",
@@ -193,7 +190,6 @@ export const FINDINGS: Finding[] = [
     annotations: [{ key: "sensor", value: "k8s-eu" }],
     contextId: "ctx-payments",
     sensor: "k8s-eu",
-    state: "open",
   },
   {
     findingId: "7a3f2c1e-4b8d-5e9f-a0b1-c2d3e4f56005",
@@ -220,7 +216,6 @@ export const FINDINGS: Finding[] = [
     ],
     contextId: "ctx-payments",
     sensor: "git-main",
-    state: "open",
   },
   {
     findingId: "7a3f2c1e-4b8d-5e9f-a0b1-c2d3e4f56006",
@@ -239,7 +234,6 @@ export const FINDINGS: Finding[] = [
     annotations: [{ key: "sensor", value: "k8s-eu" }],
     contextId: "ctx-retail",
     sensor: "k8s-eu",
-    state: "open",
   },
   {
     findingId: "7a3f2c1e-4b8d-5e9f-a0b1-c2d3e4f56007",
@@ -261,9 +255,6 @@ export const FINDINGS: Finding[] = [
     ],
     contextId: "ctx-ml-platform",
     sensor: "k8s-eu",
-    state: "acknowledged",
-    ackedBy: "lutz",
-    ackedAt: "2026-04-19T07:42:00Z",
   },
   {
     findingId: "7a3f2c1e-4b8d-5e9f-a0b1-c2d3e4f56008",
@@ -282,9 +273,6 @@ export const FINDINGS: Finding[] = [
     annotations: [{ key: "sensor", value: "file-local" }],
     contextId: "ctx-identity",
     sensor: "file-local",
-    state: "snoozed",
-    snoozedUntil: "2026-04-19T14:00:00Z",
-    snoozedBy: "maya",
   },
   {
     findingId: "7a3f2c1e-4b8d-5e9f-a0b1-c2d3e4f56009",
@@ -308,9 +296,6 @@ export const FINDINGS: Finding[] = [
     annotations: [{ key: "sensor", value: "git-main" }],
     contextId: "ctx-ml-platform",
     sensor: "git-main",
-    state: "resolved",
-    resolvedAt: "2026-04-19T04:11:00Z",
-    resolvedReason: "Auto-resolved: API resource was registered.",
   },
   {
     findingId: "7a3f2c1e-4b8d-5e9f-a0b1-c2d3e4f56010",
@@ -329,7 +314,6 @@ export const FINDINGS: Finding[] = [
     annotations: [{ key: "sensor", value: "git-main" }],
     contextId: "ctx-retail",
     sensor: "git-main",
-    state: "open",
   },
   {
     findingId: "7a3f2c1e-4b8d-5e9f-a0b1-c2d3e4f56011",
@@ -348,6 +332,5 @@ export const FINDINGS: Finding[] = [
     annotations: [{ key: "sensor", value: "file-local" }],
     contextId: "ctx-identity",
     sensor: "file-local",
-    state: "open",
   },
 ];

@@ -3,19 +3,12 @@ import type { ActiveView } from "@/lib/types";
 
 import Icon from "./Icon.vue";
 
-export type SidebarCounts = {
-  open: number;
-  acknowledged: number;
-  snoozed: number;
-  resolved: number;
-};
+export type SidebarCounts = { findings: number };
 
 type IconName =
   | "bell"
-  | "check"
-  | "snooze"
-  | "resolve"
   | "map"
+  | "graph"
   | "radar"
   | "book"
   | "cog"
@@ -41,18 +34,16 @@ const emit = defineEmits<Emits>();
 const nav = (): NavGroup[] => {
   const groups: NavGroup[] = [
     {
-      group: "Triage",
+      group: "Observe",
       items: [
-        { id: "inbox", label: "Alert inbox", icon: "bell", count: props.counts.open },
-        { id: "acknowledged", label: "Acknowledged", icon: "check", count: props.counts.acknowledged },
-        { id: "snoozed", label: "Snoozed", icon: "snooze", count: props.counts.snoozed },
-        { id: "resolved", label: "Resolved", icon: "resolve", count: props.counts.resolved },
+        { id: "findings", label: "Findings", icon: "bell", count: props.counts.findings },
       ],
     },
     {
       group: "Landscape",
       items: [
         { id: "explorer", label: "Model explorer", icon: "map" },
+        { id: "graph", label: "Node graph", icon: "graph" },
         { id: "sensors", label: "Sensors", icon: "radar", count: 4 },
         { id: "classes", label: "Finding classes", icon: "book", count: 6 },
         { id: "rules", label: "Filter rules", icon: "filter", count: 6 },

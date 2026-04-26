@@ -17,7 +17,6 @@ const makeFinding = (typeKind: string): Finding => ({
   annotations: [],
   contextId: "ctx-payments",
   sensor: "git-main",
-  state: "open",
 });
 
 describe("timeAgo", () => {

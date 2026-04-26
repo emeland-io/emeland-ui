@@ -1,7 +1,5 @@
 export type Severity = "high" | "medium" | "low";
 
-export type FindingState = "open" | "acknowledged" | "snoozed" | "resolved";
-
 export type FindingType = {
   id: string;
   displayName: string;
@@ -44,13 +42,6 @@ export type Finding = {
   annotations: Annotation[];
   contextId: string;
   sensor: string;
-  state: FindingState;
-  ackedBy?: string;
-  ackedAt?: string;
-  snoozedUntil?: string;
-  snoozedBy?: string;
-  resolvedAt?: string;
-  resolvedReason?: string;
 };
 
 export type Theme = "dark" | "light" | "paper" | "amber";
@@ -63,25 +54,12 @@ export type Tweaks = {
   density: Density;
   layout: Layout;
   groupBy: GroupBy;
-  showResolved: boolean;
 };
-
-export type LocalNote = { by: string; at: string; text: string };
-
-export type LocalState = {
-  overrides: Record<string, Partial<Finding>>;
-  notes: Record<string, LocalNote[]>;
-  tickets: Record<string, string>;
-};
-
-export type ModalKind = "resolve" | "assign" | "link";
 
 export type ActiveView =
-  | "inbox"
-  | "acknowledged"
-  | "snoozed"
-  | "resolved"
+  | "findings"
   | "explorer"
+  | "graph"
   | "sensors"
   | "classes"
   | "rules"
@@ -101,12 +79,45 @@ export type ManagedUser = {
   createdAt: string;
 };
 
-export type DetailAction =
-  | "ack"
-  | "snooze"
-  | "reopen"
-  | "resolveModal"
-  | "assign"
-  | "link"
-  | "comment"
-  | "resolve";
+/** Single relation pointer on a resource — clickable in the explorer. */
+export type ModelRelation = {
+  /** Label of the relation, e.g. "type", "parent", "consumes". */
+  name: string;
+  /** Resource type the target belongs to (used for nav + lookup). */
+  targetType: string;
+  /** ID of the target resource. */
+  targetId: string;
+  /** Cardinality hint — defaults to "one". */
+  cardinality?: "one" | "many";
+};
+
+/** Generic landscape resource — used by the model explorer. */
+export type ModelResource = {
+  id: string;
+  type: string;
+  displayName: string;
+  description?: string;
+  /** Free-form scalar attributes shown in the detail pane. */
+  attributes: Record<string, string>;
+  relations: ModelRelation[];
+};
+
+/** A resource type definition — drives the left rail of the explorer. */
+export type ModelResourceType = {
+  id: string;
+  displayName: string;
+  description: string;
+};
+
+/** A node in the sensor/filter/injector subscriber graph. */
+export type GraphNodeKind = "sensor" | "filter" | "injector";
+
+export type GraphNode = {
+  id: string;
+  kind: GraphNodeKind;
+  /** Logical NodeType, e.g. "git-sensor" or "structural-filter". */
+  nodeType: string;
+  displayName: string;
+  /** Subscribers — node IDs this node publishes events to. */
+  subscribers: string[];
+};

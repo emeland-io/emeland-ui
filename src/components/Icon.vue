@@ -9,10 +9,12 @@ type IconName =
   | "search"
   | "bell"
   | "map"
+  | "graph"
   | "radar"
   | "book"
   | "cog"
-  | "filter";
+  | "filter"
+  | "arrow";
 
 type Props = { name: IconName; size?: number };
 
@@ -206,5 +208,30 @@ const props = withDefaults(defineProps<Props>(), { size: 14 });
     aria-hidden="true"
   >
     <path d="M2 3h12l-4.5 6V13l-3 1v-5L2 3z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
+  </svg>
+
+  <svg
+    v-else-if="props.name === 'graph'"
+    :width="props.size === 14 ? 15 : props.size"
+    :height="props.size === 14 ? 15 : props.size"
+    viewBox="0 0 16 16"
+    fill="none"
+    aria-hidden="true"
+  >
+    <circle cx="3.5" cy="4" r="1.6" stroke="currentColor" stroke-width="1.3" />
+    <circle cx="12.5" cy="4" r="1.6" stroke="currentColor" stroke-width="1.3" />
+    <circle cx="8" cy="12" r="1.6" stroke="currentColor" stroke-width="1.3" />
+    <path d="M4.7 5.2L7.2 10.7M11.3 5.2L8.8 10.7M5 4h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+  </svg>
+
+  <svg
+    v-else-if="props.name === 'arrow'"
+    :width="props.size"
+    :height="props.size"
+    viewBox="0 0 16 16"
+    fill="none"
+    aria-hidden="true"
+  >
+    <path d="M4 8h8M9 5l3 3-3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
   </svg>
 </template>

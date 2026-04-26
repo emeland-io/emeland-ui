@@ -10,7 +10,7 @@ window.EMELAND_UI_CONFIG = {
   rootAdmin: {
     enabled: true,
     // SHA-256 of "dev-root-admin" — development default. Override in deployments.
-    tokenSha256: "1917fd799bc758930885698fed25fca26bfc5f6bf550641a8dedeb6c63fb97ca",
+    tokenSha256: "fc4e1856dfbc7162bba81299665844f37749cb6dfeea33e8597b6df0f3702797",
   },
   api: {
     baseUrl: "http://localhost:8080",

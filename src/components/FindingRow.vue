@@ -10,13 +10,9 @@ type Props = {
   types: Record<string, FindingType>;
   selected?: boolean;
   dimmed?: boolean;
-  checked?: boolean;
 };
 
-type Emits = {
-  select: [findingId: string];
-  toggle: [findingId: string];
-};
+type Emits = { select: [findingId: string] };
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
@@ -33,18 +29,6 @@ const handleRowKeyDown = (e: KeyboardEvent) => {
   e.preventDefault();
   emit("select", props.finding.findingId);
 };
-
-const handleToggleClick = (e: MouseEvent) => {
-  e.stopPropagation();
-  emit("toggle", props.finding.findingId);
-};
-
-const handleToggleKeyDown = (e: KeyboardEvent) => {
-  if (e.key !== "Enter" && e.key !== " ") return;
-  e.preventDefault();
-  e.stopPropagation();
-  emit("toggle", props.finding.findingId);
-};
 </script>
 
 <template>
@@ -59,23 +43,6 @@ const handleToggleKeyDown = (e: KeyboardEvent) => {
     @keydown="handleRowKeyDown"
   >
     <div class="bar" :class="severityClass" />
-    <span
-      role="checkbox"
-      tabindex="0"
-      :aria-checked="!!checked"
-      :aria-label="checked ? 'Deselect finding' : 'Select finding'"
-      class="cb"
-      :class="{ checked }"
-      :style="{ marginLeft: '10px' }"
-      @click="handleToggleClick"
-      @keydown="handleToggleKeyDown"
-    />
-    <span
-      class="state-dot"
-      :class="finding.state"
-      :title="finding.state"
-      :style="{ marginLeft: '0px' }"
-    />
     <div class="main-col">
       <div class="kind">{{ finding.typeKind }}</div>
       <div class="summary">{{ finding.summary }}</div>
