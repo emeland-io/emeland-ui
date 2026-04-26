@@ -9,36 +9,6 @@
 
 @layer base {
   :root {
-    --bg:         #0b0f0e;
-    --bg-1:       #101514;
-    --bg-2:       #161c1b;
-    --bg-3:       #1d2423;
-    --border:     #262d2c;
-    --border-2:   #323a38;
-    --text:       #e6ece9;
-    --text-dim:   #93a09c;
-    --text-mute:  #5f6b67;
-
-    --accent:     #7fe3b6;
-    --accent-2:   #4fbf90;
-    --accent-dim: rgba(127,227,182,0.12);
-
-    --sev-high:   #ff7a6b;
-    --sev-med:    #f0b86b;
-    --sev-low:    #7fbaff;
-
-    --state-open: var(--sev-high);
-    --state-ack:  var(--accent);
-    --state-snooze: #c59bff;
-    --state-resolved: var(--text-mute);
-
-    --radius: 6px;
-    --radius-lg: 10px;
-    --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    --sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  }
-
-  [data-theme="light"] {
     --bg:         #f7f8f7;
     --bg-1:       #ffffff;
     --bg-2:       #eef1ef;
@@ -48,15 +18,50 @@
     --text:       #0d1816;
     --text-dim:   #4a5854;
     --text-mute:  #7c8884;
+
     --accent:     #0d7a52;
     --accent-2:   #085c3d;
     --accent-dim: rgba(13,122,82,0.10);
+
     --sev-high:   #c43020;
     --sev-med:    #a66400;
     --sev-low:    #1f5fa8;
+
     --state-open: var(--sev-high);
     --state-ack:  var(--accent);
     --state-snooze: #6b3fb3;
+    --state-resolved: var(--text-mute);
+
+    --radius: 6px;
+    --radius-lg: 10px;
+    --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+
+  [data-theme="light"] {
+    /* Light is the default in :root; keep the selector as a no-op so the
+       theme switcher's data-theme="light" toggle still resolves cleanly. */
+  }
+
+  [data-theme="dark"] {
+    --bg:         #0b0f0e;
+    --bg-1:       #101514;
+    --bg-2:       #161c1b;
+    --bg-3:       #1d2423;
+    --border:     #262d2c;
+    --border-2:   #323a38;
+    --text:       #e6ece9;
+    --text-dim:   #93a09c;
+    --text-mute:  #5f6b67;
+    --accent:     #7fe3b6;
+    --accent-2:   #4fbf90;
+    --accent-dim: rgba(127,227,182,0.12);
+    --sev-high:   #ff7a6b;
+    --sev-med:    #f0b86b;
+    --sev-low:    #7fbaff;
+    --state-open: var(--sev-high);
+    --state-ack:  var(--accent);
+    --state-snooze: #c59bff;
     --state-resolved: var(--text-mute);
   }
 

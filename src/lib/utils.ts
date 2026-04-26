@@ -21,7 +21,7 @@ export const severityVar = (severity: Severity): string =>
   severity === "medium" ? "var(--sev-med)" : severity === "high" ? "var(--sev-high)" : "var(--sev-low)";
 
 export const TWEAK_DEFAULTS: Tweaks = {
-  theme: "dark",
+  theme: "light",
   density: "comfortable",
   groupBy: "none",
   layout: "split",
