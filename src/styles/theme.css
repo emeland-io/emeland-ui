@@ -1,0 +1,19 @@
+@theme {
+  --color-bg-0: #0a0f0d;
+  --color-bg-1: #0f1916;
+  --color-bg-2: #15201c;
+  --color-bg-3: #1a2824;
+  --color-text-1: #e8eae4;
+  --color-text-2: #a8b8b0;
+  --color-text-3: #6a8078;
+  --color-text-4: #3a4a44;
+  --color-accent: #1d9e75;
+  --color-accent-text: #9fe1cb;
+  --color-sensor: #3a8fc4;
+  --color-filter: #7f77dd;
+  --color-injector: #d4722a;
+  --color-external: #5f5e5a;
+  --color-error: #e24b4a;
+  --color-warning: #ba7517;
+  --font-sans: 'Geist', system-ui, sans-serif;
+}
