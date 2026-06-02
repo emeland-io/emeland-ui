@@ -12,6 +12,14 @@ The initial application shell defining the overall structure of EmELand, includi
 
 ![Base Layout](./images/base_dark.png)
 
+### Sidebar
+
+Sidebar is structured in two parts: a header section (Overview, Landscape) and phases section below the divider listing the book phases.
+
+In the future, the phase sections could be made collapsible, this depends on how many resources each phase will eventually contain, which is not fully known yet. If the growing number of items starts to affect navigation usability, we'll revisit the phase section UX.
+
+![Sidebar](./images//sidebar_dark.png)
+
 ---
 
 ## Node Graph
