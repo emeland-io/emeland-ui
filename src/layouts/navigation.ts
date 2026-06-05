@@ -32,6 +32,8 @@ export const headerNavigation: NavSection[] = [
   },
 ]
 
+// TODO: icon choices are currently placeholders -
+// replace with final icons once design is finalized
 export const phaseNavigation: NavSection[] = [
   {
     title: 'Context',
