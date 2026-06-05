@@ -11,15 +11,10 @@ import { IconSearch } from '@tabler/icons-vue'
 
     <div class="flex-1" />
 
-    <div
-      class="flex w-64 items-center gap-2 rounded border border-border-1 bg-bg-1 px-2.5 py-1 text-[11px] text-text-4"
-    >
-      <IconSearch
-        :size="12"
-        :stroke-width="1.5"
-        aria-hidden="true"
-      />
-      <span>Search Findings, Resources, Events, ...</span>
+    <div class="flex w-64 items-center gap-2 rounded border border-border-1 bg-bg-1 px-2.5 py-1 text-[11px]">
+      <IconSearch :size="12" :stroke-width="1.5" class="shrink-0 text-text-4" aria-hidden="true" />
+      <input type="text" placeholder="Search Findings, Resources, Events, ..."
+        class="w-full bg-transparent text-text-2 placeholder:text-text-4 outline-none" />
     </div>
   </header>
 </template>
