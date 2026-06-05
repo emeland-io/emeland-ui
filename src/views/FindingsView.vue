@@ -1,4 +1,6 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { IconAlertCircle } from '@tabler/icons-vue'
+</script>
 
 <template>
   <div class="flex h-full flex-col">
@@ -22,6 +24,7 @@
     <div class="flex flex-1 items-center justify-center">
       <div class="text-center">
         <i class="ti ti-alert-circle text-3xl text-text-4" />
+        <IconAlertCircle :size="28" :stroke-width="1.5" class="mx-auto text-text-4" />
         <p class="mt-2 text-sm text-text-3">Findings view</p>
       </div>
     </div>
