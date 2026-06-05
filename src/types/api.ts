@@ -1,31 +1,25 @@
-import type { Annotations, EntityVersion, UUID, Version } from './common'
-import type { SystemInstanceReference, SystemReference } from './system'
+/**
+ * Api types matching the EmELand OpenAPI spec (EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3).
+ */
 
-export type ApiType = 'Unknown' | 'OpenApi' | 'GraphQL' | 'GRPC' | 'Other'
+import type { UUID, Version, Annotations } from './common'
 
-export interface ApiReference {
-  api?: Api
-  apiId: UUID
-  apiReference?: EntityVersion
-}
+export type ApiType = 'Unknown' | 'OpenAPI' | 'GraphQL' | 'gRPC' | 'Other'
 
 export interface Api {
   apiId: UUID
-  resourceId: UUID
-  resourceName: string
   displayName: string
-  description: string
+  description?: string
   version: Version
   type: ApiType
-  system: SystemReference
+  system: UUID
   annotations: Annotations
 }
 
 export interface ApiInstance {
-  instanceId: UUID
-  resourceId: UUID
+  apiInstanceId: UUID
   displayName: string
-  apiReference: ApiReference
-  systemInstance: SystemInstanceReference
+  api?: UUID
+  systemInstance?: UUID
   annotations: Annotations
 }

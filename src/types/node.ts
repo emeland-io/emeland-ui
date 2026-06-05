@@ -1,26 +1,19 @@
-import type { Annotations, UUID } from './common'
+/**
+ * Node types matching the EmELand OpenAPI spec (EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3).
+ */
 
-export interface Node {
-  nodeId: UUID
-  resourceId: UUID
-  resourceName: string
-  displayName: string
-  description: string
-  annotations: Annotations
-  nodeType?: NodeType
-  nodeTypeId?: UUID
-}
+import type { UUID, Annotations } from './common'
 
 export interface NodeType {
   nodeTypeId: UUID
-  resourceId: UUID
-  resourceName: string
   displayName: string
-  description: string
+  description?: string
   annotations: Annotations
 }
 
-export interface NodeTypeReference {
-  nodeType?: NodeType
-  nodeTypeId: UUID
+export interface Node {
+  nodeId: UUID
+  displayName: string
+  nodeType: UUID
+  annotations: Annotations
 }

@@ -1,19 +1,12 @@
-import type { Annotations, UUID } from './common'
-import type { IdentityReference } from './identity'
-import type { OrgUnitReference } from './orgunit'
+/**
+ * Group type matching the EmELand OpenAPI spec (EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3).
+ */
+
+import type { UUID, Annotations } from './common'
 
 export interface Group {
   groupId: UUID
-  resourceId: UUID 
-  resourceName: string
   displayName: string
-  description: string
-  members: IdentityReference[]
-  orgUnit: OrgUnitReference
+  description?: string
   annotations: Annotations
-}
-
-export interface GroupReference {
-  group?: Group
-  groupId: UUID
 }

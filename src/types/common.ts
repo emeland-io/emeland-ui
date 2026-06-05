@@ -1,9 +1,17 @@
+/**
+ * Common types matching the EmELand OpenAPI spec (EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3).
+ *
+ * Note: Annotations are Record<string, string> in the frontend for ergonomics.
+ * The API sends them as Array<{key, value}> - the API client layer transforms.
+ */
+
 export type UUID = string
 
 export type ResourceType =
   | 'Unknown'
   | 'Node'
   | 'NodeType'
+  | 'Annotations'
   // Phase 0
   | 'Context'
   | 'ContextType'
@@ -24,12 +32,11 @@ export type ResourceType =
   // Phase 8
   | 'Artifact'
   | 'ArtifactInstance'
-  // other
-  | 'Annotations'
 
 export interface ResourceReference {
   resourceId: UUID
   resourceType: ResourceType
+  reference?: string
 }
 
 export interface Version {
@@ -37,11 +44,6 @@ export interface Version {
   availableFrom?: string
   deprecatedFrom?: string
   terminatedFrom?: string
-}
-
-export interface EntityVersion {
-  name: string
-  version: string
 }
 
 export type Annotations = Record<string, string>

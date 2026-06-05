@@ -1,27 +1,21 @@
-import type { Annotations, UUID } from './common'
+/**
+ * Context types matching the EmELand OpenAPI spec (EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3).
+ */
 
-export interface Context {
-  contextId: UUID
-  resourceId: UUID
-  resourceName: string
-  displayName: string
-  description: string
-  annotations: Annotations
-  contextType?: ContextType
-  contextTypeId?: UUID
-  parent?: ContextReference
-}
+import type { UUID, Annotations } from './common'
 
 export interface ContextType {
   contextTypeId: UUID
-  resourceId: UUID
-  resourceName: string
   displayName: string
-  description: string
+  description?: string
   annotations: Annotations
 }
 
-export interface ContextReference {
-  context?: Context
+export interface Context {
   contextId: UUID
+  displayName: string
+  description?: string
+  type?: UUID
+  parent?: UUID
+  annotations: Annotations
 }

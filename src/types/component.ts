@@ -1,32 +1,26 @@
-import type { ApiReference } from './api'
-import type { Annotations, EntityVersion, UUID, Version } from './common'
-import type { SystemInstanceReference, SystemReference } from './system'
+/**
+ * Component types matching the EmELand OpenAPI spec (EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3).
+ */
+
+import type { UUID, Version, Annotations } from './common'
 
 export interface Component {
   componentId: UUID
-  resourceId: UUID
-  resourceName: string
   displayName: string
-  description: string
+  description?: string
   version: Version
-  system: SystemReference
-  consumes: ApiReference[]
-  provides: ApiReference[]
+  system: UUID
+  consumes: UUID[]
+  provides: UUID[]
   annotations: Annotations
 }
 
 export interface ComponentInstance {
-  instanceId: UUID
-  resourceId: UUID
-  resourceName: string
+  componentInstanceId: UUID
   displayName: string
-  componentReference?: ComponentReference
-  systemInstance?: SystemInstanceReference
+  component: UUID
+  systemInstance: UUID
+  consumes: UUID[]
+  provides: UUID[]
   annotations: Annotations
-}
-
-export interface ComponentReference {
-  component?: Component
-  componentId: UUID
-  componentReference?: EntityVersion
 }

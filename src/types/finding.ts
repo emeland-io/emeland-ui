@@ -1,3 +1,7 @@
+/**
+ * Finding types matching the EmELand OpenAPI spec (EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3).
+ */
+
 import type { UUID, ResourceReference, Annotations } from './common'
 
 export type FindingKind =
@@ -8,26 +12,16 @@ export type FindingKind =
 
 export interface FindingType {
   findingTypeId: UUID
-  resourceId: UUID
-  resourceName: string
   displayName: string
-  description: string
+  description?: string
   annotations: Annotations
-}
-
-export interface FindingTypeReference {
-  findingType?: FindingType
-  findingTypeId: UUID
 }
 
 export interface Finding {
   findingId: UUID
-  resourceId: UUID
-  resourceName: string
   summary: string
-  description: string
+  description?: string
+  type: UUID
   resources: ResourceReference[]
   annotations: Annotations
-  findingTypeId: UUID
-  findingType?: FindingType
 }
