@@ -19,7 +19,7 @@ export type ResourceType =
   | 'System'
   | 'SystemInstance'
   | 'API'
-  | 'APIInstance'
+  | 'ApiInstance'
   | 'Component'
   | 'ComponentInstance'
   // Phase 2
