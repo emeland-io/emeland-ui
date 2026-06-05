@@ -1,2 +1,9 @@
 @import 'tailwindcss';
 @import './theme.css';
+
+body {
+  background-color: var(--color-bg-0);
+  color: var(--color-text-1);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
