@@ -7,8 +7,8 @@ export interface Context {
   displayName: string
   description: string
   annotations: Annotations
-  contextType: ContextType
-  contextTypeId: UUID
+  contextType?: ContextType
+  contextTypeId?: UUID
   parent?: ContextReference
 }
 
@@ -22,6 +22,6 @@ export interface ContextType {
 }
 
 export interface ContextReference {
-  context: Context
+  context?: Context
   contextId: UUID
 }

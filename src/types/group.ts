@@ -3,8 +3,8 @@ import type { IdentityReference } from './identity'
 import type { OrgUnitReference } from './orgunit'
 
 export interface Group {
-  groupdId: UUID
-  resourceId: string
+  groupId: UUID
+  resourceId: UUID 
   resourceName: string
   displayName: string
   description: string

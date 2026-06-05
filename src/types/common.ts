@@ -21,6 +21,9 @@ export type ResourceType =
   // Phase 5
   | 'Finding'
   | 'FindingType'
+  // Phase 8
+  | 'Artifact'
+  | 'ArtifactInstance'
   // other
   | 'Annotations'
 

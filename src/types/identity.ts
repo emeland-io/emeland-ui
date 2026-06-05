@@ -12,6 +12,6 @@ export interface Identity {
 }
 
 export interface IdentityReference {
-  idendity?: Identity
-  idendityId: UUID
+  identity?: Identity
+  identityId: UUID
 }

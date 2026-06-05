@@ -7,7 +7,8 @@ export interface Node {
   displayName: string
   description: string
   annotations: Annotations
-  nodeType: NodeType
+  nodeType?: NodeType
+  nodeTypeId?: UUID
 }
 
 export interface NodeType {
