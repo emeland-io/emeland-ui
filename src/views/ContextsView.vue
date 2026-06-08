@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { IconSitemap } from '@tabler/icons-vue'
+import { apiFetch } from '@/api/fetch'
 
 interface ContextListItem {
   displayName: string
@@ -14,7 +15,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const resp = await fetch('/api/landscape/contexts')
+    const resp = await apiFetch('/api/landscape/contexts')
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
     contexts.value = await resp.json()
   } catch (e) {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { IconBox } from '@tabler/icons-vue'
+import { apiFetch } from '@/api/fetch'
 
 interface SystemListItem {
   displayName: string
@@ -14,7 +15,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const resp = await fetch('/api/landscape/systems')
+    const resp = await apiFetch('/api/landscape/systems')
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
     systems.value = await resp.json()
   } catch (e) {
