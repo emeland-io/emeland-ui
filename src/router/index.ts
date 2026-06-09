@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 const routes = [
   { path: '/', redirect: '/findings' },
+  { path: '/callback', name: 'Callback', component: () => import('@/views/CallbackView.vue') },
 
   // Overview
   { path: '/findings', name: 'Findings', component: () => import('@/views/FindingsView.vue') },
@@ -15,10 +16,10 @@ const routes = [
   { path: '/injectors', name: 'Injectors', component: () => import('@/views/Tmp.vue') },
 
   // Context P0
-  { path: '/contexts', name: 'Contexts', component: () => import('@/views/Tmp.vue') },
+  { path: '/contexts', name: 'Contexts', component: () => import('@/views/ContextsView.vue') },
 
   // Structure P1
-  { path: '/systems', name: 'Systems', component: () => import('@/views/Tmp.vue') },
+  { path: '/systems', name: 'Systems', component: () => import('@/views/SystemsView.vue') },
   { path: '/components', name: 'Components', component: () => import('@/views/Tmp.vue') },
   { path: '/apis', name: 'APIs', component: () => import('@/views/Tmp.vue') },
 

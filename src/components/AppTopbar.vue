@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { IconSearch } from '@tabler/icons-vue'
+import { IconSearch, IconLogout } from '@tabler/icons-vue'
+import { clearToken, authenticated } from '@/auth'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+function logout() {
+  clearToken()
+  router.push('/')
+}
 </script>
 
 <template>
@@ -26,5 +35,12 @@ import { IconSearch } from '@tabler/icons-vue'
         class="w-full bg-transparent text-text-2 placeholder:text-text-4 outline-none"
       />
     </div>
+
+    <button
+v-if="authenticated" class="ml-3 flex items-center gap-1 rounded px-2 py-1 text-[11px] text-text-3 hover:bg-bg-2 hover:text-text-1"
+      title="Logout"
+      @click="logout">
+      <IconLogout :size="14" :stroke-width="1.5" />
+    </button>
   </header>
 </template>
