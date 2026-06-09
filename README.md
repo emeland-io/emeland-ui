@@ -15,14 +15,15 @@ npm run dev
 
 ## Scripts
 
-| Command | Description |
-|----------|-------------|
-| `npm install` | Install project dependencies |
-| `npm run dev` | Start development server |
-| `npm run build` | Type-check and build for production |
-| `npm run preview` | Preview production build locally |
-| `npm run lint` | Run ESLint |
-| `npm run format` | Format code with Prettier |
+| Command                | Description                     |
+| ---------------------- | ------------------------------- |
+| `npm install`          | Install project dependencies    |
+| `npm run dev`          | Start development server        |
+| `npm run build`        | Type-check and build            |
+| `npm run preview`      | Preview build locally           |
+| `npm run lint`         | Run ESLint                      |
+| `npm run format`       | Format code with Prettier       |
+| `npm run format:check` | Check only format with Prettier |
 
 ## Current Tech Stack
 
