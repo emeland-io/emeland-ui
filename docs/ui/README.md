@@ -22,6 +22,25 @@ In the future, the phase sections could be made collapsible, this depends on how
 
 ---
 
+## Findings
+
+Findings view for monitoring detected conditions in the landscape model,  referential integrity violations, missing relationships or policy rule violations surfaced by filters.
+
+![Findings](./images/findings_dark.png)
+
+#### Layout
+
+The view uses a list-detail layout: a resizable finding list on the left and a detail panel on the right. Selecting a finding displays its full description, affected resources, annotations and finding type information.
+
+#### Filtering
+
+Findings can be filtered by finding type and resource type directly from the toolbar. The search input matches against summary and description. Filter buttons show an overflow menu (`+N`) when there are more options than fit inline, with a visual indicator if a hidden filter is active.
+
+#### Severity
+
+Severity is not part of the EmELand model. Annotations should be used.
+
+
 ## Node Graph
 
 Node graph exploration view with a focused inspector panel showing node metadata, relationships and contextual details.
