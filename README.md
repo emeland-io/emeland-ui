@@ -25,6 +25,25 @@ npm run dev
 | `npm run format`       | Format code with Prettier       |
 | `npm run format:check` | Check only format with Prettier |
 
+## Environment Variables
+
+Environment variables are loaded by Vite from `.env` files in the project root. Only variables prefixed with `VITE_` are exposed to the client.
+
+| Variable                | Default | Description                                                       |
+| ----------------------- | ------- | ----------------------------------------------------------------- |
+| `VITE_EMEL_DEV_USE_MOCKS`        | `false` | Load mock data instead of calling the backend API.               |
+
+### Development
+
+For local development without a running backend, mock data is provided in `src/mocks`. Enable it via `.env.development`:
+
+```bash
+# .env.development
+VITE_EMEL_DEV_USE_MOCKS=true
+```
+
+With mocks enabled, the app loads sample findings, systems and related resources without needing a backend connection. When `VITE_EMEL_DEV_USE_MOCKS` is unset or `false`, the app fetches from backend API.
+
 ## Current Tech Stack
 
 - Vue 3

@@ -9,7 +9,6 @@ import { ref } from 'vue'
 const TOKEN_KEY = 'emeland_access_token'
 const VERIFIER_KEY = 'emeland_pkce_verifier'
 
-
 export const authenticated = ref(sessionStorage.getItem('emeland_access_token') !== null)
 
 export interface AuthConfig {
@@ -58,9 +57,9 @@ export async function login(): Promise<void> {
 
   // Encode return path in state (base64url JSON with CSRF nonce)
   const nonce = base64UrlEncode(crypto.getRandomValues(new Uint8Array(16)))
-  const state = base64UrlEncode(new TextEncoder().encode(
-    JSON.stringify({ returnPath: window.location.pathname, nonce })
-  ))
+  const state = base64UrlEncode(
+    new TextEncoder().encode(JSON.stringify({ returnPath: window.location.pathname, nonce })),
+  )
 
   const params = new URLSearchParams({
     response_type: 'code',
@@ -139,7 +138,8 @@ function base64UrlEncode(bytes: Uint8Array): string {
 }
 
 function base64UrlDecode(str: string): Uint8Array {
-  const padded = str.replace(/-/g, '+').replace(/_/g, '/') + '=='.slice(0, (4 - str.length % 4) % 4)
+  const padded =
+    str.replace(/-/g, '+').replace(/_/g, '/') + '=='.slice(0, (4 - (str.length % 4)) % 4)
   const binary = atob(padded)
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
