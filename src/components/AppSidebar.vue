@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { IconSettings, IconSun, IconMoon } from '@tabler/icons-vue'
-import { headerNavigation, phaseNavigation } from '@/layouts/navigation'
 import SidebarNavSection from '@/components/SidebarNavSection.vue'
 import { useTheme } from '@/composables/useTheme'
+import { useNavigation } from '@/composables/useNavigation'
 
 const { theme, toggleTheme } = useTheme()
+const { headerNavigation, phaseNavigation } = useNavigation()
 </script>
 
 <template>
