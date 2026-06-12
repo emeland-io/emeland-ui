@@ -37,10 +37,15 @@ function logout() {
     </div>
 
     <button
-v-if="authenticated" class="ml-3 flex items-center gap-1 rounded px-2 py-1 text-[11px] text-text-3 hover:bg-bg-2 hover:text-text-1"
+      v-if="authenticated"
+      class="ml-3 flex items-center gap-1 rounded px-2 py-1 text-[11px] text-text-3 hover:bg-bg-2 hover:text-text-1"
       title="Logout"
-      @click="logout">
-      <IconLogout :size="14" :stroke-width="1.5" />
+      @click="logout"
+    >
+      <IconLogout
+        :size="14"
+        :stroke-width="1.5"
+      />
     </button>
   </header>
 </template>
