@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { fetchFindings, fetchFindingTypes } from '@/api/findings'
 import type { Finding, FindingType } from '@/types/finding'
+import { Annotation, getAnnotation } from '@/constants/annotations'
 
 export const useFindingsStore = defineStore('findings', () => {
   const findings = ref<Finding[]>([])
@@ -17,7 +18,8 @@ export const useFindingsStore = defineStore('findings', () => {
   }
 
   function getKindForFinding(f: Finding): string {
-    return getTypeForFinding(f)?.annotations['emeland.io/finding-kind'] ?? 'Unknown'
+    const ft = getTypeForFinding(f);
+    return ft ? getAnnotation(ft.annotations, Annotation.FINDING_KIND) ?? 'Unknown' : 'Unknown'
   }
 
   async function load() {

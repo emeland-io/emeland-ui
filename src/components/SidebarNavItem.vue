@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { NavItem } from '@/layouts/navigation'
+import type { NavItem } from '@/composables/useNavigation'
 
 defineProps<{
   item: NavItem
@@ -25,7 +25,7 @@ defineProps<{
     />
     <span
       v-else-if="typeof item.badge === 'number'"
-      class="rounded-full bg-bg-2 px-1.5 font-mono text-[9px] text-text-3"
+      class="rounded-full bg-accent/10 px-1.5 font-mono text-[11px] text-accent"
     >
       {{ item.badge }}
     </span>
