@@ -21,6 +21,8 @@ npm run dev
 | `npm run dev`          | Start development server        |
 | `npm run build`        | Type-check and build            |
 | `npm run preview`      | Preview build locally           |
+| `npm run test`         | Run tests in watch mode         |
+| `npm run test:run`     | Run tests once                  |
 | `npm run lint`         | Run ESLint                      |
 | `npm run format`       | Format code with Prettier       |
 | `npm run format:check` | Check only format with Prettier |
