@@ -18,8 +18,8 @@ export const useFindingsStore = defineStore('findings', () => {
   }
 
   function getKindForFinding(f: Finding): string {
-    const ft = getTypeForFinding(f);
-    return ft ? getAnnotation(ft.annotations, Annotation.FINDING_KIND) ?? 'Unknown' : 'Unknown'
+    const ft = getTypeForFinding(f)
+    return ft ? (getAnnotation(ft.annotations, Annotation.FINDING_KIND) ?? 'Unknown') : 'Unknown'
   }
 
   async function load() {
