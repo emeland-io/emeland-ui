@@ -16,6 +16,7 @@
   --color-external: #5f5e5a;
   --color-error: #e24b4a;
   --color-warning: #ba7517;
+  --color-sep: var(--color-border-2);
   --font-sans: 'Geist', system-ui, sans-serif;
 }
 
