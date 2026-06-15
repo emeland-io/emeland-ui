@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { NavSection } from '@/layouts/navigation'
+import type { NavSection } from '@/composables/useNavigation'
 import SidebarNavItem from '@/components/SidebarNavItem.vue'
 
 defineProps<{

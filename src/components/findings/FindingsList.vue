@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Annotation, getAnnotation } from '@/constants/annotations';
+import { Annotation, getAnnotation } from '@/constants/annotations'
 import type { Finding } from '@/types/finding'
 
 defineProps<{
@@ -13,7 +13,7 @@ const emit = defineEmits<{
 }>()
 
 function getTime(f: Finding) {
-  const ts = getAnnotation(f.annotations, Annotation.DETECTED_AT) 
+  const ts = getAnnotation(f.annotations, Annotation.DETECTED_AT)
   if (!ts) return ''
   return /^\d{4}-\d{2}-\d{2}T/.test(ts) ? ts.slice(0, 16).replace('T', ' ') : ts
 }
