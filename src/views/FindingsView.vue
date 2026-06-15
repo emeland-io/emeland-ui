@@ -48,12 +48,20 @@ const filteredFindings = computed(() =>
 
 function toggleType(kind: string) {
   const s = new Set(activeTypes.value)
-  s.has(kind) ? s.delete(kind) : s.add(kind)
+  if(s.has(kind)) {
+    s.delete(kind)
+  } else {
+    s.add(kind)
+  }
   activeTypes.value = s
 }
 function toggleResourceType(rt: string) {
   const s = new Set(activeResourceTypes.value)
-  s.has(rt) ? s.delete(rt) : s.add(rt)
+  if(s.has(rt)) {
+    s.delete(rt)
+  } else {
+    s.add(rt)
+  }
   activeResourceTypes.value = s
 }
 function clearFilters() {
