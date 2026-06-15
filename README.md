@@ -25,6 +25,35 @@ npm run dev
 | `npm run format`       | Format code with Prettier       |
 | `npm run format:check` | Check only format with Prettier |
 
+## Environment Variables
+
+Environment variables are loaded by Vite from `.env` files in the project root. Only variables prefixed with `VITE_` are exposed to the client.
+
+| Variable                  | Default | Description                                        |
+| ------------------------- | ------- | -------------------------------------------------- |
+| `VITE_EMEL_DEV_USE_MOCKS` | `false` | Load mock data instead of calling the backend API. |
+
+### Development
+
+For local development without a running backend, mock data is provided in `src/mocks`. Enable it via `.env.development`:
+
+```bash
+# .env.development
+VITE_EMEL_DEV_USE_MOCKS=true
+```
+
+With mocks enabled, the app loads sample findings, systems and related resources without needing a backend connection. When `VITE_EMEL_DEV_USE_MOCKS` is unset or `false`, the app fetches from backend API.
+
+## Annotations
+
+The frontend reads certain annotations from the model to drive display and behavior. Annotations are matched by their short key (the part after the last `/`), so the namespace prefix can vary without breaking the UI.
+
+Current known keys are centralized in `src/constants/annotations.ts` and resolved via `getAnnotation()`, which ignores the namespace prefix.
+
+| Short key     | Read from | Used for                                                  |
+| ------------- | --------- | --------------------------------------------------------- |
+| `detected-at` | Finding   | Timestamp shown in the list and sort order (newest first) |
+
 ## Current Tech Stack
 
 - Vue 3

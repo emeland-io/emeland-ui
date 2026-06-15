@@ -1,6 +1,7 @@
 import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import pluginVue from 'eslint-plugin-vue'
+import globals from 'globals'
 import eslintConfigPrettier from 'eslint-config-prettier'
 
 export default [
@@ -18,6 +19,9 @@ export default [
             parserOptions: {
                 parser: tseslint.parser,
             },
+            globals: {
+                ...globals.browser,
+            }
         },
     },
 
