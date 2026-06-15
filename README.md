@@ -46,13 +46,13 @@ With mocks enabled, the app loads sample findings, systems and related resources
 
 ## Annotations
 
-The frontned reads certain annotations from the model to drive display and behavior. Annotations are matchjed by their short key (the part after the last `/`), so the namespace prefix can vary without breaking the UI.
+The frontend reads certain annotations from the model to drive display and behavior. Annotations are matched by their short key (the part after the last `/`), so the namespace prefix can vary without breaking the UI.
 
 Current known keys are centralized in `src/constants/annotations.ts` and resolved via `getAnnotation()`, which ignores the namespace prefix.
 
-| Short key     | Read from | Used for                                                 |
-| ------------- | --------- | -------------------------------------------------------- |
-| `detected-at` | Finding   | Timestamp shown in the list and sort oder (newest first) |
+| Short key     | Read from | Used for                                                  |
+| ------------- | --------- | --------------------------------------------------------- |
+| `detected-at` | Finding   | Timestamp shown in the list and sort order (newest first) |
 
 ## Current Tech Stack
 
