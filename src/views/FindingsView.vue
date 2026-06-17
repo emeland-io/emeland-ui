@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { IconCircleCheck, IconLoader2 } from '@tabler/icons-vue'
+import { IconCircleCheck, IconLoader2, IconListDetails } from '@tabler/icons-vue'
 import { useFindingsStore } from '@/stores/findings'
 import FindingsToolbar from '@/components/findings/FindingsToolbar.vue'
 import FindingsList from '@/components/findings/FindingsList.vue'
 import FindingDetail from '@/components/findings/FindingDetail.vue'
+import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
+import CopyButton from '@/components/CopyButton.vue'
 import { Annotation, getAnnotation } from '@/constants/annotations'
 
 const store = useFindingsStore()
@@ -112,11 +114,37 @@ function onResizeStart(e: MouseEvent) {
 
 onMounted(() => store.load())
 onUnmounted(() => cleanupResize?.())
+
+// Finding Types drawer
+const typesDrawerOpen = ref(false)
+const selectedTypeId = ref('')
+const selectedType = computed(() =>
+  store.findingTypes.find((t) => t.findingTypeId === selectedTypeId.value),
+)
+
+function kindOfType(typeId: string): string {
+  const t = store.findingTypes.find((ft) => ft.findingTypeId === typeId)
+  return t ? (getAnnotation(t.annotations, Annotation.FINDING_KIND) ?? 'Unknown') : 'Unknown'
+}
+
+function openTypesDrawer() {
+  typesDrawerOpen.value = true
+  // Preselect the type of the currently selected finding
+  const typeId = selectedFinding.value?.type
+  if (typeId && store.findingTypes.some((t) => t.findingTypeId === typeId)) {
+    selectedTypeId.value = typeId
+  } else if (!selectedTypeId.value && store.findingTypes.length > 0) {
+    selectedTypeId.value = store.findingTypes[0].findingTypeId
+  }
+}
+function closeTypesDrawer() {
+  typesDrawerOpen.value = false
+}
 </script>
 
 <template>
   <div
-    class="flex h-full flex-col"
+    class="relative flex h-full flex-col"
     :class="isResizing ? 'select-none' : ''"
   >
     <!-- Header -->
@@ -131,6 +159,23 @@ onUnmounted(() => cleanupResize?.())
           of {{ store.findings.length }}
         </span>
       </span>
+
+      <button
+        class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs transition-colors"
+        :class="
+          typesDrawerOpen
+            ? 'border-accent/20 bg-accent/10 text-accent-text'
+            : 'border-border-1 text-text-3 hover:bg-bg-2 hover:text-text-2'
+        "
+        @click="openTypesDrawer"
+      >
+        <IconListDetails
+          :size="13"
+          :stroke-width="1.5"
+        />
+        Finding Types
+        <span class="font-mono text-[10px] text-text-4">{{ store.findingTypes.length }}</span>
+      </button>
     </div>
 
     <!-- Loading -->
@@ -225,5 +270,93 @@ onUnmounted(() => cleanupResize?.())
         </div>
       </div>
     </template>
+
+    <!-- Finding Types slide-over drawer -->
+    <SlideOverDrawer
+      :open="typesDrawerOpen"
+      title="Finding Types"
+      :count="store.findingTypes.length"
+      @close="closeTypesDrawer"
+    >
+      <template #icon>
+        <IconListDetails
+          :size="16"
+          :stroke-width="1.5"
+          class="text-text-3"
+        />
+      </template>
+
+      <!-- Type list -->
+      <div class="w-56 shrink-0 overflow-y-auto border-r border-border-1">
+        <div
+          v-for="type in store.findingTypes"
+          :key="type.findingTypeId"
+          class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-2.5 transition-colors"
+          :class="
+            type.findingTypeId === selectedTypeId
+              ? 'border-l-accent bg-accent/5'
+              : 'border-l-transparent hover:bg-bg-1'
+          "
+          @click="selectedTypeId = type.findingTypeId"
+        >
+          <div class="text-sm font-medium text-text-1">{{ type.displayName }}</div>
+          <span
+            class="mt-1 inline-block rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-[10px] text-sensor"
+          >
+            {{ kindOfType(type.findingTypeId) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Type detail -->
+      <div
+        v-if="selectedType"
+        class="flex-1 overflow-y-auto px-6 py-5"
+      >
+        <h3 class="text-base font-medium text-text-1">{{ selectedType.displayName }}</h3>
+        <div class="mt-2 flex items-center gap-2">
+          <span class="rounded bg-sensor/10 px-2 py-0.5 font-mono text-xs text-sensor">
+            {{ kindOfType(selectedType.findingTypeId) }}
+          </span>
+          <span class="font-mono text-xs text-text-4">{{ selectedType.findingTypeId }}</span>
+          <CopyButton
+            :value="selectedType.findingTypeId"
+            :size="13"
+          />
+        </div>
+
+        <p
+          v-if="selectedType.description"
+          class="mt-4 font-mono text-sm leading-relaxed text-text-2"
+        >
+          {{ selectedType.description }}
+        </p>
+
+        <div
+          v-if="Object.keys(selectedType.annotations).length > 0"
+          class="mt-6"
+        >
+          <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+            Annotations
+          </div>
+          <div
+            v-for="(value, key) in selectedType.annotations"
+            :key="key"
+            class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
+            style="grid-template-columns: 240px minmax(0, 1fr)"
+          >
+            <span class="truncate font-mono text-text-3">{{ key }}</span>
+            <span class="truncate font-mono text-text-2">{{ value }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-else
+        class="flex flex-1 items-center justify-center"
+      >
+        <span class="font-mono text-xs text-text-4">Select a finding type</span>
+      </div>
+    </SlideOverDrawer>
   </div>
 </template>
