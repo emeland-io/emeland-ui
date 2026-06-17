@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
   { path: '/', redirect: '/findings' },
   { path: '/callback', name: 'Callback', component: () => import('@/views/CallbackView.vue') },
+  { path: '/settings', name: 'Settings', component: () => import('@/views/Tmp.vue') },
 
   // Overview
   { path: '/findings', name: 'Findings', component: () => import('@/views/FindingsView.vue') },
