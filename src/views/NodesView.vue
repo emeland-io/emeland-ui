@@ -1,11 +1,21 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { IconSearch, IconCircleOff, IconLoader2, IconCategory } from '@tabler/icons-vue'
+import {
+  IconSearch,
+  IconCircleOff,
+  IconLoader2,
+  IconCategory,
+  IconArrowUpRight,
+} from '@tabler/icons-vue'
 import { useNodesStore } from '@/stores/nodes'
+import { useFindingsStore } from '@/stores/findings'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
+import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 
 const store = useNodesStore()
+const findingsStore = useFindingsStore()
+const { goToFinding } = useResourceNav()
 
 // TODO: Should be in a dedicated place
 const NODE_COLORS: Record<string, string> = {
@@ -15,11 +25,9 @@ const NODE_COLORS: Record<string, string> = {
   External: 'bg-node-external/10 text-node-external',
 }
 const DEFAULT_NODE_COLOR = 'bg-bg-2 text-text-3'
-
 function nodeColor(typeName: string): string {
   return NODE_COLORS[typeName] ?? DEFAULT_NODE_COLOR
 }
-
 function nodeVersion(annotations: Record<string, string>): string | undefined {
   const entry = Object.entries(annotations).find(([k]) => k.endsWith('/version') || k === 'version')
   return entry?.[1]
@@ -28,9 +36,7 @@ function nodeVersion(annotations: Record<string, string>): string | undefined {
 // Filters
 const search = ref('')
 const activeTypes = ref<Set<string>>(new Set())
-
 const allTypes = computed(() => [...new Set(store.nodes.map((n) => store.getTypeName(n)))])
-
 const filteredNodes = computed(() =>
   store.nodes.filter((n) => {
     const q = search.value.toLowerCase()
@@ -45,9 +51,7 @@ const filteredNodes = computed(() =>
     return true
   }),
 )
-
 const hasActiveFilters = computed(() => !!search.value || activeTypes.value.size > 0)
-
 function toggleType(name: string) {
   const s = new Set(activeTypes.value)
   if (s.has(name)) {
@@ -66,6 +70,13 @@ function clearFilters() {
 const selectedId = ref('')
 const selectedNode = computed(() => store.nodes.find((n) => n.nodeId === selectedId.value))
 
+// Preselect a node when arriving via ?select=<id>
+useSelectQuery(
+  selectedId,
+  computed(() => store.nodes),
+  (n) => n.nodeId,
+)
+
 watch(
   filteredNodes,
   (list) => {
@@ -78,11 +89,17 @@ watch(
   { immediate: true },
 )
 
+// Findings that reference the selected node
+const relatedFindings = computed(() => {
+  const id = selectedId.value
+  if (!id) return []
+  return findingsStore.findings.filter((f) => f.resources.some((r) => r.resourceId === id))
+})
+
 // Resize
 const listWidth = ref(320)
 const isResizing = ref(false)
 let cleanupResize: (() => void) | null = null
-
 function onResizeStart(e: MouseEvent) {
   isResizing.value = true
   const startX = e.clientX
@@ -103,7 +120,10 @@ function onResizeStart(e: MouseEvent) {
   window.addEventListener('mouseup', onUp)
 }
 
-onMounted(() => store.load())
+onMounted(() => {
+  store.load()
+  findingsStore.load()
+})
 onUnmounted(() => cleanupResize?.())
 
 // Node Types drawer
@@ -112,10 +132,8 @@ const selectedTypeId = ref('')
 const selectedType = computed(() =>
   store.nodeTypes.find((t) => t.nodeTypeId === selectedTypeId.value),
 )
-
 function openTypesDrawer() {
   typesDrawerOpen.value = true
-  // preselect the type of the currently selected node
   const nodeTypeId = selectedNode.value?.nodeType
   if (nodeTypeId && store.nodeTypes.some((t) => t.nodeTypeId === nodeTypeId)) {
     selectedTypeId.value = nodeTypeId
@@ -145,7 +163,6 @@ function closeTypesDrawer() {
           of {{ store.nodes.length }}
         </span>
       </span>
-
       <button
         class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs transition-colors"
         :class="
@@ -163,7 +180,6 @@ function closeTypesDrawer() {
         <span class="font-mono text-[10px] text-text-4">{{ store.nodeTypes.length }}</span>
       </button>
     </div>
-
     <!-- Loading -->
     <div
       v-if="store.loading"
@@ -178,7 +194,6 @@ function closeTypesDrawer() {
         <span class="text-sm">Loading nodes...</span>
       </div>
     </div>
-
     <!-- Error -->
     <div
       v-else-if="store.error"
@@ -186,7 +201,6 @@ function closeTypesDrawer() {
     >
       <p class="text-sm text-error">{{ store.error }}</p>
     </div>
-
     <template v-else>
       <!-- Toolbar -->
       <div class="flex flex-wrap items-center gap-2 border-b border-border-1 px-4 py-2">
@@ -206,7 +220,6 @@ function closeTypesDrawer() {
             class="w-full bg-transparent font-mono text-xs text-text-2 placeholder:text-text-4 outline-none"
           />
         </div>
-
         <div class="h-4 w-px shrink-0 bg-bg-3" />
         <span class="text-[11px] text-text-4">Type</span>
         <button
@@ -222,7 +235,6 @@ function closeTypesDrawer() {
         >
           {{ type }}
         </button>
-
         <button
           v-if="hasActiveFilters"
           class="ml-auto flex items-center gap-1 text-[11px] text-text-4 hover:text-text-2"
@@ -231,7 +243,6 @@ function closeTypesDrawer() {
           Clear
         </button>
       </div>
-
       <!-- Empty state -->
       <div
         v-if="filteredNodes.length === 0"
@@ -249,7 +260,6 @@ function closeTypesDrawer() {
           </p>
         </div>
       </div>
-
       <!-- List-Detail -->
       <div
         v-else
@@ -288,14 +298,12 @@ function closeTypesDrawer() {
             </div>
           </div>
         </div>
-
         <!-- Resize handle -->
         <div
           class="w-0.5 shrink-0 cursor-col-resize transition-colors hover:bg-accent/40"
           :class="isResizing ? 'bg-accent/60' : 'bg-bg-3'"
           @mousedown.prevent="onResizeStart"
         />
-
         <!-- Detail -->
         <div
           v-if="selectedNode"
@@ -321,7 +329,6 @@ function closeTypesDrawer() {
               </span>
             </div>
           </div>
-
           <div class="flex flex-col gap-5 px-6 py-5">
             <!-- annotations -->
             <div v-if="Object.keys(selectedNode.annotations).length > 0">
@@ -343,7 +350,35 @@ function closeTypesDrawer() {
                 <span class="break-all font-mono text-text-2">{{ value }}</span>
               </div>
             </div>
-
+            <!-- Related findings -->
+            <div v-if="relatedFindings.length > 0">
+              <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+                Findings
+              </div>
+              <button
+                v-for="f in relatedFindings"
+                :key="f.findingId"
+                class="group flex w-full items-center gap-2.5 border-b border-border-1 py-2 text-left last:border-b-0"
+                :title="`Go to finding`"
+                @click="goToFinding(f.findingId)"
+              >
+                <span
+                  class="shrink-0 rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-[10px] text-sensor"
+                >
+                  {{ findingsStore.getKindForFinding(f) }}
+                </span>
+                <span
+                  class="truncate text-sm text-text-2 transition-colors group-hover:text-accent"
+                >
+                  {{ f.summary }}
+                </span>
+                <IconArrowUpRight
+                  :size="15"
+                  :stroke-width="2"
+                  class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
+                />
+              </button>
+            </div>
             <!-- Node type -->
             <div v-if="store.getTypeForNode(selectedNode)">
               <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
@@ -363,7 +398,6 @@ function closeTypesDrawer() {
             </div>
           </div>
         </div>
-
         <div
           v-else
           class="flex flex-1 items-center justify-center"
@@ -372,7 +406,6 @@ function closeTypesDrawer() {
         </div>
       </div>
     </template>
-
     <!-- node types drawer -->
     <SlideOverDrawer
       :open="typesDrawerOpen"
@@ -387,8 +420,7 @@ function closeTypesDrawer() {
           class="text-text-3"
         />
       </template>
-
-      <!-- Type lits -->
+      <!-- Type list -->
       <div class="w-52 shrink-0 overflow-y-auto border-r border-border-1">
         <div
           v-for="type in store.nodeTypes"
@@ -409,7 +441,6 @@ function closeTypesDrawer() {
           </span>
         </div>
       </div>
-
       <!-- Type detail -->
       <div
         v-if="selectedType"
@@ -428,14 +459,12 @@ function closeTypesDrawer() {
             :size="13"
           />
         </div>
-
         <p
           v-if="selectedType.description"
           class="mt-4 font-mono text-sm leading-relaxed text-text-2"
         >
           {{ selectedType.description }}
         </p>
-
         <div
           v-if="Object.keys(selectedType.annotations).length > 0"
           class="mt-6"
@@ -459,7 +488,6 @@ function closeTypesDrawer() {
           </div>
         </div>
       </div>
-
       <div
         v-else
         class="flex flex-1 items-center justify-center"

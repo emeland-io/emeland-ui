@@ -8,8 +8,10 @@ import FindingDetail from '@/components/findings/FindingDetail.vue'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import { Annotation, getAnnotation } from '@/constants/annotations'
+import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 
 const store = useFindingsStore()
+const { goToResource } = useResourceNav()
 
 const search = ref('')
 const activeTypes = ref<Set<string>>(new Set())
@@ -75,6 +77,13 @@ function clearFilters() {
 const selectedId = ref('')
 const selectedFinding = computed(() => store.findings.find((f) => f.findingId === selectedId.value))
 
+// Preselect a finding when arriving via ?select=<id> (e.g. from a node).
+useSelectQuery(
+  selectedId,
+  computed(() => store.findings),
+  (f) => f.findingId,
+)
+
 watch(
   filteredFindings,
   (list) => {
@@ -90,12 +99,10 @@ watch(
 const listWidth = ref(320)
 const isResizing = ref(false)
 let cleanupResize: (() => void) | null = null
-
 function onResizeStart(e: MouseEvent) {
   isResizing.value = true
   const startX = e.clientX
   const startWidth = listWidth.value
-
   function onMove(ev: MouseEvent) {
     listWidth.value = Math.max(220, Math.min(600, startWidth + (ev.clientX - startX)))
   }
@@ -121,15 +128,12 @@ const selectedTypeId = ref('')
 const selectedType = computed(() =>
   store.findingTypes.find((t) => t.findingTypeId === selectedTypeId.value),
 )
-
 function kindOfType(typeId: string): string {
   const t = store.findingTypes.find((ft) => ft.findingTypeId === typeId)
   return t ? (getAnnotation(t.annotations, Annotation.FINDING_KIND) ?? 'Unknown') : 'Unknown'
 }
-
 function openTypesDrawer() {
   typesDrawerOpen.value = true
-  // Preselect the type of the currently selected finding
   const typeId = selectedFinding.value?.type
   if (typeId && store.findingTypes.some((t) => t.findingTypeId === typeId)) {
     selectedTypeId.value = typeId
@@ -159,7 +163,6 @@ function closeTypesDrawer() {
           of {{ store.findings.length }}
         </span>
       </span>
-
       <button
         class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs transition-colors"
         :class="
@@ -177,7 +180,6 @@ function closeTypesDrawer() {
         <span class="font-mono text-[10px] text-text-4">{{ store.findingTypes.length }}</span>
       </button>
     </div>
-
     <!-- Loading -->
     <div
       v-if="store.loading"
@@ -192,7 +194,6 @@ function closeTypesDrawer() {
         <span class="text-sm">Loading findings...</span>
       </div>
     </div>
-
     <!-- Error -->
     <div
       v-else-if="store.error"
@@ -200,7 +201,6 @@ function closeTypesDrawer() {
     >
       <p class="text-sm text-error">{{ store.error }}</p>
     </div>
-
     <template v-else>
       <!-- Toolbar -->
       <FindingsToolbar
@@ -214,7 +214,6 @@ function closeTypesDrawer() {
         @toggle-resource-type="toggleResourceType"
         @clear="clearFilters"
       />
-
       <!-- Empty state -->
       <div
         v-if="filteredFindings.length === 0"
@@ -230,7 +229,6 @@ function closeTypesDrawer() {
           <p class="mt-1 text-xs text-text-4">All rules passed or no results for current filters</p>
         </div>
       </div>
-
       <!-- Master-Detail -->
       <div
         v-else
@@ -247,20 +245,19 @@ function closeTypesDrawer() {
             @select="selectedId = $event"
           />
         </div>
-
         <!-- Resize handle -->
         <div
           class="w-0.5 shrink-0 cursor-col-resize transition-colors hover:bg-accent/40"
           :class="isResizing ? 'bg-accent/60' : 'bg-bg-3'"
           @mousedown.prevent="onResizeStart"
         />
-
         <FindingDetail
           v-if="selectedFinding"
           class="flex-1"
           :finding="selectedFinding"
           :kind="store.getKindForFinding(selectedFinding)"
           :type="store.getTypeForFinding(selectedFinding)"
+          @navigate-resource="goToResource"
         />
         <div
           v-else
@@ -270,7 +267,6 @@ function closeTypesDrawer() {
         </div>
       </div>
     </template>
-
     <!-- Finding Types slide-over drawer -->
     <SlideOverDrawer
       :open="typesDrawerOpen"
@@ -285,7 +281,6 @@ function closeTypesDrawer() {
           class="text-text-3"
         />
       </template>
-
       <!-- Type list -->
       <div class="w-56 shrink-0 overflow-y-auto border-r border-border-1">
         <div
@@ -307,7 +302,6 @@ function closeTypesDrawer() {
           </span>
         </div>
       </div>
-
       <!-- Type detail -->
       <div
         v-if="selectedType"
@@ -324,14 +318,12 @@ function closeTypesDrawer() {
             :size="13"
           />
         </div>
-
         <p
           v-if="selectedType.description"
           class="mt-4 font-mono text-sm leading-relaxed text-text-2"
         >
           {{ selectedType.description }}
         </p>
-
         <div
           v-if="Object.keys(selectedType.annotations).length > 0"
           class="mt-6"
@@ -343,14 +335,18 @@ function closeTypesDrawer() {
             v-for="(value, key) in selectedType.annotations"
             :key="key"
             class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
-            style="grid-template-columns: 240px minmax(0, 1fr)"
+            style="grid-template-columns: minmax(180px, 30%) minmax(0, 1fr)"
           >
-            <span class="truncate font-mono text-text-3">{{ key }}</span>
-            <span class="truncate font-mono text-text-2">{{ value }}</span>
+            <span
+              class="truncate font-mono text-text-3"
+              :title="key"
+            >
+              {{ key }}
+            </span>
+            <span class="break-all font-mono text-text-2">{{ value }}</span>
           </div>
         </div>
       </div>
-
       <div
         v-else
         class="flex flex-1 items-center justify-center"
