@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SidebarNavSection from '@/components/SidebarNavSection.vue'
 import { useNavigation } from '@/composables/useNavigation'
+import ModelSwitcher from './ModelSwitcher.vue'
 
 const { headerNavigation, phaseNavigation } = useNavigation()
 </script>
@@ -14,6 +15,7 @@ const { headerNavigation, phaseNavigation } = useNavigation()
         :section="section"
       />
       <div class="mx-3.5 my-2 border-t border-border-1" />
+      <ModelSwitcher />
       <SidebarNavSection
         v-for="section in phaseNavigation"
         :key="section.title"
