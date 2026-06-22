@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { IconArrowUpRight } from '@tabler/icons-vue'
 import type { Finding, FindingType } from '@/types/finding'
-import CopyButton from '../CopyButton.vue'
+import type { ResourceType } from '@/types/common'
+import CopyButton from '@/components/CopyButton.vue'
+import { isResourceNavigable } from '@/constants/resources'
 
 defineProps<{
   finding: Finding
   kind: string
   type: FindingType | undefined
+}>()
+
+const emit = defineEmits<{
+  navigateResource: [resourceType: ResourceType, resourceId: string]
 }>()
 </script>
 
@@ -31,7 +37,6 @@ defineProps<{
         <button class="text-xs text-text-4 transition-colors hover:text-text-2">View Policy</button>
       </div>
     </div>
-
     <div class="flex flex-col gap-5 px-6 py-5">
       <!-- Description -->
       <div
@@ -40,7 +45,6 @@ defineProps<{
       >
         {{ finding.description }}
       </div>
-
       <!-- Resources -->
       <div v-if="finding.resources.length > 0">
         <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
@@ -56,19 +60,31 @@ defineProps<{
           >
             {{ res.resourceType }}
           </span>
-          <span class="font-mono text-sm text-text-2">{{ res.resourceId }}</span>
           <button
-            class="shrink-0 text-text-4 transition-colors hover:text-text-2"
-            aria-label="Copy resource ID"
+            v-if="isResourceNavigable(res.resourceType)"
+            class="group flex min-w-0 flex-1 items-center gap-1.5 text-left"
+            :title="`Go to ${res.resourceType}`"
+            @click="emit('navigateResource', res.resourceType, res.resourceId)"
           >
+            <span
+              class="truncate font-mono text-sm text-text-2 transition-colors group-hover:text-accent"
+            >
+              {{ res.resourceId }}
+            </span>
             <IconArrowUpRight
               :size="16"
               :stroke-width="2"
+              class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
             />
           </button>
+          <span
+            v-else
+            class="min-w-0 flex-1 truncate font-mono text-sm text-text-2"
+          >
+            {{ res.resourceId }}
+          </span>
         </div>
       </div>
-
       <!-- Annotations -->
       <div v-if="Object.keys(finding.annotations).length > 0">
         <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
@@ -78,13 +94,17 @@ defineProps<{
           v-for="(value, key) in finding.annotations"
           :key="key"
           class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
-          style="grid-template-columns: 300px minmax(0, 1fr)"
+          style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
         >
-          <span class="truncate font-mono text-text-3">{{ key }}</span>
-          <span class="truncate font-mono text-text-2">{{ value }}</span>
+          <span
+            class="truncate font-mono text-text-3"
+            :title="key"
+          >
+            {{ key }}
+          </span>
+          <span class="break-all font-mono text-text-2">{{ value }}</span>
         </div>
       </div>
-
       <!-- Finding type -->
       <div v-if="type">
         <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">

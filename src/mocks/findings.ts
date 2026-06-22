@@ -51,6 +51,8 @@ export const findingTypes: FindingType[] = [
  *     app-prod-eu:   e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e
  *     Application:   7a1b2c3d-4e5f-4a6b-8c9d-1e2f3a4b5c6d
  *     prom-prod:     2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e
+ *   From nodes.ts:
+ *     Sensor System A: b1c2d3e4-f5a6-4b7c-8d9e-1f2a3b4c5d6e
  */
 export const findings: Finding[] = [
   {
@@ -89,6 +91,19 @@ export const findings: Finding[] = [
       'emeland.io/current-value': '2841',
       'emeland.io/topic': 'system-b.events',
       'eximpl.emeland.io/detected-at': '2026-05-28T09:23:41Z',
+    },
+  },
+  {
+    findingId: '44d5e6f7-a8b9-4c1d-2e3f-3a4b5c6d7e8f',
+    summary: 'Node type missing',
+    description: 'Sensor node "Sensor System A" has no NodeType assigned.',
+    type: 'c3d4e5f6-a7b8-4c9d-1e2f-3a4b5c6d7e8f', // NodeTypeMissing
+    resources: [
+      // Sensor System A in nodes.ts
+      { resourceId: 'b1c2d3e4-f5a6-4b7c-8d9e-1f2a3b4c5d6e', resourceType: 'Node' },
+    ],
+    annotations: {
+      'eximpl.emeland.io/detected-at': '2026-05-28T10:05:00Z',
     },
   },
 ]
