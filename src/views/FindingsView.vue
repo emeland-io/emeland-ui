@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { IconCircleCheck, IconLoader2, IconListDetails } from '@tabler/icons-vue'
 import { useFindingsStore } from '@/stores/findings'
 import FindingsToolbar from '@/components/findings/FindingsToolbar.vue'
 import FindingsList from '@/components/findings/FindingsList.vue'
 import FindingDetail from '@/components/findings/FindingDetail.vue'
+import ListDetail from '@/components/ListDetail.vue'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import { Annotation, getAnnotation } from '@/constants/annotations'
@@ -96,31 +97,7 @@ watch(
   { immediate: true },
 )
 
-const listWidth = ref(320)
-const isResizing = ref(false)
-let cleanupResize: (() => void) | null = null
-function onResizeStart(e: MouseEvent) {
-  isResizing.value = true
-  const startX = e.clientX
-  const startWidth = listWidth.value
-  function onMove(ev: MouseEvent) {
-    listWidth.value = Math.max(220, Math.min(600, startWidth + (ev.clientX - startX)))
-  }
-  function onUp() {
-    isResizing.value = false
-    cleanupResize?.()
-    cleanupResize = null
-  }
-  cleanupResize = () => {
-    window.removeEventListener('mousemove', onMove)
-    window.removeEventListener('mouseup', onUp)
-  }
-  window.addEventListener('mousemove', onMove)
-  window.addEventListener('mouseup', onUp)
-}
-
 onMounted(() => store.load())
-onUnmounted(() => cleanupResize?.())
 
 // Finding Types drawer
 const typesDrawerOpen = ref(false)
@@ -147,10 +124,7 @@ function closeTypesDrawer() {
 </script>
 
 <template>
-  <div
-    class="relative flex h-full flex-col"
-    :class="isResizing ? 'select-none' : ''"
-  >
+  <div class="relative flex h-full flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
       <h1 class="text-base font-medium text-text-1">Findings</h1>
@@ -229,43 +203,34 @@ function closeTypesDrawer() {
           <p class="mt-1 text-xs text-text-4">All rules passed or no results for current filters</p>
         </div>
       </div>
-      <!-- Master-Detail -->
-      <div
-        v-else
-        class="flex flex-1 overflow-hidden"
-      >
-        <div
-          class="shrink-0"
-          :style="{ width: listWidth + 'px' }"
-        >
+      <!-- List-Detail -->
+      <ListDetail v-else>
+        <template #list>
           <FindingsList
             :findings="filteredFindings"
             :selected-id="selectedId"
             :kind-for="store.getKindForFinding"
             @select="selectedId = $event"
           />
-        </div>
-        <!-- Resize handle -->
-        <div
-          class="w-0.5 shrink-0 cursor-col-resize transition-colors hover:bg-accent/40"
-          :class="isResizing ? 'bg-accent/60' : 'bg-bg-3'"
-          @mousedown.prevent="onResizeStart"
-        />
-        <FindingDetail
-          v-if="selectedFinding"
-          class="flex-1"
-          :finding="selectedFinding"
-          :kind="store.getKindForFinding(selectedFinding)"
-          :type="store.getTypeForFinding(selectedFinding)"
-          @navigate-resource="goToResource"
-        />
-        <div
-          v-else
-          class="flex flex-1 items-center justify-center"
-        >
-          <span class="font-mono text-xs text-text-4">Select a finding to inspect</span>
-        </div>
-      </div>
+        </template>
+
+        <template #detail>
+          <FindingDetail
+            v-if="selectedFinding"
+            class="flex-1"
+            :finding="selectedFinding"
+            :kind="store.getKindForFinding(selectedFinding)"
+            :type="store.getTypeForFinding(selectedFinding)"
+            @navigate-resource="goToResource"
+          />
+          <div
+            v-else
+            class="flex flex-1 items-center justify-center"
+          >
+            <span class="font-mono text-xs text-text-4">Select a finding to inspect</span>
+          </div>
+        </template>
+      </ListDetail>
     </template>
     <!-- Finding Types slide-over drawer -->
     <SlideOverDrawer

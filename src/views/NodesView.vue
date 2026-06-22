@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import {
   IconSearch,
   IconCircleOff,
@@ -9,6 +9,7 @@ import {
 } from '@tabler/icons-vue'
 import { useNodesStore } from '@/stores/nodes'
 import { useFindingsStore } from '@/stores/findings'
+import ListDetail from '@/components/ListDetail.vue'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
@@ -96,35 +97,10 @@ const relatedFindings = computed(() => {
   return findingsStore.findings.filter((f) => f.resources.some((r) => r.resourceId === id))
 })
 
-// Resize
-const listWidth = ref(320)
-const isResizing = ref(false)
-let cleanupResize: (() => void) | null = null
-function onResizeStart(e: MouseEvent) {
-  isResizing.value = true
-  const startX = e.clientX
-  const startWidth = listWidth.value
-  function onMove(ev: MouseEvent) {
-    listWidth.value = Math.max(220, Math.min(600, startWidth + (ev.clientX - startX)))
-  }
-  function onUp() {
-    isResizing.value = false
-    cleanupResize?.()
-    cleanupResize = null
-  }
-  cleanupResize = () => {
-    window.removeEventListener('mousemove', onMove)
-    window.removeEventListener('mouseup', onUp)
-  }
-  window.addEventListener('mousemove', onMove)
-  window.addEventListener('mouseup', onUp)
-}
-
 onMounted(() => {
   store.load()
   findingsStore.load()
 })
-onUnmounted(() => cleanupResize?.())
 
 // Node Types drawer
 const typesDrawerOpen = ref(false)
@@ -147,10 +123,7 @@ function closeTypesDrawer() {
 </script>
 
 <template>
-  <div
-    class="relative flex h-full flex-col"
-    :class="isResizing ? 'select-none' : ''"
-  >
+  <div class="relative flex h-full flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
       <h1 class="text-base font-medium text-text-1">Nodes</h1>
@@ -261,15 +234,9 @@ function closeTypesDrawer() {
         </div>
       </div>
       <!-- List-Detail -->
-      <div
-        v-else
-        class="flex flex-1 overflow-hidden"
-      >
+      <ListDetail v-else>
         <!-- List -->
-        <div
-          class="shrink-0 overflow-y-auto"
-          :style="{ width: listWidth + 'px' }"
-        >
+        <template #list>
           <div
             v-for="node in filteredNodes"
             :key="node.nodeId"
@@ -297,114 +264,111 @@ function closeTypesDrawer() {
               </span>
             </div>
           </div>
-        </div>
-        <!-- Resize handle -->
-        <div
-          class="w-0.5 shrink-0 cursor-col-resize transition-colors hover:bg-accent/40"
-          :class="isResizing ? 'bg-accent/60' : 'bg-bg-3'"
-          @mousedown.prevent="onResizeStart"
-        />
+        </template>
+
         <!-- Detail -->
-        <div
-          v-if="selectedNode"
-          class="flex-1 overflow-y-auto"
-        >
-          <div class="border-b border-border-1 px-6 py-4">
-            <div class="flex items-start justify-between gap-4">
-              <h2 class="text-base font-medium text-text-1">{{ selectedNode.displayName }}</h2>
-              <div class="flex items-center gap-1.5">
-                <span class="font-mono text-xs text-text-4">{{ selectedNode.nodeId }}</span>
-                <CopyButton
-                  :value="selectedNode.nodeId"
-                  :size="13"
-                />
+        <template #detail>
+          <div
+            v-if="selectedNode"
+            class="flex-1 overflow-y-auto"
+          >
+            <div class="border-b border-border-1 px-6 py-4">
+              <div class="flex items-start justify-between gap-4">
+                <h2 class="text-base font-medium text-text-1">{{ selectedNode.displayName }}</h2>
+                <div class="flex items-center gap-1.5">
+                  <span class="font-mono text-xs text-text-4">{{ selectedNode.nodeId }}</span>
+                  <CopyButton
+                    :value="selectedNode.nodeId"
+                    :size="13"
+                  />
+                </div>
               </div>
-            </div>
-            <div class="mt-2">
-              <span
-                class="rounded px-2 py-0.5 font-mono text-xs"
-                :class="nodeColor(store.getTypeName(selectedNode))"
-              >
-                {{ store.getTypeName(selectedNode) }}
-              </span>
-            </div>
-          </div>
-          <div class="flex flex-col gap-5 px-6 py-5">
-            <!-- annotations -->
-            <div v-if="Object.keys(selectedNode.annotations).length > 0">
-              <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
-                Annotations
-              </div>
-              <div
-                v-for="(value, key) in selectedNode.annotations"
-                :key="key"
-                class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
-                style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
-              >
+              <div class="mt-2">
                 <span
-                  class="truncate font-mono text-text-3"
-                  :title="key"
+                  class="rounded px-2 py-0.5 font-mono text-xs"
+                  :class="nodeColor(store.getTypeName(selectedNode))"
                 >
-                  {{ key }}
+                  {{ store.getTypeName(selectedNode) }}
                 </span>
-                <span class="break-all font-mono text-text-2">{{ value }}</span>
               </div>
             </div>
-            <!-- Related findings -->
-            <div v-if="relatedFindings.length > 0">
-              <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
-                Findings
-              </div>
-              <button
-                v-for="f in relatedFindings"
-                :key="f.findingId"
-                class="group flex w-full items-center gap-2.5 border-b border-border-1 py-2 text-left last:border-b-0"
-                :title="`Go to finding`"
-                @click="goToFinding(f.findingId)"
-              >
-                <span
-                  class="shrink-0 rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-[10px] text-sensor"
-                >
-                  {{ findingsStore.getKindForFinding(f) }}
-                </span>
-                <span
-                  class="truncate text-sm text-text-2 transition-colors group-hover:text-accent"
-                >
-                  {{ f.summary }}
-                </span>
-                <IconArrowUpRight
-                  :size="15"
-                  :stroke-width="2"
-                  class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-                />
-              </button>
-            </div>
-            <!-- Node type -->
-            <div v-if="store.getTypeForNode(selectedNode)">
-              <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
-                Node type
-              </div>
-              <div class="rounded border border-border-1 bg-bg-1 px-4 py-3">
-                <div class="font-mono text-sm font-medium text-text-1">
-                  {{ store.getTypeForNode(selectedNode)?.displayName }}
+            <div class="flex flex-col gap-5 px-6 py-5">
+              <!-- annotations -->
+              <div v-if="Object.keys(selectedNode.annotations).length > 0">
+                <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+                  Annotations
                 </div>
                 <div
-                  v-if="store.getTypeForNode(selectedNode)?.description"
-                  class="mt-1.5 font-mono text-xs leading-relaxed text-text-3"
+                  v-for="(value, key) in selectedNode.annotations"
+                  :key="key"
+                  class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
+                  style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
                 >
-                  {{ store.getTypeForNode(selectedNode)?.description }}
+                  <span
+                    class="truncate font-mono text-text-3"
+                    :title="key"
+                  >
+                    {{ key }}
+                  </span>
+                  <span class="break-all font-mono text-text-2">{{ value }}</span>
+                </div>
+              </div>
+              <!-- Related findings -->
+              <div v-if="relatedFindings.length > 0">
+                <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+                  Findings
+                </div>
+                <button
+                  v-for="f in relatedFindings"
+                  :key="f.findingId"
+                  class="group flex w-full items-center gap-2.5 border-b border-border-1 py-2 text-left last:border-b-0"
+                  :title="`Go to finding`"
+                  @click="goToFinding(f.findingId)"
+                >
+                  <span
+                    class="shrink-0 rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-[10px] text-sensor"
+                  >
+                    {{ findingsStore.getKindForFinding(f) }}
+                  </span>
+                  <span
+                    class="truncate text-sm text-text-2 transition-colors group-hover:text-accent"
+                  >
+                    {{ f.summary }}
+                  </span>
+                  <IconArrowUpRight
+                    :size="15"
+                    :stroke-width="2"
+                    class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
+                  />
+                </button>
+              </div>
+              <!-- Node type -->
+              <div v-if="store.getTypeForNode(selectedNode)">
+                <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+                  Node type
+                </div>
+                <div class="rounded border border-border-1 bg-bg-1 px-4 py-3">
+                  <div class="font-mono text-sm font-medium text-text-1">
+                    {{ store.getTypeForNode(selectedNode)?.displayName }}
+                  </div>
+                  <div
+                    v-if="store.getTypeForNode(selectedNode)?.description"
+                    class="mt-1.5 font-mono text-xs leading-relaxed text-text-3"
+                  >
+                    {{ store.getTypeForNode(selectedNode)?.description }}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-        <div
-          v-else
-          class="flex flex-1 items-center justify-center"
-        >
-          <span class="font-mono text-xs text-text-4">Select a node to inspect</span>
-        </div>
-      </div>
+          <div
+            v-else
+            class="flex flex-1 items-center justify-center"
+          >
+            <span class="font-mono text-xs text-text-4">Select a node to inspect</span>
+          </div>
+        </template>
+      </ListDetail>
     </template>
     <!-- node types drawer -->
     <SlideOverDrawer
