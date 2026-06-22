@@ -9,7 +9,7 @@ const routes = [
   { path: '/findings', name: 'Findings', component: () => import('@/views/FindingsView.vue') },
 
   // Landscape
-  { path: '/models', name: 'Models', component: () => import('@/views/Tmp.vue') },
+  { path: '/models', name: 'Models', component: () => import('@/views/ModelsView.vue') },
   { path: '/nodes', name: 'Nodes', component: () => import('@/views/NodesView.vue') },
   { path: '/graph', name: 'Graph', component: () => import('@/views/NodeGraphView.vue') },
   { path: '/sensors', name: 'Sensors', component: () => import('@/views/Tmp.vue') },
