@@ -25,7 +25,7 @@ const { width, isResizing, onResizeStart } = useResizable({
   max: props.maxWidth,
 })
 
-// Exposed so a parent can react to the drag state 
+// Exposed so a parent can react to the drag state
 defineExpose({ isResizing })
 </script>
 
