@@ -119,7 +119,7 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
       </button>
       <div
         v-if="showTypeOverflow"
-        class="absolute left-0 top-full z-50 mt-1 min-w-max rounded border border-border-2 bg-bg-1 py-1 shadow-lg"
+        class="absolute left-0 top-full z-50 mt-1 min-w-max rounded border border-border-1 bg-bg-1 py-1 shadow-lg"
         @click.stop
       >
         <button
@@ -180,7 +180,7 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
       </button>
       <div
         v-if="showResOverflow"
-        class="absolute left-0 top-full z-50 mt-1 min-w-max rounded border border-border-2 bg-bg-1 py-1 shadow-lg"
+        class="absolute left-0 top-full z-50 mt-1 min-w-max rounded border border-border-1 bg-bg-1 py-1 shadow-lg"
         @click.stop
       >
         <button

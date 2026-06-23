@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import {
   IconSearch,
   IconCircleOff,
@@ -8,6 +8,7 @@ import {
   IconCircleFilled,
 } from '@tabler/icons-vue'
 import { useModelsStore } from '@/stores/models'
+import ListDetail from '@/components/ListDetail.vue'
 import CopyButton from '@/components/CopyButton.vue'
 
 const store = useModelsStore()
@@ -51,40 +52,11 @@ watch(
   { immediate: true },
 )
 
-// Resize
-// TODO: Move resize logic into central List-Detail component/composable
-const listWidth = ref(320)
-const isResizing = ref(false)
-let cleanupResize: (() => void) | null = null
-function onResizeStart(e: MouseEvent) {
-  isResizing.value = true
-  const startX = e.clientX
-  const startWidth = listWidth.value
-  function onMove(ev: MouseEvent) {
-    listWidth.value = Math.max(220, Math.min(600, startWidth + (ev.clientX - startX)))
-  }
-  function onUp() {
-    isResizing.value = false
-    cleanupResize?.()
-    cleanupResize = null
-  }
-  cleanupResize = () => {
-    window.removeEventListener('mousemove', onMove)
-    window.removeEventListener('mouseup', onUp)
-  }
-  window.addEventListener('mousemove', onMove)
-  window.addEventListener('mouseup', onUp)
-}
-
 onMounted(() => store.load())
-onUnmounted(() => cleanupResize?.())
 </script>
 
 <template>
-  <div
-    class="relative flex h-full flex-col"
-    :class="isResizing ? 'select-none' : ''"
-  >
+  <div class="flex h-full flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
       <h1 class="text-base font-medium text-text-1">Models</h1>
@@ -159,16 +131,10 @@ onUnmounted(() => cleanupResize?.())
         </div>
       </div>
 
-      <!-- Master-Detail -->
-      <div
-        v-else
-        class="flex flex-1 overflow-hidden"
-      >
+      <!-- List-Detail -->
+      <ListDetail v-else>
         <!-- List -->
-        <div
-          class="shrink-0 overflow-y-auto"
-          :style="{ width: listWidth + 'px' }"
-        >
+        <template #list>
           <div
             v-for="model in filteredModels"
             :key="model.modelId"
@@ -206,137 +172,134 @@ onUnmounted(() => cleanupResize?.())
               </span>
             </div>
           </div>
-        </div>
-
-        <!-- Resize handle -->
-        <div
-          class="w-0.5 shrink-0 cursor-col-resize transition-colors hover:bg-accent/40"
-          :class="isResizing ? 'bg-accent/60' : 'bg-bg-3'"
-          @mousedown.prevent="onResizeStart"
-        />
+        </template>
 
         <!-- Detail -->
-        <div
-          v-if="selectedModel"
-          class="flex-1 overflow-y-auto"
-        >
-          <div class="border-b border-border-1 px-6 py-4">
-            <div class="flex items-start justify-between gap-4">
-              <div class="flex items-center gap-2.5">
-                <h2 class="text-base font-medium text-text-1">{{ selectedModel.displayName }}</h2>
-                <span
-                  class="rounded px-2 py-0.5 font-mono text-xs"
-                  :class="statusStyle(selectedModel.status)"
-                >
-                  {{ selectedModel.status ?? 'unknown' }}
-                </span>
+        <template #detail>
+          <div
+            v-if="selectedModel"
+            class="flex-1 overflow-y-auto"
+          >
+            <div class="border-b border-border-1 px-6 py-4">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex items-center gap-2.5">
+                  <h2 class="text-base font-medium text-text-1">{{ selectedModel.displayName }}</h2>
+                  <span
+                    class="rounded px-2 py-0.5 font-mono text-xs"
+                    :class="statusStyle(selectedModel.status)"
+                  >
+                    {{ selectedModel.status ?? 'unknown' }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <span class="font-mono text-xs text-text-4">{{ selectedModel.modelId }}</span>
+                  <CopyButton
+                    :value="selectedModel.modelId"
+                    :size="13"
+                  />
+                </div>
               </div>
-              <div class="flex items-center gap-1.5 shrink-0">
-                <span class="font-mono text-xs text-text-4">{{ selectedModel.modelId }}</span>
-                <CopyButton
-                  :value="selectedModel.modelId"
-                  :size="13"
-                />
+
+              <!-- Active toggle -->
+              <div class="mt-3">
+                <button
+                  v-if="selectedModel.modelId !== store.activeId"
+                  class="flex items-center gap-1.5 rounded border border-accent/20 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent-text transition-colors hover:bg-accent/20"
+                  @click="store.setActive(selectedModel.modelId)"
+                >
+                  <IconCircleFilled
+                    :size="9"
+                    :stroke-width="2"
+                  />
+                  Set as active model
+                </button>
+                <span
+                  v-else
+                  class="flex items-center gap-1.5 text-xs text-accent-text"
+                >
+                  <IconCheck
+                    :size="14"
+                    :stroke-width="2"
+                  />
+                  This is the active model
+                </span>
               </div>
             </div>
 
-            <!-- Active toggle -->
-            <div class="mt-3">
-              <button
-                v-if="selectedModel.modelId !== store.activeId"
-                class="flex items-center gap-1.5 rounded border border-accent/20 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent-text transition-colors hover:bg-accent/20"
-                @click="store.setActive(selectedModel.modelId)"
+            <div class="flex flex-col gap-5 px-6 py-5">
+              <!-- Description -->
+              <div
+                v-if="selectedModel.description"
+                class="rounded border border-border-1 bg-bg-1 px-4 py-3 font-mono text-sm leading-relaxed text-text-2"
               >
-                <IconCircleFilled
-                  :size="9"
-                  :stroke-width="2"
-                />
-                Set as active model
-              </button>
-              <span
-                v-else
-                class="flex items-center gap-1.5 text-xs text-accent-text"
+                {{ selectedModel.description }}
+              </div>
+
+              <!-- Connection -->
+              <div>
+                <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+                  Connection
+                </div>
+                <div
+                  class="grid gap-4 border-b border-border-1 py-1.5 text-sm"
+                  style="grid-template-columns: minmax(140px, 25%) minmax(0, 1fr)"
+                >
+                  <span class="font-mono text-text-3">Server URL</span>
+                  <span class="break-all font-mono text-text-2">{{ selectedModel.baseUrl }}</span>
+                </div>
+                <div
+                  v-if="selectedModel.environment"
+                  class="grid gap-4 border-b border-border-1 py-1.5 text-sm"
+                  style="grid-template-columns: minmax(140px, 25%) minmax(0, 1fr)"
+                >
+                  <span class="font-mono text-text-3">Environment</span>
+                  <span class="font-mono text-text-2">{{ selectedModel.environment }}</span>
+                </div>
+                <div
+                  v-if="selectedModel.version"
+                  class="grid gap-4 border-b border-border-1 py-1.5 text-sm"
+                  style="grid-template-columns: minmax(140px, 25%) minmax(0, 1fr)"
+                >
+                  <span class="font-mono text-text-3">Version</span>
+                  <span class="font-mono text-text-2">{{ selectedModel.version }}</span>
+                </div>
+              </div>
+
+              <!-- Annotations -->
+              <div
+                v-if="
+                  selectedModel.annotations && Object.keys(selectedModel.annotations).length > 0
+                "
               >
-                <IconCheck
-                  :size="14"
-                  :stroke-width="2"
-                />
-                This is the active model
-              </span>
+                <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+                  Annotations
+                </div>
+                <div
+                  v-for="(value, key) in selectedModel.annotations"
+                  :key="key"
+                  class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
+                  style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
+                >
+                  <span
+                    class="truncate font-mono text-text-3"
+                    :title="key"
+                  >
+                    {{ key }}
+                  </span>
+                  <span class="break-all font-mono text-text-2">{{ value }}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="flex flex-col gap-5 px-6 py-5">
-            <!-- Description -->
-            <div
-              v-if="selectedModel.description"
-              class="rounded border border-border-1 bg-bg-1 px-4 py-3 font-mono text-sm leading-relaxed text-text-2"
-            >
-              {{ selectedModel.description }}
-            </div>
-
-            <!-- Connection -->
-            <div>
-              <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
-                Connection
-              </div>
-              <div
-                class="grid gap-4 border-b border-border-1 py-1.5 text-sm"
-                style="grid-template-columns: minmax(140px, 25%) minmax(0, 1fr)"
-              >
-                <span class="font-mono text-text-3">Server URL</span>
-                <span class="break-all font-mono text-text-2">{{ selectedModel.baseUrl }}</span>
-              </div>
-              <div
-                v-if="selectedModel.environment"
-                class="grid gap-4 border-b border-border-1 py-1.5 text-sm"
-                style="grid-template-columns: minmax(140px, 25%) minmax(0, 1fr)"
-              >
-                <span class="font-mono text-text-3">Environment</span>
-                <span class="font-mono text-text-2">{{ selectedModel.environment }}</span>
-              </div>
-              <div
-                v-if="selectedModel.version"
-                class="grid gap-4 border-b border-border-1 py-1.5 text-sm"
-                style="grid-template-columns: minmax(140px, 25%) minmax(0, 1fr)"
-              >
-                <span class="font-mono text-text-3">Version</span>
-                <span class="font-mono text-text-2">{{ selectedModel.version }}</span>
-              </div>
-            </div>
-
-            <!-- Annotations -->
-            <div
-              v-if="selectedModel.annotations && Object.keys(selectedModel.annotations).length > 0"
-            >
-              <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
-                Annotations
-              </div>
-              <div
-                v-for="(value, key) in selectedModel.annotations"
-                :key="key"
-                class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
-                style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
-              >
-                <span
-                  class="truncate font-mono text-text-3"
-                  :title="key"
-                >
-                  {{ key }}
-                </span>
-                <span class="break-all font-mono text-text-2">{{ value }}</span>
-              </div>
-            </div>
+          <div
+            v-else
+            class="flex flex-1 items-center justify-center"
+          >
+            <span class="font-mono text-xs text-text-4">Select a model to inspect</span>
           </div>
-        </div>
-
-        <div
-          v-else
-          class="flex flex-1 items-center justify-center"
-        >
-          <span class="font-mono text-xs text-text-4">Select a model to inspect</span>
-        </div>
-      </div>
+        </template>
+      </ListDetail>
     </template>
   </div>
 </template>
