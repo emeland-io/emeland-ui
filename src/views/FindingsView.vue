@@ -8,7 +8,6 @@ import FindingDetail from '@/components/findings/FindingDetail.vue'
 import ListDetail from '@/components/ListDetail.vue'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
-import { Annotation, getAnnotation } from '@/constants/annotations'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 
 const store = useFindingsStore()
@@ -24,31 +23,22 @@ const allResourceTypes = computed(() => [
 ])
 
 const filteredFindings = computed(() =>
-  store.findings
-    .filter((f) => {
-      const q = search.value.toLowerCase()
-      if (q) {
-        const inSummary = f.summary.toLowerCase().includes(q)
-        const inDescription = (f.description ?? '').toLowerCase().includes(q)
-        const inAnnotations = Object.entries(f.annotations).some(
-          ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
-        )
-        if (!inSummary && !inDescription && !inAnnotations) return false
-      }
-      if (activeTypes.value.size > 0 && !activeTypes.value.has(store.getKindForFinding(f)))
-        return false
-      if (
-        activeResourceTypes.value.size > 0 &&
-        !f.resources.some((r) => activeResourceTypes.value.has(r.resourceType))
-      )
-        return false
-      return true
-    })
-    .sort((a, b) => {
-      const tsA = getAnnotation(a.annotations, Annotation.DETECTED_AT) ?? ''
-      const tsB = getAnnotation(b.annotations, Annotation.DETECTED_AT) ?? ''
-      return tsB.localeCompare(tsA)
-    }),
+  store.findings.filter((f) => {
+    const q = search.value.toLowerCase()
+    if (q) {
+      const inName = f.displayName.toLowerCase().includes(q)
+      const inDescription = (f.description ?? '').toLowerCase().includes(q)
+      if (!inName && !inDescription) return false
+    }
+    if (activeTypes.value.size > 0 && !activeTypes.value.has(store.getKindForFinding(f)))
+      return false
+    if (
+      activeResourceTypes.value.size > 0 &&
+      !f.resources.some((r) => activeResourceTypes.value.has(r.resourceType))
+    )
+      return false
+    return true
+  }),
 )
 
 function toggleType(kind: string) {
@@ -78,7 +68,11 @@ function clearFilters() {
 const selectedId = ref('')
 const selectedFinding = computed(() => store.findings.find((f) => f.findingId === selectedId.value))
 
-// Preselect a finding when arriving via ?select=<id> (e.g. from a node).
+function selectFinding(id: string) {
+  selectedId.value = id
+  if (id) store.loadFindingDetail(id)
+}
+
 useSelectQuery(
   selectedId,
   computed(() => store.findings),
@@ -91,11 +85,15 @@ watch(
     if (list.length === 0) {
       selectedId.value = ''
     } else if (!list.some((f) => f.findingId === selectedId.value)) {
-      selectedId.value = list[0].findingId
+      selectFinding(list[0].findingId)
     }
   },
   { immediate: true },
 )
+
+watch(selectedId, (id) => {
+  if (id) store.loadFindingDetail(id)
+})
 
 onMounted(() => store.load())
 
@@ -105,18 +103,21 @@ const selectedTypeId = ref('')
 const selectedType = computed(() =>
   store.findingTypes.find((t) => t.findingTypeId === selectedTypeId.value),
 )
-function kindOfType(typeId: string): string {
-  const t = store.findingTypes.find((ft) => ft.findingTypeId === typeId)
-  return t ? (getAnnotation(t.annotations, Annotation.FINDING_KIND) ?? 'Unknown') : 'Unknown'
-}
-function openTypesDrawer() {
+async function openTypesDrawer() {
   typesDrawerOpen.value = true
-  const typeId = selectedFinding.value?.type
+  // Load the full type list lazily, only now that the drawer is open
+  await store.loadFindingTypes()
+  const typeId = selectedFinding.value?.type?.findingTypeId
   if (typeId && store.findingTypes.some((t) => t.findingTypeId === typeId)) {
-    selectedTypeId.value = typeId
+    selectTypeInDrawer(typeId)
   } else if (!selectedTypeId.value && store.findingTypes.length > 0) {
-    selectedTypeId.value = store.findingTypes[0].findingTypeId
+    selectTypeInDrawer(store.findingTypes[0].findingTypeId)
   }
+}
+/** Select a type in the drawer and load its full detail. */
+function selectTypeInDrawer(id: string) {
+  selectedTypeId.value = id
+  if (id) store.loadFindingTypeDetail(id)
 }
 function closeTypesDrawer() {
   typesDrawerOpen.value = false
@@ -151,7 +152,12 @@ function closeTypesDrawer() {
           :stroke-width="1.5"
         />
         Finding Types
-        <span class="font-mono text-[10px] text-text-4">{{ store.findingTypes.length }}</span>
+        <span
+          v-if="store.typesLoaded"
+          class="font-mono text-[10px] text-text-4"
+        >
+          {{ store.findingTypes.length }}
+        </span>
       </button>
     </div>
     <!-- Loading -->
@@ -210,7 +216,7 @@ function closeTypesDrawer() {
             :findings="filteredFindings"
             :selected-id="selectedId"
             :kind-for="store.getKindForFinding"
-            @select="selectedId = $event"
+            @select="selectFinding"
           />
         </template>
 
@@ -236,7 +242,7 @@ function closeTypesDrawer() {
     <SlideOverDrawer
       :open="typesDrawerOpen"
       title="Finding Types"
-      :count="store.findingTypes.length"
+      :count="store.typesLoaded ? store.findingTypes.length : undefined"
       @close="closeTypesDrawer"
     >
       <template #icon>
@@ -246,78 +252,97 @@ function closeTypesDrawer() {
           class="text-text-3"
         />
       </template>
-      <!-- Type list -->
-      <div class="w-56 shrink-0 overflow-y-auto border-r border-border-1">
-        <div
-          v-for="type in store.findingTypes"
-          :key="type.findingTypeId"
-          class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-2.5 transition-colors"
-          :class="
-            type.findingTypeId === selectedTypeId
-              ? 'border-l-accent bg-accent/5'
-              : 'border-l-transparent hover:bg-bg-1'
-          "
-          @click="selectedTypeId = type.findingTypeId"
-        >
-          <div class="text-sm font-medium text-text-1">{{ type.displayName }}</div>
-          <span
-            class="mt-1 inline-block rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-[10px] text-sensor"
-          >
-            {{ kindOfType(type.findingTypeId) }}
-          </span>
-        </div>
-      </div>
-      <!-- Type detail -->
+      <!-- Loading -->
       <div
-        v-if="selectedType"
-        class="flex-1 overflow-y-auto px-6 py-5"
-      >
-        <h3 class="text-base font-medium text-text-1">{{ selectedType.displayName }}</h3>
-        <div class="mt-2 flex items-center gap-2">
-          <span class="rounded bg-sensor/10 px-2 py-0.5 font-mono text-xs text-sensor">
-            {{ kindOfType(selectedType.findingTypeId) }}
-          </span>
-          <span class="font-mono text-xs text-text-4">{{ selectedType.findingTypeId }}</span>
-          <CopyButton
-            :value="selectedType.findingTypeId"
-            :size="13"
-          />
-        </div>
-        <p
-          v-if="selectedType.description"
-          class="mt-4 font-mono text-sm leading-relaxed text-text-2"
-        >
-          {{ selectedType.description }}
-        </p>
-        <div
-          v-if="Object.keys(selectedType.annotations).length > 0"
-          class="mt-6"
-        >
-          <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
-            Annotations
-          </div>
-          <div
-            v-for="(value, key) in selectedType.annotations"
-            :key="key"
-            class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
-            style="grid-template-columns: minmax(180px, 30%) minmax(0, 1fr)"
-          >
-            <span
-              class="truncate font-mono text-text-3"
-              :title="key"
-            >
-              {{ key }}
-            </span>
-            <span class="break-all font-mono text-text-2">{{ value }}</span>
-          </div>
-        </div>
-      </div>
-      <div
-        v-else
+        v-if="store.typesLoading"
         class="flex flex-1 items-center justify-center"
       >
-        <span class="font-mono text-xs text-text-4">Select a finding type</span>
+        <div class="flex items-center gap-2 text-text-3">
+          <IconLoader2
+            :size="16"
+            :stroke-width="1.5"
+            class="animate-spin"
+          />
+          <span class="text-sm">Loading types...</span>
+        </div>
       </div>
+      <!-- Type list -->
+      <template v-else>
+        <div class="w-56 shrink-0 overflow-y-auto border-r border-border-1">
+          <div
+            v-for="type in store.findingTypes"
+            :key="type.findingTypeId"
+            class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
+            :class="
+              type.findingTypeId === selectedTypeId
+                ? 'border-l-accent bg-accent/5'
+                : 'border-l-transparent hover:bg-bg-1'
+            "
+            @click="selectTypeInDrawer(type.findingTypeId)"
+          >
+            <div
+              class="text-sm font-medium"
+              :class="type.findingTypeId === selectedTypeId ? 'text-accent-text' : 'text-text-1'"
+            >
+              {{ type.displayName }}
+            </div>
+            <div
+              v-if="type.description"
+              class="mt-1 truncate font-mono text-[11px] text-text-4"
+            >
+              {{ type.description }}
+            </div>
+          </div>
+        </div>
+        <!-- Type detail -->
+        <div
+          v-if="selectedType"
+          class="flex-1 overflow-y-auto px-6 py-5"
+        >
+          <h3 class="text-base font-medium text-text-1">{{ selectedType.displayName }}</h3>
+          <div class="mt-2 flex items-center gap-2">
+            <span class="font-mono text-xs text-text-4">{{ selectedType.findingTypeId }}</span>
+            <CopyButton
+              :value="selectedType.findingTypeId"
+              :size="13"
+            />
+          </div>
+          <p
+            v-if="selectedType.description"
+            class="mt-4 font-mono text-sm leading-relaxed text-text-2"
+          >
+            {{ selectedType.description }}
+          </p>
+          <div
+            v-if="Object.keys(selectedType.annotations).length > 0"
+            class="mt-6"
+          >
+            <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+              Annotations
+            </div>
+            <div
+              v-for="(value, key) in selectedType.annotations"
+              :key="key"
+              class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
+              style="grid-template-columns: minmax(180px, 30%) minmax(0, 1fr)"
+            >
+              <span
+                class="truncate font-mono text-text-3"
+                :title="key"
+              >
+                {{ key }}
+              </span>
+              <span class="break-all font-mono text-text-2">{{ value }}</span>
+            </div>
+          </div>
+        </div>
+        <div
+          v-else
+          class="flex flex-1 items-center justify-center"
+        >
+          <span class="font-mono text-xs text-text-4">Select a finding type</span>
+        </div>
+      </template>
     </SlideOverDrawer>
   </div>
 </template>

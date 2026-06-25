@@ -1,8 +1,4 @@
-/**
- * Finding types matching the EmELand OpenAPI spec (EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3).
- */
-
-import type { UUID, ResourceReference, Annotations } from './common'
+import type { ResourceType } from './common'
 
 export type FindingKind =
   | 'ContextTypeMissing'
@@ -10,18 +6,30 @@ export type FindingKind =
   | 'NodeTypeMissing'
   | string
 
+export interface FindingTypeRef {
+  findingTypeId: string
+  displayName: string
+}
+
+export interface FindingResource {
+  resourceId: string
+  displayName: string
+  resourceType: ResourceType
+}
+
 export interface FindingType {
-  findingTypeId: UUID
+  findingTypeId: string
   displayName: string
   description?: string
-  annotations: Annotations
+  annotations: Record<string, string>
 }
 
 export interface Finding {
-  findingId: UUID
-  summary: string
+  findingId: string
+  displayName: string
   description?: string
-  type: UUID
-  resources: ResourceReference[]
-  annotations: Annotations
+  type?: FindingTypeRef
+  resources: FindingResource[]
+  reference?: string
+  annotations: Record<string, string>
 }

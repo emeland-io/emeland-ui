@@ -1,8 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { fetchFindings, fetchFindingTypes } from '@/api/findings'
+import {
+  fetchFindings,
+  fetchFindingById,
+  fetchFindingTypes,
+  fetchFindingTypeById,
+} from '@/api/findings'
 import type { Finding, FindingType } from '@/types/finding'
-import { Annotation, getAnnotation } from '@/constants/annotations'
 
 export const useFindingsStore = defineStore('findings', () => {
   const findings = ref<Finding[]>([])
@@ -11,31 +15,67 @@ export const useFindingsStore = defineStore('findings', () => {
   const loaded = ref(false)
   const error = ref<string | null>(null)
 
+  const typesLoading = ref(false)
+  const typesLoaded = ref(false)
+
   const typeMap = computed(() => new Map(findingTypes.value.map((ft) => [ft.findingTypeId, ft])))
 
   function getTypeForFinding(f: Finding): FindingType | undefined {
-    return typeMap.value.get(f.type)
+    return f.type ? typeMap.value.get(f.type.findingTypeId) : undefined
   }
 
   function getKindForFinding(f: Finding): string {
-    const ft = getTypeForFinding(f)
-    return ft ? (getAnnotation(ft.annotations, Annotation.FINDING_KIND) ?? 'Unknown') : 'Unknown'
+    return f.type?.displayName ?? 'Unknown'
   }
 
   async function load() {
-    // Guard against duplicate loads (called from App.vue and views)
     if (loaded.value || loading.value) return
     loading.value = true
     error.value = null
     try {
-      const [f, ft] = await Promise.all([fetchFindings(), fetchFindingTypes()])
-      findings.value = f
-      findingTypes.value = ft
+      findings.value = await fetchFindings()
       loaded.value = true
     } catch (e) {
       error.value = (e as Error).message
     } finally {
       loading.value = false
+    }
+  }
+
+  async function loadFindingDetail(id: string): Promise<void> {
+    try {
+      const full = await fetchFindingById(id)
+      const idx = findings.value.findIndex((f) => f.findingId === id)
+      if (idx !== -1) {
+        findings.value[idx] = full
+      }
+    } catch (e) {
+      error.value = (e as Error).message
+    }
+  }
+
+  async function loadFindingTypes(): Promise<void> {
+    if (typesLoaded.value || typesLoading.value) return
+    typesLoading.value = true
+    try {
+      findingTypes.value = await fetchFindingTypes()
+      typesLoaded.value = true
+    } catch (e) {
+      error.value = (e as Error).message
+    } finally {
+      typesLoading.value = false
+    }
+  }
+
+  async function loadFindingTypeDetail(id: string): Promise<void> {
+    try {
+      const full = await fetchFindingTypeById(id)
+      const idx = findingTypes.value.findIndex((t) => t.findingTypeId === id)
+      if (idx !== -1) {
+        findingTypes.value[idx] = full
+      }
+    } catch (e) {
+      error.value = (e as Error).message
     }
   }
 
@@ -45,9 +85,14 @@ export const useFindingsStore = defineStore('findings', () => {
     loading,
     loaded,
     error,
+    typesLoading,
+    typesLoaded,
     typeMap,
     getTypeForFinding,
     getKindForFinding,
     load,
+    loadFindingDetail,
+    loadFindingTypes,
+    loadFindingTypeDetail,
   }
 })

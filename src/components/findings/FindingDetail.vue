@@ -21,7 +21,7 @@ const emit = defineEmits<{
     <!-- Header -->
     <div class="border-b border-border-1 px-6 py-4">
       <div class="flex items-start justify-between gap-4">
-        <h2 class="text-base font-medium text-text-1">{{ finding.summary }}</h2>
+        <h2 class="text-base font-medium text-text-1">{{ finding.displayName }}</h2>
         <div class="flex items-center gap-1.5 shrink-0">
           <span class="font-mono text-xs text-text-4">{{ finding.findingId }}</span>
           <CopyButton
@@ -60,16 +60,15 @@ const emit = defineEmits<{
           >
             {{ res.resourceType }}
           </span>
+          <!-- Navigable: name (or id fallback) + jump, copy on id -->
           <button
             v-if="isResourceNavigable(res.resourceType)"
             class="group flex min-w-0 flex-1 items-center gap-1.5 text-left"
             :title="`Go to ${res.resourceType}`"
             @click="emit('navigateResource', res.resourceType, res.resourceId)"
           >
-            <span
-              class="truncate font-mono text-sm text-text-2 transition-colors group-hover:text-accent"
-            >
-              {{ res.resourceId }}
+            <span class="truncate text-sm text-text-2 transition-colors group-hover:text-accent">
+              {{ res.displayName || res.resourceId }}
             </span>
             <IconArrowUpRight
               :size="16"
@@ -77,12 +76,21 @@ const emit = defineEmits<{
               class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
             />
           </button>
+          <!-- Non-navigable: name (or id fallback) -->
           <span
             v-else
-            class="min-w-0 flex-1 truncate font-mono text-sm text-text-2"
+            class="min-w-0 flex-1 truncate text-sm text-text-2"
           >
-            {{ res.resourceId }}
+            {{ res.displayName || res.resourceId }}
           </span>
+          <!-- id + copy -->
+          <div class="flex items-center gap-1.5 shrink-0">
+            <span class="font-mono text-[11px] text-text-4">{{ res.resourceId }}</span>
+            <CopyButton
+              :value="res.resourceId"
+              :size="12"
+            />
+          </div>
         </div>
       </div>
       <!-- Annotations -->
