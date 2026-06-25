@@ -105,7 +105,6 @@ const selectedType = computed(() =>
 )
 async function openTypesDrawer() {
   typesDrawerOpen.value = true
-  // Load the full type list lazily, only now that the drawer is open
   await store.loadFindingTypes()
   const typeId = selectedFinding.value?.type?.findingTypeId
   if (typeId && store.findingTypes.some((t) => t.findingTypeId === typeId)) {
@@ -114,7 +113,7 @@ async function openTypesDrawer() {
     selectTypeInDrawer(store.findingTypes[0].findingTypeId)
   }
 }
-/** Select a type in the drawer and load its full detail. */
+
 function selectTypeInDrawer(id: string) {
   selectedTypeId.value = id
   if (id) store.loadFindingTypeDetail(id)
