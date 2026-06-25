@@ -17,7 +17,7 @@ onMounted(() => store.load())
   <RouterLink
     v-if="store.model"
     :to="{ name: 'Model' }"
-    class="flex items-center gap-2 rounded-md  px-2.5 py-1.5 transition-colors hover:bg-bg-2"
+    class="flex items-center gap-2 rounded-md px-2.5 py-1.5 transition-colors hover:bg-bg-2"
     title="Model details"
   >
     <span class="flex items-center gap-1.5">
