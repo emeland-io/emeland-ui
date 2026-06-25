@@ -26,15 +26,15 @@ const NODE_COLORS: Record<string, string> = {
   External: 'bg-node-external/10 text-node-external',
 }
 const DEFAULT_NODE_COLOR = 'bg-bg-2 text-text-3'
-function nodeColor(typeName: string): string {
-  return NODE_COLORS[typeName] ?? DEFAULT_NODE_COLOR
+
+function nodeColor(category: string): string {
+  return NODE_COLORS[category] ?? DEFAULT_NODE_COLOR
 }
 function nodeVersion(annotations: Record<string, string>): string | undefined {
   const entry = Object.entries(annotations).find(([k]) => k.endsWith('/version') || k === 'version')
   return entry?.[1]
 }
 
-// Filters
 const search = ref('')
 const activeTypes = ref<Set<string>>(new Set())
 const allTypes = computed(() => [...new Set(store.nodes.map((n) => store.getTypeName(n)))])
@@ -71,6 +71,11 @@ function clearFilters() {
 const selectedId = ref('')
 const selectedNode = computed(() => store.nodes.find((n) => n.nodeId === selectedId.value))
 
+function selectNode(id: string) {
+  selectedId.value = id
+  if (id) store.loadNodeDetail(id)
+}
+
 // Preselect a node when arriving via ?select=<id>
 useSelectQuery(
   selectedId,
@@ -84,13 +89,16 @@ watch(
     if (list.length === 0) {
       selectedId.value = ''
     } else if (!list.some((n) => n.nodeId === selectedId.value)) {
-      selectedId.value = list[0].nodeId
+      selectNode(list[0].nodeId)
     }
   },
   { immediate: true },
 )
 
-// Findings that reference the selected node
+watch(selectedId, (id) => {
+  if (id) store.loadNodeDetail(id)
+})
+
 const relatedFindings = computed(() => {
   const id = selectedId.value
   if (!id) return []
@@ -108,14 +116,20 @@ const selectedTypeId = ref('')
 const selectedType = computed(() =>
   store.nodeTypes.find((t) => t.nodeTypeId === selectedTypeId.value),
 )
-function openTypesDrawer() {
+async function openTypesDrawer() {
   typesDrawerOpen.value = true
-  const nodeTypeId = selectedNode.value?.nodeType
+  await store.loadNodeTypes()
+  const nodeTypeId = selectedNode.value?.nodeType?.nodeTypeId
   if (nodeTypeId && store.nodeTypes.some((t) => t.nodeTypeId === nodeTypeId)) {
-    selectedTypeId.value = nodeTypeId
+    selectTypeInDrawer(nodeTypeId)
   } else if (!selectedTypeId.value && store.nodeTypes.length > 0) {
-    selectedTypeId.value = store.nodeTypes[0].nodeTypeId
+    selectTypeInDrawer(store.nodeTypes[0].nodeTypeId)
   }
+}
+
+function selectTypeInDrawer(id: string) {
+  selectedTypeId.value = id
+  if (id) store.loadNodeTypeDetail(id)
 }
 function closeTypesDrawer() {
   typesDrawerOpen.value = false
@@ -150,7 +164,12 @@ function closeTypesDrawer() {
           :stroke-width="1.5"
         />
         Node Types
-        <span class="font-mono text-[10px] text-text-4">{{ store.nodeTypes.length }}</span>
+        <span
+          v-if="store.typesLoaded"
+          class="font-mono text-[10px] text-text-4"
+        >
+          {{ store.nodeTypes.length }}
+        </span>
       </button>
     </div>
     <!-- Loading -->
@@ -201,7 +220,7 @@ function closeTypesDrawer() {
           class="rounded border px-2 py-1 font-mono text-[11px] transition-colors"
           :class="
             activeTypes.has(type)
-              ? nodeColor(type) + ' border-transparent'
+              ? 'border-accent/20 bg-accent/10 text-accent-text'
               : 'border-transparent text-text-4 hover:bg-bg-2 hover:text-text-3'
           "
           @click="toggleType(type)"
@@ -246,13 +265,13 @@ function closeTypesDrawer() {
                 ? 'border-l-accent bg-accent/5'
                 : 'border-l-transparent hover:bg-bg-1'
             "
-            @click="selectedId = node.nodeId"
+            @click="selectNode(node.nodeId)"
           >
             <div class="text-sm font-medium text-text-1">{{ node.displayName }}</div>
             <div class="mt-2 flex items-center gap-1.5">
               <span
                 class="rounded px-1.5 py-0.5 font-mono text-[11px]"
-                :class="nodeColor(store.getTypeName(node))"
+                :class="nodeColor(store.getTypeCategory(node))"
               >
                 {{ store.getTypeName(node) }}
               </span>
@@ -286,7 +305,7 @@ function closeTypesDrawer() {
               <div class="mt-2">
                 <span
                   class="rounded px-2 py-0.5 font-mono text-xs"
-                  :class="nodeColor(store.getTypeName(selectedNode))"
+                  :class="nodeColor(store.getTypeCategory(selectedNode))"
                 >
                   {{ store.getTypeName(selectedNode) }}
                 </span>
@@ -333,7 +352,7 @@ function closeTypesDrawer() {
                   <span
                     class="truncate text-sm text-text-2 transition-colors group-hover:text-accent"
                   >
-                    {{ f.summary }}
+                    {{ f.displayName }}
                   </span>
                   <IconArrowUpRight
                     :size="15"
@@ -343,13 +362,13 @@ function closeTypesDrawer() {
                 </button>
               </div>
               <!-- Node type -->
-              <div v-if="store.getTypeForNode(selectedNode)">
+              <div v-if="selectedNode.nodeType">
                 <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
                   Node type
                 </div>
                 <div class="rounded border border-border-1 bg-bg-1 px-4 py-3">
                   <div class="font-mono text-sm font-medium text-text-1">
-                    {{ store.getTypeForNode(selectedNode)?.displayName }}
+                    {{ selectedNode.nodeType.displayName }}
                   </div>
                   <div
                     v-if="store.getTypeForNode(selectedNode)?.description"
@@ -374,7 +393,7 @@ function closeTypesDrawer() {
     <SlideOverDrawer
       :open="typesDrawerOpen"
       title="Node Types"
-      :count="store.nodeTypes.length"
+      :count="store.typesLoaded ? store.nodeTypes.length : undefined"
       @close="closeTypesDrawer"
     >
       <template #icon>
@@ -384,80 +403,96 @@ function closeTypesDrawer() {
           class="text-text-3"
         />
       </template>
-      <!-- Type list -->
-      <div class="w-52 shrink-0 overflow-y-auto border-r border-border-1">
-        <div
-          v-for="type in store.nodeTypes"
-          :key="type.nodeTypeId"
-          class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-2.5 transition-colors"
-          :class="
-            type.nodeTypeId === selectedTypeId
-              ? 'border-l-accent bg-accent/5'
-              : 'border-l-transparent hover:bg-bg-1'
-          "
-          @click="selectedTypeId = type.nodeTypeId"
-        >
-          <span
-            class="rounded px-1.5 py-0.5 font-mono text-[11px]"
-            :class="nodeColor(type.displayName)"
-          >
-            {{ type.displayName }}
-          </span>
-        </div>
-      </div>
-      <!-- Type detail -->
+      <!-- Loading -->
       <div
-        v-if="selectedType"
-        class="flex-1 overflow-y-auto px-6 py-5"
-      >
-        <div class="flex items-center gap-2">
-          <span
-            class="rounded px-2 py-0.5 font-mono text-xs"
-            :class="nodeColor(selectedType.displayName)"
-          >
-            {{ selectedType.displayName }}
-          </span>
-          <span class="font-mono text-xs text-text-4">{{ selectedType.nodeTypeId }}</span>
-          <CopyButton
-            :value="selectedType.nodeTypeId"
-            :size="13"
-          />
-        </div>
-        <p
-          v-if="selectedType.description"
-          class="mt-4 font-mono text-sm leading-relaxed text-text-2"
-        >
-          {{ selectedType.description }}
-        </p>
-        <div
-          v-if="Object.keys(selectedType.annotations).length > 0"
-          class="mt-6"
-        >
-          <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
-            Annotations
-          </div>
-          <div
-            v-for="(value, key) in selectedType.annotations"
-            :key="key"
-            class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
-            style="grid-template-columns: minmax(180px, 30%) minmax(0, 1fr)"
-          >
-            <span
-              class="truncate font-mono text-text-3"
-              :title="key"
-            >
-              {{ key }}
-            </span>
-            <span class="break-all font-mono text-text-2">{{ value }}</span>
-          </div>
-        </div>
-      </div>
-      <div
-        v-else
+        v-if="store.typesLoading"
         class="flex flex-1 items-center justify-center"
       >
-        <span class="font-mono text-xs text-text-4">Select a node type</span>
+        <div class="flex items-center gap-2 text-text-3">
+          <IconLoader2
+            :size="16"
+            :stroke-width="1.5"
+            class="animate-spin"
+          />
+          <span class="text-sm">Loading types...</span>
+        </div>
       </div>
+      <template v-else>
+        <!-- Type list -->
+        <div class="w-52 shrink-0 overflow-y-auto border-r border-border-1">
+          <div
+            v-for="type in store.nodeTypes"
+            :key="type.nodeTypeId"
+            class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-2.5 transition-colors"
+            :class="
+              type.nodeTypeId === selectedTypeId
+                ? 'border-l-accent bg-accent/5'
+                : 'border-l-transparent hover:bg-bg-1'
+            "
+            @click="selectTypeInDrawer(type.nodeTypeId)"
+          >
+            <span
+              class="rounded px-1.5 py-0.5 font-mono text-[11px]"
+              :class="nodeColor(type.type || type.displayName)"
+            >
+              {{ type.displayName }}
+            </span>
+          </div>
+        </div>
+        <!-- Type detail -->
+        <div
+          v-if="selectedType"
+          class="flex-1 overflow-y-auto px-6 py-5"
+        >
+          <div class="flex items-center gap-2">
+            <span
+              class="rounded px-2 py-0.5 font-mono text-xs"
+              :class="nodeColor(selectedType.type || selectedType.displayName)"
+            >
+              {{ selectedType.displayName }}
+            </span>
+            <span class="font-mono text-xs text-text-4">{{ selectedType.nodeTypeId }}</span>
+            <CopyButton
+              :value="selectedType.nodeTypeId"
+              :size="13"
+            />
+          </div>
+          <p
+            v-if="selectedType.description"
+            class="mt-4 font-mono text-sm leading-relaxed text-text-2"
+          >
+            {{ selectedType.description }}
+          </p>
+          <div
+            v-if="Object.keys(selectedType.annotations).length > 0"
+            class="mt-6"
+          >
+            <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+              Annotations
+            </div>
+            <div
+              v-for="(value, key) in selectedType.annotations"
+              :key="key"
+              class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
+              style="grid-template-columns: minmax(180px, 30%) minmax(0, 1fr)"
+            >
+              <span
+                class="truncate font-mono text-text-3"
+                :title="key"
+              >
+                {{ key }}
+              </span>
+              <span class="break-all font-mono text-text-2">{{ value }}</span>
+            </div>
+          </div>
+        </div>
+        <div
+          v-else
+          class="flex flex-1 items-center justify-center"
+        >
+          <span class="font-mono text-xs text-text-4">Select a node type</span>
+        </div>
+      </template>
     </SlideOverDrawer>
   </div>
 </template>
