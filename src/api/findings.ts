@@ -8,7 +8,7 @@ interface FindingResponse {
   id: string
   displayName: string
   description?: string
-  type?: { id: string; displayName: string }
+  findingType?: { id: string; displayName: string }
   resources?: ResourceResponse[]
   resource?: ResourceResponse
   reference?: string
@@ -43,7 +43,9 @@ function decodeFinding(res: FindingResponse): Finding {
     findingId: res.id,
     displayName: res.displayName ?? '',
     description: res.description ?? '',
-    type: res.type ? { findingTypeId: res.type.id, displayName: res.type.displayName } : undefined,
+    findingType: res.findingType
+      ? { findingTypeId: res.findingType.id, displayName: res.findingType.displayName }
+      : undefined,
     resources: decodeResources(res),
     reference: res.reference,
     annotations: decodeAnnotations(res.annotations),

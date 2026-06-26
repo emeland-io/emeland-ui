@@ -41,7 +41,7 @@ export const findings: Finding[] = [
     findingId: '11a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5c',
     displayName: 'Context type missing',
     description: 'Context "CI/CD" has no ContextType set.',
-    type: {
+    findingType: {
       findingTypeId: 'a1b2c3d4-e5f6-4a7b-8c9d-1e2f3a4b5c6d',
       displayName: 'ContextTypeMissing',
     },
@@ -58,7 +58,10 @@ export const findings: Finding[] = [
     findingId: '22b3c4d5-e6f7-4a8b-9c1d-1e2f3a4b5c6d',
     displayName: 'Version mismatch with system template',
     description: 'instance v1.7.9 != system v1.8.3',
-    type: { findingTypeId: 'e5f6a7b8-c9d1-4e2f-3a4b-5c6d7e8f9a1b', displayName: 'VersionMismatch' },
+    findingType: {
+      findingTypeId: 'e5f6a7b8-c9d1-4e2f-3a4b-5c6d7e8f9a1b',
+      displayName: 'VersionMismatch',
+    },
     resources: [
       {
         resourceId: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e',
@@ -81,7 +84,7 @@ export const findings: Finding[] = [
     findingId: '33c4d5e6-f7a8-4b9c-1d2e-2f3a4b5c6d7e',
     displayName: 'Consumer lag exceeds threshold',
     description: 'max-consumer-lag <= 500 (current: 2841 on system-b.events)',
-    type: {
+    findingType: {
       findingTypeId: 'd4e5f6a7-b8c9-4d1e-2f3a-4b5c6d7e8f9a',
       displayName: 'ConsumerLagExceeded',
     },
@@ -103,7 +106,10 @@ export const findings: Finding[] = [
     findingId: '44d5e6f7-a8b9-4c1d-2e3f-3a4b5c6d7e8f',
     displayName: 'Node type missing',
     description: 'NodeTypeMissing: node references a type which does not exist.',
-    type: { findingTypeId: 'c3d4e5f6-a7b8-4c9d-1e2f-3a4b5c6d7e8f', displayName: 'NodeTypeMissing' },
+    findingType: {
+      findingTypeId: 'c3d4e5f6-a7b8-4c9d-1e2f-3a4b5c6d7e8f',
+      displayName: 'NodeTypeMissing',
+    },
     resources: [
       {
         resourceId: 'b1c2d3e4-f5a6-4b7c-8d9e-1f2a3b4c5d6e',

@@ -106,7 +106,7 @@ const selectedType = computed(() =>
 async function openTypesDrawer() {
   typesDrawerOpen.value = true
   await store.loadFindingTypes()
-  const typeId = selectedFinding.value?.type?.findingTypeId
+  const typeId = selectedFinding.value?.findingType?.findingTypeId
   if (typeId && store.findingTypes.some((t) => t.findingTypeId === typeId)) {
     selectTypeInDrawer(typeId)
   } else if (!selectedTypeId.value && store.findingTypes.length > 0) {
