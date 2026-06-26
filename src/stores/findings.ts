@@ -21,11 +21,11 @@ export const useFindingsStore = defineStore('findings', () => {
   const typeMap = computed(() => new Map(findingTypes.value.map((ft) => [ft.findingTypeId, ft])))
 
   function getTypeForFinding(f: Finding): FindingType | undefined {
-    return f.type ? typeMap.value.get(f.type.findingTypeId) : undefined
+    return f.findingType ? typeMap.value.get(f.findingType.findingTypeId) : undefined
   }
 
   function getKindForFinding(f: Finding): string {
-    return f.type?.displayName ?? 'Unknown'
+    return f.findingType?.displayName ?? 'Unknown'
   }
 
   async function load() {

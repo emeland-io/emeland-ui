@@ -28,7 +28,7 @@ export interface Finding {
   findingId: string
   displayName: string
   description?: string
-  type?: FindingTypeRef
+  findingType?: FindingTypeRef
   resources: FindingResource[]
   reference?: string
   annotations: Record<string, string>
