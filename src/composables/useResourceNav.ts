@@ -25,12 +25,24 @@ export function useSelectQuery<T>(
   idOf: (item: T) => string,
 ) {
   const route = useRoute()
+  const router = useRouter()
+
+  let applied: string | null = null
 
   watch(
     () => [items.value, route.query.select] as const,
     ([list, select]) => {
-      if (typeof select === 'string' && list.some((it) => idOf(it) === select)) {
+      if (typeof select !== 'string') {
+        applied = null
+        return
+      }
+      if (select === applied) return
+      if (list.some((it) => idOf(it) === select)) {
         selectedId.value = select
+        applied = select
+        const query = { ...route.query }
+        delete query.select
+        router.replace({ query })
       }
     },
     { immediate: true },
