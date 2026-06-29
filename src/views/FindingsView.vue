@@ -100,9 +100,13 @@ onMounted(() => store.load())
 // Finding Types drawer
 const typesDrawerOpen = ref(false)
 const selectedTypeId = ref('')
-const selectedType = computed(() =>
-  store.findingTypes.find((t) => t.findingTypeId === selectedTypeId.value),
-)
+
+const selectedType = computed(() => {
+  const detail = store.selectedTypeDetail
+  if (detail && detail.findingTypeId === selectedTypeId.value) return detail
+  return store.findingTypes.find((t) => t.findingTypeId === selectedTypeId.value)
+})
+
 async function openTypesDrawer() {
   typesDrawerOpen.value = true
   await store.loadFindingTypes()
@@ -118,6 +122,15 @@ function selectTypeInDrawer(id: string) {
   selectedTypeId.value = id
   if (id) store.loadFindingTypeDetail(id)
 }
+
+async function openTypeInDrawer(findingTypeId: string) {
+  typesDrawerOpen.value = true
+  await store.loadFindingTypes()
+  if (store.findingTypes.some((t) => t.findingTypeId === findingTypeId)) {
+    selectTypeInDrawer(findingTypeId)
+  }
+}
+
 function closeTypesDrawer() {
   typesDrawerOpen.value = false
 }
@@ -225,8 +238,8 @@ function closeTypesDrawer() {
             class="flex-1"
             :finding="selectedFinding"
             :kind="store.getKindForFinding(selectedFinding)"
-            :type="store.getTypeForFinding(selectedFinding)"
             @navigate-resource="goToResource"
+            @open-type="openTypeInDrawer"
           />
           <div
             v-else

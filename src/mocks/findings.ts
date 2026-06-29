@@ -113,7 +113,7 @@ export const findings: Finding[] = [
     resources: [
       {
         resourceId: 'b1c2d3e4-f5a6-4b7c-8d9e-1f2a3b4c5d6e',
-        displayName: 'orphan-git-sensor',
+        displayName: 'test-git-sensor',
         resourceType: 'Node',
       },
       {

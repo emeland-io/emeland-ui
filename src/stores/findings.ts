@@ -18,14 +18,16 @@ export const useFindingsStore = defineStore('findings', () => {
   const typesLoading = ref(false)
   const typesLoaded = ref(false)
 
+  const selectedTypeDetail = ref<FindingType | null>(null)
+
   const typeMap = computed(() => new Map(findingTypes.value.map((ft) => [ft.findingTypeId, ft])))
 
-  function getTypeForFinding(f: Finding): FindingType | undefined {
-    return f.findingType ? typeMap.value.get(f.findingType.findingTypeId) : undefined
+  function getTypeForFinding(f: Finding | undefined): FindingType | undefined {
+    return f?.findingType ? typeMap.value.get(f.findingType.findingTypeId) : undefined
   }
 
-  function getKindForFinding(f: Finding): string {
-    return f.findingType?.displayName ?? 'Unknown'
+  function getKindForFinding(f: Finding | undefined): string {
+    return f?.findingType?.displayName ?? 'Unknown'
   }
 
   async function load() {
@@ -45,10 +47,8 @@ export const useFindingsStore = defineStore('findings', () => {
   async function loadFindingDetail(id: string): Promise<void> {
     try {
       const full = await fetchFindingById(id)
-      const idx = findings.value.findIndex((f) => f.findingId === id)
-      if (idx !== -1) {
-        findings.value[idx] = full
-      }
+      const safe = full.findingId ? full : { ...full, findingId: id }
+      findings.value = findings.value.map((f) => (f.findingId === id ? safe : f))
     } catch (e) {
       error.value = (e as Error).message
     }
@@ -68,12 +68,9 @@ export const useFindingsStore = defineStore('findings', () => {
   }
 
   async function loadFindingTypeDetail(id: string): Promise<void> {
+    selectedTypeDetail.value = null
     try {
-      const full = await fetchFindingTypeById(id)
-      const idx = findingTypes.value.findIndex((t) => t.findingTypeId === id)
-      if (idx !== -1) {
-        findingTypes.value[idx] = full
-      }
+      selectedTypeDetail.value = await fetchFindingTypeById(id)
     } catch (e) {
       error.value = (e as Error).message
     }
@@ -87,6 +84,7 @@ export const useFindingsStore = defineStore('findings', () => {
     error,
     typesLoading,
     typesLoaded,
+    selectedTypeDetail,
     typeMap,
     getTypeForFinding,
     getKindForFinding,

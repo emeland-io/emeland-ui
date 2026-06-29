@@ -19,7 +19,7 @@ const emit = defineEmits<{
       :key="finding.findingId"
       class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
       :class="
-        finding.findingId === selectedId
+        finding.findingId && finding.findingId === selectedId
           ? 'border-l-accent bg-accent/5'
           : 'border-l-transparent hover:bg-bg-1'
       "

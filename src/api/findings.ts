@@ -5,10 +5,10 @@ import type { Finding, FindingResource, FindingType } from '@/types/finding'
 const USE_MOCKS = import.meta.env.VITE_EMEL_DEV_USE_MOCKS === 'true'
 
 interface FindingResponse {
-  id: string
+  findingId: string
   displayName: string
   description?: string
-  findingType?: { id: string; displayName: string }
+  findingType?: { findingTypeId: string; displayName: string }
   resources?: ResourceResponse[]
   resource?: ResourceResponse
   reference?: string
@@ -19,6 +19,12 @@ interface ResourceResponse {
   id: string
   displayName?: string
   resourceType: string
+}
+
+interface InstanceListItem {
+  instanceId: string
+  displayName: string
+  reference: string
 }
 
 function decodeAnnotations(
@@ -40,11 +46,11 @@ function decodeResources(res: FindingResponse): FindingResource[] {
 
 function decodeFinding(res: FindingResponse): Finding {
   return {
-    findingId: res.id,
+    findingId: res.findingId,
     displayName: res.displayName ?? '',
     description: res.description ?? '',
     findingType: res.findingType
-      ? { findingTypeId: res.findingType.id, displayName: res.findingType.displayName }
+      ? { findingTypeId: res.findingType.findingTypeId, displayName: res.findingType.displayName }
       : undefined,
     resources: decodeResources(res),
     reference: res.reference,
@@ -54,10 +60,18 @@ function decodeFinding(res: FindingResponse): Finding {
 
 function decodeFindingType(res: Record<string, unknown>): FindingType {
   return {
-    findingTypeId: res.id as string,
+    findingTypeId: (res.findingTypeId as string) ?? (res.instanceId as string) ?? '',
     displayName: (res.displayName as string) ?? '',
     description: (res.description as string) ?? '',
     annotations: decodeAnnotations(res.annotations as { key: string; value: string }[] | undefined),
+  }
+}
+
+function findingTypeFromList(item: InstanceListItem): FindingType {
+  return {
+    findingTypeId: item.instanceId,
+    displayName: item.displayName,
+    annotations: {},
   }
 }
 
@@ -91,8 +105,8 @@ export async function fetchFindingTypes(): Promise<FindingType[]> {
   }
   const resp = await apiFetch(API.FINDING_TYPES.list)
   if (!resp.ok) throw new Error(`Failed to load finding types: ${resp.status}`)
-  const data: Record<string, unknown>[] = await resp.json()
-  return data.map(decodeFindingType)
+  const data: InstanceListItem[] = await resp.json()
+  return data.map(findingTypeFromList)
 }
 
 export async function fetchFindingTypeById(id: string): Promise<FindingType> {
