@@ -68,6 +68,7 @@ function clearFilters() {
 const selectedId = ref('')
 const selectedFinding = computed(() => store.findings.find((f) => f.findingId === selectedId.value))
 
+// Preselect a finding when arriving via ?select=<id> (e.g. from a node).
 function selectFinding(id: string) {
   selectedId.value = id
   if (id) store.loadFindingDetail(id)
