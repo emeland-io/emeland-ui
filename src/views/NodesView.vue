@@ -36,7 +36,6 @@ function nodeVersion(annotations: Record<string, string>): string | undefined {
   return entry?.[1]
 }
 
-
 const search = ref('')
 const activeTypes = ref<Set<string>>(new Set())
 const allTypes = computed(() => [...new Set(store.nodes.map((n) => store.getTypeName(n)))])
