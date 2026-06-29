@@ -13,6 +13,8 @@ export const useNodesStore = defineStore('nodes', () => {
   const typesLoading = ref(false)
   const typesLoaded = ref(false)
 
+  const selectedTypeDetail = ref<NodeType | null>(null)
+
   const typeMap = computed(() => new Map(nodeTypes.value.map((nt) => [nt.nodeTypeId, nt])))
 
   function getTypeForNode(n: Node): NodeType | undefined {
@@ -24,7 +26,7 @@ export const useNodesStore = defineStore('nodes', () => {
   }
 
   function getTypeCategory(n: Node): string {
-    return n.nodeType?.type || n.nodeType?.displayName || getTypeForNode(n)?.type || ''
+    return n.nodeType?.displayName || getTypeForNode(n)?.displayName || ''
   }
 
   async function load() {
@@ -44,10 +46,7 @@ export const useNodesStore = defineStore('nodes', () => {
   async function loadNodeDetail(id: string): Promise<void> {
     try {
       const full = await fetchNodeById(id)
-      const idx = nodes.value.findIndex((n) => n.nodeId === id)
-      if (idx !== -1) {
-        nodes.value[idx] = full
-      }
+      nodes.value = nodes.value.map((n) => (n.nodeId === id ? full : n))
     } catch (e) {
       error.value = (e as Error).message
     }
@@ -67,12 +66,9 @@ export const useNodesStore = defineStore('nodes', () => {
   }
 
   async function loadNodeTypeDetail(id: string): Promise<void> {
+    selectedTypeDetail.value = null
     try {
-      const full = await fetchNodeTypeById(id)
-      const idx = nodeTypes.value.findIndex((t) => t.nodeTypeId === id)
-      if (idx !== -1) {
-        nodeTypes.value[idx] = full
-      }
+      selectedTypeDetail.value = await fetchNodeTypeById(id)
     } catch (e) {
       error.value = (e as Error).message
     }
@@ -86,6 +82,7 @@ export const useNodesStore = defineStore('nodes', () => {
     error,
     typesLoading,
     typesLoaded,
+    selectedTypeDetail,
     typeMap,
     getTypeForNode,
     getTypeName,

@@ -5,21 +5,17 @@ import type { Node, NodeType, NodeTypeRef } from '@/types/node'
 const USE_MOCKS = import.meta.env.VITE_EMEL_DEV_USE_MOCKS === 'true'
 
 interface NodeResponse {
-  id?: string
-  nodeId?: string
+  nodeId: string
   displayName: string
   description?: string
-  nodeType?: { id: string; displayName: string; type?: string } | string
+  nodeType?: { nodeTypeId: string; displayName: string; resource?: string }
   annotations?: { key: string; value: string }[] | Record<string, string>
 }
 
-interface NodeTypeResponse {
-  id?: string
-  nodeTypeId?: string
+interface InstanceListItem {
+  instanceId: string
   displayName: string
-  description?: string
-  type?: string
-  annotations?: { key: string; value: string }[] | Record<string, string>
+  reference: string
 }
 
 function decodeAnnotations(
@@ -31,18 +27,15 @@ function decodeAnnotations(
 }
 
 function decodeNodeTypeRef(
-  raw: { id: string; displayName: string; type?: string } | string | undefined,
+  raw: { nodeTypeId: string; displayName: string } | undefined,
 ): NodeTypeRef | undefined {
   if (!raw) return undefined
-  if (typeof raw === 'string') {
-    return { nodeTypeId: raw, displayName: '', type: '' }
-  }
-  return { nodeTypeId: raw.id, displayName: raw.displayName ?? '', type: raw.type ?? '' }
+  return { nodeTypeId: raw.nodeTypeId, displayName: raw.displayName ?? '' }
 }
 
 function decodeNode(res: NodeResponse): Node {
   return {
-    nodeId: res.id ?? res.nodeId ?? '',
+    nodeId: res.nodeId,
     displayName: res.displayName ?? '',
     description: res.description ?? '',
     nodeType: decodeNodeTypeRef(res.nodeType),
@@ -50,13 +43,20 @@ function decodeNode(res: NodeResponse): Node {
   }
 }
 
-function decodeNodeType(res: NodeTypeResponse): NodeType {
+function decodeNodeType(res: Record<string, unknown>): NodeType {
   return {
-    nodeTypeId: res.id ?? res.nodeTypeId ?? '',
-    displayName: res.displayName ?? '',
-    description: res.description ?? '',
-    type: res.type ?? '',
-    annotations: decodeAnnotations(res.annotations),
+    nodeTypeId: (res.nodeTypeId as string) ?? (res.instanceId as string) ?? '',
+    displayName: (res.displayName as string) ?? '',
+    description: (res.description as string) ?? '',
+    annotations: decodeAnnotations(res.annotations as { key: string; value: string }[] | undefined),
+  }
+}
+
+function nodeTypeFromList(item: InstanceListItem): NodeType {
+  return {
+    nodeTypeId: item.instanceId,
+    displayName: item.displayName,
+    annotations: {},
   }
 }
 
@@ -90,8 +90,8 @@ export async function fetchNodeTypes(): Promise<NodeType[]> {
   }
   const resp = await apiFetch(API.NODE_TYPES.list)
   if (!resp.ok) throw new Error(`Failed to load node types: ${resp.status}`)
-  const data: NodeTypeResponse[] = await resp.json()
-  return data.map(decodeNodeType)
+  const data: InstanceListItem[] = await resp.json()
+  return data.map(nodeTypeFromList)
 }
 
 export async function fetchNodeTypeById(id: string): Promise<NodeType> {
