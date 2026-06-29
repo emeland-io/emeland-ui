@@ -35,7 +35,19 @@ export const findingTypes: FindingType[] = [
   },
 ]
 
-/** Finding mockups — mirror the live API shape (embedded type, resources[]). */
+/**
+ * Findings mockups
+ *
+ * Cross-references:
+ *   From contexts.ts:
+ *     CI/CD:         e2b4c6d8-f1a3-4e5b-9c7d-2a4f6e8b1d3c
+ *   From systems.ts:
+ *     app-prod-eu:   e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e
+ *     Application:   7a1b2c3d-4e5f-4a6b-8c9d-1e2f3a4b5c6d
+ *     prom-prod:     2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e
+ *   From nodes.ts:
+ *     Sensor System A: b1c2d3e4-f5a6-4b7c-8d9e-1f2a3b4c5d6e
+ */
 export const findings: Finding[] = [
   {
     findingId: '11a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5c',
