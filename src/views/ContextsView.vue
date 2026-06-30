@@ -218,10 +218,8 @@ function closeTypesDrawer() {
   typesDrawerOpen.value = false
 }
 
-// Jump to the parent context (in-view preselect).
+// Jump to the parent context
 function goToParent(parentId: string) {
-  // Parent is always a context in this same view, so select it directly.
-  // (Routing via ?select only applies once, so it wouldn't work in-view.)
   selectContext(parentId)
 }
 </script>
