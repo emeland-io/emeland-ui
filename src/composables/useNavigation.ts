@@ -34,7 +34,6 @@ export function useNavigation() {
     {
       title: 'Landscape',
       items: [
-        { label: 'Models', route: '/models', icon: IconCube },
         { label: 'Nodes', route: '/nodes', icon: IconCube },
         { label: 'Graph', route: '/graph', icon: IconCube },
         { label: 'Sensors', route: '/sensors', icon: IconCube },

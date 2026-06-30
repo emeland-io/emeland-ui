@@ -10,6 +10,7 @@ import {
 } from '@tabler/icons-vue'
 import { clearToken, authenticated } from '@/auth'
 import { useTheme, type ThemeMode } from '@/composables/useTheme'
+import ModelBadge from '@/components/ModelBadge.vue'
 
 const router = useRouter()
 const { theme, setTheme } = useTheme()
@@ -28,11 +29,12 @@ function logout() {
 
 <template>
   <header class="flex h-10 items-center gap-3 border-b border-border-1 bg-bg-1 px-4">
-    <!-- Logo -->
-    <div class="text-[13px] font-medium">
+    <div class="flex w-37 shrink-0 items-center text-[13px] font-medium">
       <span class="text-accent">EmE</span>
       <span class="text-text-1">Land</span>
     </div>
+
+    <ModelBadge />
 
     <div class="flex-1" />
 

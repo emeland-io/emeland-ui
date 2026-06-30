@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { IconArrowUpRight } from '@tabler/icons-vue'
-import type { Finding, FindingType } from '@/types/finding'
+import type { Finding } from '@/types/finding'
 import type { ResourceType } from '@/types/common'
 import CopyButton from '@/components/CopyButton.vue'
 import { isResourceNavigable } from '@/constants/resources'
@@ -8,20 +8,23 @@ import { isResourceNavigable } from '@/constants/resources'
 defineProps<{
   finding: Finding
   kind: string
-  type: FindingType | undefined
 }>()
 
 const emit = defineEmits<{
   navigateResource: [resourceType: ResourceType, resourceId: string]
+  openType: [findingTypeId: string]
 }>()
 </script>
 
 <template>
-  <div class="h-full overflow-y-auto">
+  <div
+    v-if="finding"
+    class="h-full overflow-y-auto"
+  >
     <!-- Header -->
     <div class="border-b border-border-1 px-6 py-4">
       <div class="flex items-start justify-between gap-4">
-        <h2 class="text-base font-medium text-text-1">{{ finding.summary }}</h2>
+        <h2 class="text-base font-medium text-text-1">{{ finding.displayName }}</h2>
         <div class="flex items-center gap-1.5 shrink-0">
           <span class="font-mono text-xs text-text-4">{{ finding.findingId }}</span>
           <CopyButton
@@ -31,7 +34,18 @@ const emit = defineEmits<{
         </div>
       </div>
       <div class="mt-2 flex items-center gap-2.5">
-        <span class="rounded bg-sensor/10 px-2 py-0.5 font-mono text-xs text-sensor">
+        <button
+          v-if="finding.findingType"
+          class="group flex items-center gap-1 rounded bg-sensor/10 px-2 py-0.5 font-mono text-xs text-sensor transition-colors hover:bg-sensor/20"
+          title="Show finding type"
+          @click="emit('openType', finding.findingType.findingTypeId)"
+        >
+          {{ kind }}
+        </button>
+        <span
+          v-else
+          class="rounded bg-sensor/10 px-2 py-0.5 font-mono text-xs text-sensor"
+        >
           {{ kind }}
         </span>
         <button class="text-xs text-text-4 transition-colors hover:text-text-2">View Policy</button>
@@ -60,16 +74,15 @@ const emit = defineEmits<{
           >
             {{ res.resourceType }}
           </span>
+          <!-- Navigable: name (or id fallback) + jump, copy on id -->
           <button
             v-if="isResourceNavigable(res.resourceType)"
             class="group flex min-w-0 flex-1 items-center gap-1.5 text-left"
             :title="`Go to ${res.resourceType}`"
             @click="emit('navigateResource', res.resourceType, res.resourceId)"
           >
-            <span
-              class="truncate font-mono text-sm text-text-2 transition-colors group-hover:text-accent"
-            >
-              {{ res.resourceId }}
+            <span class="truncate text-sm text-text-2 transition-colors group-hover:text-accent">
+              {{ res.displayName || res.resourceId }}
             </span>
             <IconArrowUpRight
               :size="16"
@@ -77,12 +90,21 @@ const emit = defineEmits<{
               class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
             />
           </button>
+          <!-- Non-navigable: name (or id fallback) -->
           <span
             v-else
-            class="min-w-0 flex-1 truncate font-mono text-sm text-text-2"
+            class="min-w-0 flex-1 truncate text-sm text-text-2"
           >
-            {{ res.resourceId }}
+            {{ res.displayName || res.resourceId }}
           </span>
+          <!-- id + copy -->
+          <div class="flex items-center gap-1.5 shrink-0">
+            <span class="font-mono text-[11px] text-text-4">{{ res.resourceId }}</span>
+            <CopyButton
+              :value="res.resourceId"
+              :size="12"
+            />
+          </div>
         </div>
       </div>
       <!-- Annotations -->
@@ -103,21 +125,6 @@ const emit = defineEmits<{
             {{ key }}
           </span>
           <span class="break-all font-mono text-text-2">{{ value }}</span>
-        </div>
-      </div>
-      <!-- Finding type -->
-      <div v-if="type">
-        <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
-          Finding type
-        </div>
-        <div class="rounded border border-border-1 bg-bg-1 px-4 py-3">
-          <div class="font-mono text-sm font-medium text-text-1">{{ type.displayName }}</div>
-          <div
-            v-if="type.description"
-            class="mt-1.5 font-mono text-xs leading-relaxed text-text-3"
-          >
-            {{ type.description }}
-          </div>
         </div>
       </div>
     </div>
