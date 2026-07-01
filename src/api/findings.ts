@@ -22,7 +22,7 @@ interface ResourceResponse {
 }
 
 interface InstanceListItem {
-  instanceId: string
+  findingTypeId: string
   displayName: string
   reference: string
 }
@@ -60,7 +60,7 @@ function decodeFinding(res: FindingResponse): Finding {
 
 function decodeFindingType(res: Record<string, unknown>): FindingType {
   return {
-    findingTypeId: (res.findingTypeId as string) ?? (res.instanceId as string) ?? '',
+    findingTypeId: (res.findingTypeId as string) ?? (res.findingTypeId as string) ?? '',
     displayName: (res.displayName as string) ?? '',
     description: (res.description as string) ?? '',
     annotations: decodeAnnotations(res.annotations as { key: string; value: string }[] | undefined),
@@ -69,7 +69,7 @@ function decodeFindingType(res: Record<string, unknown>): FindingType {
 
 function findingTypeFromList(item: InstanceListItem): FindingType {
   return {
-    findingTypeId: item.instanceId,
+    findingTypeId: item.findingTypeId,
     displayName: item.displayName,
     annotations: {},
   }
