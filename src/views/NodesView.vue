@@ -295,7 +295,7 @@ function closeTypesDrawer() {
               </span>
               <span
                 v-if="nodeVersion(node.annotations)"
-                class="font-mono text-[11px] text-text-4"
+                class="font-mono text-[11px] text-text-id"
               >
                 {{ nodeVersion(node.annotations) }}
               </span>
@@ -313,7 +313,7 @@ function closeTypesDrawer() {
               <div class="flex items-start justify-between gap-4">
                 <h2 class="text-base font-medium text-text-1">{{ selectedNode.displayName }}</h2>
                 <div class="flex items-center gap-1.5">
-                  <span class="font-mono text-xs text-text-4">{{ selectedNode.nodeId }}</span>
+                  <span class="font-mono text-xs text-text-id">{{ selectedNode.nodeId }}</span>
                   <CopyButton
                     :value="selectedNode.nodeId"
                     :size="13"
@@ -387,7 +387,7 @@ function closeTypesDrawer() {
                     :stroke-width="2"
                     class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
                   />
-                  <span class="ml-auto shrink-0 font-mono text-[11px] text-text-4">
+                  <span class="ml-auto shrink-0 font-mono text-[11px] text-text-id">
                     {{ f.findingId }}
                   </span>
                 </button>
@@ -429,7 +429,7 @@ function closeTypesDrawer() {
                     </div>
                     <div
                       v-else-if="store.getTypeForNode(selectedNode)?.description"
-                      class="mt-0.5 truncate font-mono text-[11px] text-text-4"
+                      class="mt-0.5 truncate font-mono text-[11px] text-text-id"
                     >
                       {{ store.getTypeForNode(selectedNode)?.description }}
                     </div>
@@ -439,7 +439,7 @@ function closeTypesDrawer() {
                     v-if="selectedNode.nodeType?.nodeTypeId"
                     class="flex items-center gap-1.5 shrink-0"
                   >
-                    <span class="font-mono text-[11px] text-text-4">
+                    <span class="font-mono text-[11px] text-text-id">
                       {{ selectedNode.nodeType.nodeTypeId }}
                     </span>
                     <CopyButton
@@ -455,7 +455,7 @@ function closeTypesDrawer() {
             v-else
             class="flex flex-1 items-center justify-center"
           >
-            <span class="font-mono text-xs text-text-4">Select a node to inspect</span>
+            <span class="font-mono text-xs text-text-id">Select a node to inspect</span>
           </div>
         </template>
       </ListDetail>
@@ -522,7 +522,7 @@ function closeTypesDrawer() {
             >
               {{ selectedType.displayName }}
             </span>
-            <span class="font-mono text-xs text-text-4">{{ selectedType.nodeTypeId }}</span>
+            <span class="font-mono text-xs text-text-id">{{ selectedType.nodeTypeId }}</span>
             <CopyButton
               :value="selectedType.nodeTypeId"
               :size="13"
@@ -561,7 +561,7 @@ function closeTypesDrawer() {
           v-else
           class="flex flex-1 items-center justify-center"
         >
-          <span class="font-mono text-xs text-text-4">Select a node type</span>
+          <span class="font-mono text-xs text-text-id">Select a node type</span>
         </div>
       </template>
     </SlideOverDrawer>

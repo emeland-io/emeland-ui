@@ -24,7 +24,7 @@ onMounted(() => store.load())
       <span class="text-xs font-medium text-text-1">{{ store.model.displayName }}</span>
       <span
         v-if="store.model.version"
-        class="font-mono text-[11px] text-text-4"
+        class="font-mono text-[11px] text-text-id"
       >
         {{ store.model.version }}
       </span>

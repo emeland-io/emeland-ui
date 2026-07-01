@@ -26,7 +26,7 @@ const emit = defineEmits<{
       <div class="flex items-start justify-between gap-4">
         <h2 class="text-base font-medium text-text-1">{{ finding.displayName }}</h2>
         <div class="flex items-center gap-1.5 shrink-0">
-          <span class="font-mono text-xs text-text-4">{{ finding.findingId }}</span>
+          <span class="font-mono text-xs text-text-id">{{ finding.findingId }}</span>
           <CopyButton
             :value="finding.findingId"
             :size="13"
@@ -99,7 +99,7 @@ const emit = defineEmits<{
           </span>
           <!-- id + copy -->
           <div class="flex items-center gap-1.5 shrink-0">
-            <span class="font-mono text-[11px] text-text-4">{{ res.resourceId }}</span>
+            <span class="font-mono text-[11px] text-text-id">{{ res.resourceId }}</span>
             <CopyButton
               :value="res.resourceId"
               :size="12"

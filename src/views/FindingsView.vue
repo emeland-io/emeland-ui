@@ -246,7 +246,7 @@ function closeTypesDrawer() {
             v-else
             class="flex flex-1 items-center justify-center"
           >
-            <span class="font-mono text-xs text-text-4">Select a finding to inspect</span>
+            <span class="font-mono text-xs text-text-id">Select a finding to inspect</span>
           </div>
         </template>
       </ListDetail>
@@ -301,7 +301,7 @@ function closeTypesDrawer() {
             </div>
             <div
               v-if="type.description"
-              class="mt-1 truncate font-mono text-[11px] text-text-4"
+              class="mt-1 truncate font-mono text-[11px] text-text-id"
             >
               {{ type.description }}
             </div>
@@ -314,7 +314,7 @@ function closeTypesDrawer() {
         >
           <h3 class="text-base font-medium text-text-1">{{ selectedType.displayName }}</h3>
           <div class="mt-2 flex items-center gap-2">
-            <span class="font-mono text-xs text-text-4">{{ selectedType.findingTypeId }}</span>
+            <span class="font-mono text-xs text-text-id">{{ selectedType.findingTypeId }}</span>
             <CopyButton
               :value="selectedType.findingTypeId"
               :size="13"
@@ -353,7 +353,7 @@ function closeTypesDrawer() {
           v-else
           class="flex flex-1 items-center justify-center"
         >
-          <span class="font-mono text-xs text-text-4">Select a finding type</span>
+          <span class="font-mono text-xs text-text-id">Select a finding type</span>
         </div>
       </template>
     </SlideOverDrawer>

@@ -7,6 +7,7 @@
   --color-text-2: #a8b8b0;
   --color-text-3: #6a8078;
   --color-text-4: #3a4a44;
+  --color-text-id: var(--color-text-3);
   --color-border-1: #222827;
   --color-accent: #1d9e75;
   --color-accent-text: #9fe1cb;
@@ -30,6 +31,7 @@
   --color-text-2: #4a4a45;
   --color-text-3: #7a7a72;
   --color-text-4: #b0afa8;
+  --color-text-id: var(--color-text-3);
   --color-border-1: #e8e7e0;
   --color-border-2: #d8d7d0;
   --color-accent: #1a7a58;
