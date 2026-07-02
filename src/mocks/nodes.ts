@@ -74,4 +74,11 @@ export const nodes: Node[] = [
       'eximpl.emeland.io/type': 'event-stream',
     },
   },
+  {
+    nodeId: 'aaaa0001-0000-4000-8000-000000000001',
+    displayName: 'orphan-git-sensor',
+    description: 'References a non-existent NodeType to trigger NodeTypeMissing.',
+    nodeType: { nodeTypeId: 'bbbb0001-0000-4000-8000-000000000001', displayName: '' },
+    annotations: {},
+  },
 ]

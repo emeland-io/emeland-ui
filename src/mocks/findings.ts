@@ -38,29 +38,37 @@ export const findingTypes: FindingType[] = [
 /**
  * Findings mockups
  *
- * Cross-references:
+ * Cross-references (all resolve to real entities in the other mocks):
  *   From contexts.ts:
- *     CI/CD:         e2b4c6d8-f1a3-4e5b-9c7d-2a4f6e8b1d3c
+ *     Altsystem:        0a000000-0000-4211-8000-000000000008 (parent is missing)
+ *     (missing parent): ffffffff-0000-4211-8000-0000000000ff
  *   From systems.ts:
- *     app-prod-eu:   e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e
- *     Application:   7a1b2c3d-4e5f-4a6b-8c9d-1e2f3a4b5c6d
- *     prom-prod:     2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e
+ *     Application (prod-eu): e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e (SystemInstance)
+ *     Application:           7a1b2c3d-4e5f-4a6b-8c9d-1e2f3a4b5c6d (System)
+ *     Prometheus (prod):     2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e (SystemInstance)
  *   From nodes.ts:
- *     Sensor System A: b1c2d3e4-f5a6-4b7c-8d9e-1f2a3b4c5d6e
+ *     orphan-git-sensor:  aaaa0001-0000-4000-8000-000000000001 (Node, missing type)
+ *     (missing NodeType): bbbb0001-0000-4000-8000-000000000001
  */
 export const findings: Finding[] = [
   {
     findingId: '11a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b5c',
-    displayName: 'Context type missing',
-    description: 'Context "CI/CD" has no ContextType set.',
+    displayName: 'Context parent not found',
+    description:
+      'Context "Altsystem" references a parent context that does not exist in the model.',
     findingType: {
-      findingTypeId: 'a1b2c3d4-e5f6-4a7b-8c9d-1e2f3a4b5c6d',
-      displayName: 'ContextTypeMissing',
+      findingTypeId: 'b2c3d4e5-f6a7-4b8c-9d1e-2f3a4b5c6d7e',
+      displayName: 'ContextParentNotFound',
     },
     resources: [
       {
-        resourceId: 'e2b4c6d8-f1a3-4e5b-9c7d-2a4f6e8b1d3c',
-        displayName: 'CI/CD',
+        resourceId: '0a000000-0000-4211-8000-000000000008',
+        displayName: 'Altsystem',
+        resourceType: 'Context',
+      },
+      {
+        resourceId: 'ffffffff-0000-4211-8000-0000000000ff',
+        displayName: '',
         resourceType: 'Context',
       },
     ],
@@ -77,7 +85,7 @@ export const findings: Finding[] = [
     resources: [
       {
         resourceId: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e',
-        displayName: 'app-prod-eu',
+        displayName: 'Application (prod-eu)',
         resourceType: 'SystemInstance',
       },
       {
@@ -103,7 +111,7 @@ export const findings: Finding[] = [
     resources: [
       {
         resourceId: '2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e',
-        displayName: 'prom-prod',
+        displayName: 'Prometheus (prod)',
         resourceType: 'SystemInstance',
       },
     ],
@@ -124,8 +132,8 @@ export const findings: Finding[] = [
     },
     resources: [
       {
-        resourceId: 'b1c2d3e4-f5a6-4b7c-8d9e-1f2a3b4c5d6e',
-        displayName: 'test-git-sensor',
+        resourceId: 'aaaa0001-0000-4000-8000-000000000001',
+        displayName: 'orphan-git-sensor',
         resourceType: 'Node',
       },
       {

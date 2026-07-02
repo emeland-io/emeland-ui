@@ -22,11 +22,11 @@ interface ResourceMeta {
 const RESOURCES: Partial<Record<ResourceType, ResourceMeta>> = {
   Node: { label: 'Node', route: 'Nodes' },
   Finding: { label: 'Finding', route: 'Findings' },
+  Context: { label: 'Context', route: 'Contexts' },
+  System: { label: 'System', route: 'Systems' },
 
-  Context: { label: 'Context', route: null },
   ContextType: { label: 'Context Type', route: null },
   NodeType: { label: 'Node Type', route: null },
-  System: { label: 'System', route: null },
   SystemInstance: { label: 'System Instance', route: null },
   API: { label: 'API', route: null },
   ApiInstance: { label: 'API Instance', route: null },
