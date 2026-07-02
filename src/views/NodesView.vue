@@ -14,23 +14,12 @@ import ListDetail from '@/components/ListDetail.vue'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
+import { categoryColorForNode, categoryColorForName } from '@/constants/nodeCategory'
 
 const store = useNodesStore()
 const findingsStore = useFindingsStore()
 const { goToFinding } = useResourceNav()
 
-// TODO: Should be in a dedicated place
-const NODE_COLORS: Record<string, string> = {
-  Sensor: 'bg-node-sensor/10 text-node-sensor',
-  Filter: 'bg-node-filter/10 text-node-filter',
-  Injector: 'bg-node-injector/10 text-node-injector',
-  External: 'bg-node-external/10 text-node-external',
-}
-const DEFAULT_NODE_COLOR = 'bg-bg-2 text-text-3'
-
-function nodeColor(category: string): string {
-  return NODE_COLORS[category] ?? DEFAULT_NODE_COLOR
-}
 function nodeVersion(annotations: Record<string, string>): string | undefined {
   const entry = Object.entries(annotations).find(([k]) => k.endsWith('/version') || k === 'version')
   return entry?.[1]
@@ -289,7 +278,7 @@ function closeTypesDrawer() {
             <div class="mt-2 flex items-center gap-1.5">
               <span
                 class="rounded px-1.5 py-0.5 font-mono text-[11px]"
-                :class="nodeColor(store.getTypeCategory(node))"
+                :class="categoryColorForNode(node)"
               >
                 {{ store.getTypeName(node) }}
               </span>
@@ -324,7 +313,7 @@ function closeTypesDrawer() {
                 <button
                   v-if="selectedNode.nodeType?.nodeTypeId"
                   class="group inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-xs transition-opacity hover:opacity-80"
-                  :class="nodeColor(store.getTypeCategory(selectedNode))"
+                  :class="categoryColorForNode(selectedNode)"
                   title="Show node type"
                   @click="openTypeInDrawer(selectedNode.nodeType.nodeTypeId)"
                 >
@@ -333,7 +322,7 @@ function closeTypesDrawer() {
                 <span
                   v-else
                   class="rounded px-2 py-0.5 font-mono text-xs"
-                  :class="nodeColor(store.getTypeCategory(selectedNode))"
+                  :class="categoryColorForNode(selectedNode)"
                 >
                   {{ store.getTypeName(selectedNode) }}
                 </span>
@@ -504,7 +493,7 @@ function closeTypesDrawer() {
           >
             <span
               class="rounded px-1.5 py-0.5 font-mono text-[11px]"
-              :class="nodeColor(type.displayName)"
+              :class="categoryColorForName(type.displayName)"
             >
               {{ type.displayName }}
             </span>
@@ -518,7 +507,7 @@ function closeTypesDrawer() {
           <div class="flex items-center gap-2">
             <span
               class="rounded px-2 py-0.5 font-mono text-xs"
-              :class="nodeColor(selectedType.displayName)"
+              :class="categoryColorForName(selectedType.displayName)"
             >
               {{ selectedType.displayName }}
             </span>
