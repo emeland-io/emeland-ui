@@ -1,7 +1,7 @@
 import type { Node } from '@/types/node'
 
 /**
- * Resolves a node's type/category and its badge colour
+ * Resolves a node's type/category and its badge color
  *
  * TODO: A property in the backend that will later add an explicit `category`
  * field to the node. Once it's available, the color mapping logic will be updated.

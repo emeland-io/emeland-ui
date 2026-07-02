@@ -81,7 +81,7 @@ describe('resolveNodeCategory', () => {
 })
 
 describe('categoryColor', () => {
-  it('maps each category to its colour classes', () => {
+  it('maps each category to its color classes', () => {
     const expected: Record<NodeCategory, string> = {
       Sensor: 'bg-node-sensor/10 text-node-sensor',
       Filter: 'bg-node-filter/10 text-node-filter',
@@ -93,13 +93,13 @@ describe('categoryColor', () => {
     }
   })
 
-  it('falls back to the default colour for null', () => {
+  it('falls back to the default color for null', () => {
     expect(categoryColor(null)).toBe(DEFAULT_CATEGORY_COLOR)
   })
 })
 
 describe('categoryColorForNode', () => {
-  it('colours a node from its type (variant -> Sensor blue)', () => {
+  it('colors a node from its type (variant -> Sensor blue)', () => {
     expect(categoryColorForNode(node('git-sensor'))).toBe('bg-node-sensor/10 text-node-sensor')
   })
 
@@ -110,7 +110,7 @@ describe('categoryColorForNode', () => {
 })
 
 describe('categoryColorForName', () => {
-  it('colours straight from a raw display name (drawer case)', () => {
+  it('colors straight from a raw display name (drawer case)', () => {
     expect(categoryColorForName('k8s-sensor')).toBe('bg-node-sensor/10 text-node-sensor')
     expect(categoryColorForName('External')).toBe('bg-node-external/10 text-node-external')
   })
