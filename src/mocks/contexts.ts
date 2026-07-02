@@ -178,7 +178,6 @@ export const contexts: Context[] = [
       'eximpl.emeland.io/cloud': 'pcloud-bw',
       'eximpl.emeland.io/mandant': 'bw-dev',
       'eximpl.emeland.io/standort': 'ber',
-      'eximpl.emeland.io/ephemeral': 'true',
     },
   },
   {
