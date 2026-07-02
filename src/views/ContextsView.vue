@@ -60,6 +60,10 @@ function clearFilters() {
   activeTypes.value = new Set()
 }
 
+function isTypeUnknown(c: (typeof store.contexts)[number]): boolean {
+  return store.getTypeName(c) === 'Unknown'
+}
+
 const viewMode = ref<'list' | 'tree'>('tree')
 
 interface TreeRow {
@@ -129,7 +133,7 @@ const selectedContext = computed(() => store.contexts.find((c) => c.contextId ==
 const selectedTypeUnknown = computed(() => {
   const c = selectedContext.value
   if (!c) return false
-  return store.getTypeName(c) === 'Unknown'
+  return isTypeUnknown(c)
 })
 
 function selectContext(id: string) {
@@ -276,7 +280,7 @@ function goToParent(parentId: string) {
     </div>
     <!-- Error -->
     <div
-      v-else-if="store.error"
+      v-else-if="store.error && store.contexts.length === 0"
       class="flex flex-1 items-center justify-center"
     >
       <p class="text-sm text-error">{{ store.error }}</p>
@@ -402,7 +406,12 @@ function goToParent(parentId: string) {
             >
               <div class="text-sm font-medium text-text-1">{{ ctx.displayName }}</div>
               <div class="mt-2 flex items-center gap-1.5">
-                <span class="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[11px] text-accent">
+                <span
+                  class="rounded px-1.5 py-0.5 font-mono text-[11px]"
+                  :class="
+                    isTypeUnknown(ctx) ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent'
+                  "
+                >
                   {{ store.getTypeName(ctx) }}
                 </span>
                 <span
@@ -450,7 +459,10 @@ function goToParent(parentId: string) {
                 {{ row.context.displayName }}
               </span>
               <span
-                class="shrink-0 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[10px] text-accent"
+                class="shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px]"
+                :class="
+                  isTypeUnknown(row.context) ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent'
+                "
               >
                 {{ store.getTypeName(row.context) }}
               </span>
