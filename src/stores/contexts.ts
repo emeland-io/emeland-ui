@@ -18,7 +18,9 @@ export const useContextStore = defineStore('context', () => {
   const typesLoaded = ref(false)
   const selectedTypeDetail = ref<ContextType | null>(null)
   const typeDetailCache = ref<Record<string, ContextType>>({})
+  const detailsHydrated = ref(false)
   const missingTypeIds = ref<Set<string>>(new Set())
+  const detailErrorIds = ref<Set<string>>(new Set())
 
   const typeMap = computed(() => new Map(contextTypes.value.map((ct) => [ct.contextTypeId, ct])))
   const contextMap = computed(() => new Map(contexts.value.map((c) => [c.contextId, c])))
@@ -27,16 +29,23 @@ export const useContextStore = defineStore('context', () => {
     if (!c.contextTypeId) return undefined
     return typeDetailCache.value[c.contextTypeId] ?? typeMap.value.get(c.contextTypeId)
   }
+
   function getTypeName(c: Context): string {
     if (!c.contextTypeId) return 'Unknown'
     return getTypeForContext(c)?.displayName ?? 'Unknown'
   }
+
   function getParentName(c: Context): string | undefined {
     if (!c.parentId) return undefined
     return contextMap.value.get(c.parentId)?.displayName
   }
+
   function isParentUnresolved(c: Context): boolean {
     return !!c.parentId && !contextMap.value.has(c.parentId)
+  }
+
+  function hasDetailError(id: string): boolean {
+    return detailErrorIds.value.has(id)
   }
 
   async function ensureContextType(id: string): Promise<void> {
@@ -67,12 +76,16 @@ export const useContextStore = defineStore('context', () => {
     try {
       const full = await fetchContextById(id)
       contexts.value = contexts.value.map((c) => (c.contextId === id ? full : c))
+      if (detailErrorIds.value.has(id)) {
+        const s = new Set(detailErrorIds.value)
+        s.delete(id)
+        detailErrorIds.value = s
+      }
     } catch {
-      return
+      detailErrorIds.value = new Set(detailErrorIds.value).add(id)
     }
   }
 
-  const detailsHydrated = ref(false)
   async function loadAllDetails(): Promise<void> {
     if (detailsHydrated.value) return
     try {
@@ -81,8 +94,8 @@ export const useContextStore = defineStore('context', () => {
       )
       contexts.value = full
       detailsHydrated.value = true
-    } catch {
-      return
+    } catch (e) {
+      error.value = (e as Error).message
     }
   }
 
@@ -118,17 +131,18 @@ export const useContextStore = defineStore('context', () => {
     typesLoaded,
     selectedTypeDetail,
     typeDetailCache,
+    detailsHydrated,
     typeMap,
     contextMap,
     getTypeForContext,
     getTypeName,
     getParentName,
     isParentUnresolved,
+    hasDetailError,
     ensureContextType,
     load,
     loadContextDetail,
     loadAllDetails,
-    detailsHydrated,
     loadContextTypes,
     loadContextTypeDetail,
   }
