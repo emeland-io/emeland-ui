@@ -33,10 +33,12 @@ const filteredContexts = computed(() =>
     if (q) {
       const inName = c.displayName.toLowerCase().includes(q)
       const inDesc = (c.description ?? '').toLowerCase().includes(q)
+      const inId = c.contextId.toLocaleLowerCase().includes(q)
+      const inTypeId = (c.contextTypeId ?? '').toLowerCase().includes(q)
       const inAnnotations = Object.entries(c.annotations).some(
         ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
       )
-      if (!inName && !inDesc && !inAnnotations) return false
+      if (!inName && !inDesc && !inId && !inTypeId && !inAnnotations) return false
     }
     if (activeTypes.value.size > 0 && !activeTypes.value.has(store.getTypeName(c))) return false
     return true
