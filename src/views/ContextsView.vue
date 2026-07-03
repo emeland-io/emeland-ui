@@ -558,9 +558,6 @@ function goToParent(parentId: string) {
                     :stroke-width="2"
                     class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
                   />
-                  <!-- <span class="ml-auto shrink-0 font-mono text-[11px] text-text-4">
-                    {{ selectedContext.parentId }}
-                  </span> -->
                   <div class="ml-auto flex shrink-0 items-center gap-1.5">
                     <span class="font-mono text-[11px] text-text-4">
                       {{ selectedContext.parentId }}
