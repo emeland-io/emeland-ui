@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { fetchNodes, fetchNodeById, fetchNodeTypes, fetchNodeTypeById } from '@/api/nodes'
 import type { Node, NodeType } from '@/types/node'
+import { useResourceErrors, loadDetailInto } from '@/composables/useResourceErrors'
 
 export const useNodesStore = defineStore('nodes', () => {
   const nodes = ref<Node[]>([])
@@ -14,6 +15,8 @@ export const useNodesStore = defineStore('nodes', () => {
   const typesLoaded = ref(false)
 
   const selectedTypeDetail = ref<NodeType | null>(null)
+
+  const errs = useResourceErrors()
 
   const typeMap = computed(() => new Map(nodeTypes.value.map((nt) => [nt.nodeTypeId, nt])))
 
@@ -44,12 +47,14 @@ export const useNodesStore = defineStore('nodes', () => {
   }
 
   async function loadNodeDetail(id: string): Promise<void> {
-    try {
-      const full = await fetchNodeById(id)
-      nodes.value = nodes.value.map((n) => (n.nodeId === id ? full : n))
-    } catch (e) {
-      error.value = (e as Error).message
-    }
+    await loadDetailInto(
+      id,
+      fetchNodeById,
+      (full) => {
+        nodes.value = nodes.value.map((n) => (n.nodeId === id ? full : n))
+      },
+      errs,
+    )
   }
 
   async function loadNodeTypes(): Promise<void> {
@@ -69,8 +74,8 @@ export const useNodesStore = defineStore('nodes', () => {
     selectedTypeDetail.value = null
     try {
       selectedTypeDetail.value = await fetchNodeTypeById(id)
-    } catch (e) {
-      error.value = (e as Error).message
+    } catch {
+      selectedTypeDetail.value = null
     }
   }
 
@@ -87,6 +92,7 @@ export const useNodesStore = defineStore('nodes', () => {
     getTypeForNode,
     getTypeName,
     getTypeCategory,
+    hasDetailError: errs.hasDetailError,
     load,
     loadNodeDetail,
     loadNodeTypes,
