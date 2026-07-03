@@ -33,10 +33,12 @@ const filteredNodes = computed(() =>
     const q = search.value.toLowerCase()
     if (q) {
       const inName = n.displayName.toLowerCase().includes(q)
+      const inId = n.nodeId.toLocaleLowerCase().includes(q)
+      const inTypeId = (n.nodeType?.nodeTypeId ?? '').toLocaleLowerCase().includes(q)
       const inAnnotations = Object.entries(n.annotations).some(
         ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
       )
-      if (!inName && !inAnnotations) return false
+      if (!inName && !inId && !inTypeId && !inAnnotations) return false
     }
     if (activeTypes.value.size > 0 && !activeTypes.value.has(store.getTypeName(n))) return false
     return true
