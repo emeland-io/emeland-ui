@@ -7,6 +7,7 @@ import {
   fetchContextTypeById,
 } from '@/api/contexts'
 import type { Context, ContextType } from '@/types/context'
+import { useResourceErrors, loadDetailInto } from '@/composables/useResourceErrors'
 
 export const useContextStore = defineStore('context', () => {
   const contexts = ref<Context[]>([])
@@ -19,8 +20,8 @@ export const useContextStore = defineStore('context', () => {
   const selectedTypeDetail = ref<ContextType | null>(null)
   const typeDetailCache = ref<Record<string, ContextType>>({})
   const detailsHydrated = ref(false)
-  const missingTypeIds = ref<Set<string>>(new Set())
-  const detailErrorIds = ref<Set<string>>(new Set())
+
+  const errs = useResourceErrors()
 
   const typeMap = computed(() => new Map(contextTypes.value.map((ct) => [ct.contextTypeId, ct])))
   const contextMap = computed(() => new Map(contexts.value.map((c) => [c.contextId, c])))
@@ -44,17 +45,13 @@ export const useContextStore = defineStore('context', () => {
     return !!c.parentId && !contextMap.value.has(c.parentId)
   }
 
-  function hasDetailError(id: string): boolean {
-    return detailErrorIds.value.has(id)
-  }
-
   async function ensureContextType(id: string): Promise<void> {
-    if (!id || typeDetailCache.value[id] || missingTypeIds.value.has(id)) return
+    if (!id || typeDetailCache.value[id] || errs.isMissing(id)) return
     try {
       const full = await fetchContextTypeById(id)
       typeDetailCache.value = { ...typeDetailCache.value, [id]: full }
     } catch {
-      missingTypeIds.value = new Set(missingTypeIds.value).add(id)
+      errs.markMissing(id)
     }
   }
 
@@ -73,17 +70,14 @@ export const useContextStore = defineStore('context', () => {
   }
 
   async function loadContextDetail(id: string): Promise<void> {
-    try {
-      const full = await fetchContextById(id)
-      contexts.value = contexts.value.map((c) => (c.contextId === id ? full : c))
-      if (detailErrorIds.value.has(id)) {
-        const s = new Set(detailErrorIds.value)
-        s.delete(id)
-        detailErrorIds.value = s
-      }
-    } catch {
-      detailErrorIds.value = new Set(detailErrorIds.value).add(id)
-    }
+    await loadDetailInto(
+      id,
+      fetchContextById,
+      (full) => {
+        contexts.value = contexts.value.map((c) => (c.contextId === id ? full : c))
+      },
+      errs,
+    )
   }
 
   async function loadAllDetails(): Promise<void> {
@@ -138,7 +132,7 @@ export const useContextStore = defineStore('context', () => {
     getTypeName,
     getParentName,
     isParentUnresolved,
-    hasDetailError,
+    hasDetailError: errs.hasDetailError,
     ensureContextType,
     load,
     loadContextDetail,

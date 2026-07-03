@@ -189,7 +189,7 @@ function closeTypesDrawer() {
     </div>
     <!-- Error -->
     <div
-      v-else-if="store.error"
+      v-else-if="store.error && store.findings.length === 0"
       class="flex flex-1 items-center justify-center"
     >
       <p class="text-sm text-error">{{ store.error }}</p>
@@ -234,14 +234,30 @@ function closeTypesDrawer() {
         </template>
 
         <template #detail>
-          <FindingDetail
+          <div
             v-if="selectedFinding"
-            class="flex-1"
-            :finding="selectedFinding"
-            :kind="store.getKindForFinding(selectedFinding)"
-            @navigate-resource="goToResource"
-            @open-type="openTypeInDrawer"
-          />
+            class="flex flex-1 flex-col overflow-hidden"
+          >
+            <!-- detail load failed -->
+            <div
+              v-if="store.hasDetailError(selectedFinding.findingId)"
+              class="m-4 mb-0 flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
+            >
+              <div class="min-w-0">
+                <div class="text-sm text-error">Could not load full details</div>
+                <div class="mt-0.5 font-mono text-[11px] text-error/80">
+                  Showing basic info only — the detail request failed.
+                </div>
+              </div>
+            </div>
+            <FindingDetail
+              class="flex-1"
+              :finding="selectedFinding"
+              :kind="store.getKindForFinding(selectedFinding)"
+              @navigate-resource="goToResource"
+              @open-type="openTypeInDrawer"
+            />
+          </div>
           <div
             v-else
             class="flex flex-1 items-center justify-center"

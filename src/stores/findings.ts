@@ -7,6 +7,7 @@ import {
   fetchFindingTypeById,
 } from '@/api/findings'
 import type { Finding, FindingType } from '@/types/finding'
+import { useResourceErrors, loadDetailInto } from '@/composables/useResourceErrors'
 
 export const useFindingsStore = defineStore('findings', () => {
   const findings = ref<Finding[]>([])
@@ -19,6 +20,8 @@ export const useFindingsStore = defineStore('findings', () => {
   const typesLoaded = ref(false)
 
   const selectedTypeDetail = ref<FindingType | null>(null)
+
+  const errs = useResourceErrors()
 
   const typeMap = computed(() => new Map(findingTypes.value.map((ft) => [ft.findingTypeId, ft])))
 
@@ -45,13 +48,15 @@ export const useFindingsStore = defineStore('findings', () => {
   }
 
   async function loadFindingDetail(id: string): Promise<void> {
-    try {
-      const full = await fetchFindingById(id)
-      const safe = full.findingId ? full : { ...full, findingId: id }
-      findings.value = findings.value.map((f) => (f.findingId === id ? safe : f))
-    } catch (e) {
-      error.value = (e as Error).message
-    }
+    await loadDetailInto(
+      id,
+      fetchFindingById,
+      (full) => {
+        const safe = full.findingId ? full : { ...full, findingId: id }
+        findings.value = findings.value.map((f) => (f.findingId === id ? safe : f))
+      },
+      errs,
+    )
   }
 
   async function loadFindingTypes(): Promise<void> {
@@ -71,8 +76,8 @@ export const useFindingsStore = defineStore('findings', () => {
     selectedTypeDetail.value = null
     try {
       selectedTypeDetail.value = await fetchFindingTypeById(id)
-    } catch (e) {
-      error.value = (e as Error).message
+    } catch {
+      selectedTypeDetail.value = null
     }
   }
 
@@ -88,6 +93,7 @@ export const useFindingsStore = defineStore('findings', () => {
     typeMap,
     getTypeForFinding,
     getKindForFinding,
+    hasDetailError: errs.hasDetailError,
     load,
     loadFindingDetail,
     loadFindingTypes,
