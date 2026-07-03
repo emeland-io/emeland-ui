@@ -6,7 +6,6 @@ import {
   IconLoader2,
   IconCategory,
   IconArrowUpRight,
-  IconAlertTriangle,
 } from '@tabler/icons-vue'
 import { useNodesStore } from '@/stores/nodes'
 import { useFindingsStore } from '@/stores/findings'
@@ -195,7 +194,7 @@ function closeTypesDrawer() {
     </div>
     <!-- Error -->
     <div
-      v-else-if="store.error"
+      v-else-if="store.error && store.nodes.length === 0"
       class="flex flex-1 items-center justify-center"
     >
       <p class="text-sm text-error">{{ store.error }}</p>
@@ -329,6 +328,18 @@ function closeTypesDrawer() {
               </div>
             </div>
             <div class="flex flex-col gap-5 px-6 py-5">
+              <!-- detail load failed -->
+              <div
+                v-if="store.hasDetailError(selectedNode.nodeId)"
+                class="flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
+              >
+                <div class="min-w-0">
+                  <div class="text-sm text-error">Could not load full details</div>
+                  <div class="mt-0.5 font-mono text-[11px] text-error/80">
+                    Showing basic info only — the detail request failed.
+                  </div>
+                </div>
+              </div>
               <!-- annotations -->
               <div v-if="Object.keys(selectedNode.annotations).length > 0">
                 <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">

@@ -6,7 +6,6 @@ import {
   IconLoader2,
   IconCategory,
   IconArrowUpRight,
-  IconAlertTriangle,
   IconList,
   IconHierarchy,
   IconChevronRight,
@@ -513,11 +512,6 @@ function goToParent(parentId: string) {
                 v-if="store.hasDetailError(selectedContext.contextId)"
                 class="flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
               >
-                <IconAlertTriangle
-                  :size="14"
-                  :stroke-width="2"
-                  class="mt-0.5 shrink-0 text-error"
-                />
                 <div class="min-w-0">
                   <div class="text-sm text-error">Could not load full details</div>
                   <div class="mt-0.5 font-mono text-[11px] text-error/80">
