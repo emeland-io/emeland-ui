@@ -6,6 +6,7 @@ defineProps<{
   open: boolean
   title: string
   count?: number
+  size?: 'default' | 'wide'
 }>()
 
 const emit = defineEmits<{
@@ -32,7 +33,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   <Transition name="slide">
     <aside
       v-if="open"
-      class="absolute right-0 top-0 z-50 flex h-full w-[55%] min-w-[480px] max-w-[1100px] flex-col border-l border-border-1 bg-bg-0 shadow-2xl"
+      class="absolute right-0 top-0 z-50 flex h-full flex-col border-l border-border-1 bg-bg-0 shadow-2xl"
+      :class="
+        size === 'wide'
+          ? 'w-[75%] min-w-[640px] max-w-[1500px]'
+          : 'w-[55%] min-w-[480px] max-w-[1100px]'
+      "
     >
       <!-- Header -->
       <div class="flex items-center justify-between border-b border-border-1 px-5 py-3">
@@ -71,6 +77,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 .fade-leave-active {
   transition: opacity 0.2s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
@@ -80,6 +87,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 .slide-leave-active {
   transition: transform 0.25s ease;
 }
+
 .slide-enter-from,
 .slide-leave-to {
   transform: translateX(100%);
