@@ -24,22 +24,25 @@ export function buildInstanceGraph({
   const withInstances = systems
     .map((system) => ({ system, instances: instancesOf(system.systemId) }))
     .filter((g) => g.instances.length > 0)
+  const hasInstances = new Set(withInstances.map((g) => g.system.systemId))
 
   const ctxLabel = (inst: SystemInstance) =>
     inst.context ? (contextName(inst.context) ?? inst.context) : 'No context'
   const frameOf = (inst: SystemInstance) => inst.context ?? NO_CONTEXT
 
-  const anchors: LayoutAnchor[] = withInstances.map(({ system }) => ({
-    id: system.systemId,
-    kind: 'system',
-    rowKey: system.systemId,
-    selectable: false,
-    data: {
-      label: system.displayName,
-      abstract: system.abstract,
-      version: system.version?.version || undefined,
-    },
-  }))
+  const anchors: LayoutAnchor[] = systems
+    .filter((system) => hasInstances.has(system.systemId) || system.abstract)
+    .map((system) => ({
+      id: system.systemId,
+      kind: 'system',
+      rowKey: system.systemId,
+      selectable: false,
+      data: {
+        label: system.displayName,
+        abstract: system.abstract,
+        version: system.version?.version || undefined,
+      },
+    }))
 
   const frameLabels = new Map<string, string>()
   for (const { instances } of withInstances) {

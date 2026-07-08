@@ -85,9 +85,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
 
       <!-- Context frame -->
       <template #node-context="{ data }">
-        <div
-          class="h-full w-full rounded-lg border border-dashed border-border-2/50 bg-transparent"
-        >
+        <div class="h-full w-full rounded-lg border border-dashed border-border-2 bg-transparent">
           <div
             class="truncate px-2.5 pt-1.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-text-4"
           >
