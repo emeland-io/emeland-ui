@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch, nextTick, useId } from 'vue'
 import {
   VueFlow,
+  useVueFlow,
   Handle,
   Position,
+  MarkerType,
   type Node,
   type Edge,
   type NodeMouseEvent,
@@ -20,6 +22,7 @@ import type {
   InstanceNodeData,
   ContextNodeData,
   ApiNodeData,
+  ComponentNodeData,
 } from '@/types/graph'
 
 const props = defineProps<{
@@ -31,6 +34,17 @@ const props = defineProps<{
 const emit = defineEmits<{
   'node-click': [payload: { id: string; kind: GraphNodeKind }]
 }>()
+
+const flowId = `flow-${useId()}`
+const { fitView, onNodesInitialized } = useVueFlow(flowId)
+
+const fit = () => fitView({ padding: 0.2, duration: 300 })
+
+onNodesInitialized(fit)
+watch(
+  () => props.nodes.map((n) => n.id).join('|'),
+  () => nextTick(fit),
+)
 
 const flowNodes = computed<Node[]>(() =>
   props.nodes.map((n) => ({
@@ -53,6 +67,8 @@ const flowEdges = computed<Edge[]>(() =>
     source: e.source,
     target: e.target,
     type: 'smoothstep',
+    class: e.kind === 'consumes' ? 'edge-consumes' : e.kind === 'provides' ? 'edge-provides' : '',
+    markerEnd: MarkerType.ArrowClosed,
   })),
 )
 
@@ -64,6 +80,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
 <template>
   <div class="emel-flow relative h-full w-full">
     <VueFlow
+      :id="flowId"
       :nodes="flowNodes"
       :edges="flowEdges"
       :fit-view-on-init="true"
@@ -180,6 +197,37 @@ function onNodeClick({ node }: NodeMouseEvent) {
           :position="Position.Right"
         />
       </template>
+
+      <!-- Component node -->
+      <template #node-component="{ id, data }">
+        <div
+          class="w-52 cursor-pointer rounded-md border bg-bg-2 px-3 py-2 shadow-sm transition-colors"
+          :class="
+            id === selectedId
+              ? 'border-accent ring-1 ring-accent/40'
+              : 'border-border-2 hover:border-accent'
+          "
+          title="Open component"
+        >
+          <div class="truncate text-sm font-medium text-text-1">
+            {{ (data as ComponentNodeData).label }}
+          </div>
+          <div
+            v-if="(data as ComponentNodeData).system"
+            class="mt-0.5 truncate font-mono text-[10px] text-text-4"
+          >
+            {{ (data as ComponentNodeData).system }}
+          </div>
+        </div>
+        <Handle
+          type="target"
+          :position="Position.Left"
+        />
+        <Handle
+          type="source"
+          :position="Position.Right"
+        />
+      </template>
     </VueFlow>
   </div>
 </template>
@@ -188,6 +236,12 @@ function onNodeClick({ node }: NodeMouseEvent) {
 .emel-flow :deep(.vue-flow__edge-path) {
   stroke: var(--color-text-3, rgba(120, 140, 130, 0.8));
   stroke-width: 1.5;
+}
+.emel-flow :deep(.vue-flow__edge.edge-consumes .vue-flow__edge-path) {
+  stroke-dasharray: 5 4;
+}
+.emel-flow :deep(.vue-flow__arrowhead) {
+  fill: var(--color-text-3, rgba(120, 140, 130, 0.8));
 }
 .emel-flow :deep(.vue-flow__handle) {
   width: 6px;

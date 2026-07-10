@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
 import { IconCircleOff, IconLoader2 } from '@tabler/icons-vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
@@ -10,6 +10,11 @@ import ComponentsToolbar from '@/components/components/ComponentsToolbar.vue'
 import ComponentsList from '@/components/components/ComponentsList.vue'
 import ComponentDetail from '@/components/components/ComponentDetail.vue'
 import { useSelectQuery } from '@/composables/useResourceNav'
+
+// Heavy (VueFlow + dagre) - only loaded when the graph view is first opened
+const ComponentGraphPane = defineAsyncComponent(
+  () => import('@/components/components/ComponentGraphPane.vue'),
+)
 
 const store = useComponentStore()
 const systemStore = useSystemStore()
@@ -44,6 +49,7 @@ const filteredComponents = computed(() =>
 
 const hasActiveFilters = computed(() => !!search.value || activeSystems.value.size > 0)
 
+// Systems that own at least one component, resolved to a name and sorted.
 const filterSystems = computed(() => {
   const seen = new Map<string, string>()
   for (const c of store.components) {
@@ -74,6 +80,13 @@ const selectedComponent = computed(() =>
 
 function selectComponent(id: string) {
   selectedId.value = id
+}
+
+const view = ref<'list' | 'graph'>('list')
+
+function onGraphSelect(id: string) {
+  selectComponent(id)
+  view.value = 'list'
 }
 
 useSelectQuery(
@@ -121,6 +134,30 @@ onMounted(async () => {
           of {{ store.components.length }}
         </span>
       </span>
+      <div class="ml-auto flex items-center gap-1">
+        <button
+          class="rounded px-2 py-0.5 font-mono text-[11px] transition-colors"
+          :class="
+            view === 'list'
+              ? 'bg-accent/10 text-accent-text'
+              : 'text-text-4 hover:bg-bg-2 hover:text-text-3'
+          "
+          @click="view = 'list'"
+        >
+          List
+        </button>
+        <button
+          class="rounded px-2 py-0.5 font-mono text-[11px] transition-colors"
+          :class="
+            view === 'graph'
+              ? 'bg-accent/10 text-accent-text'
+              : 'text-text-4 hover:bg-bg-2 hover:text-text-3'
+          "
+          @click="view = 'graph'"
+        >
+          Graph
+        </button>
+      </div>
     </div>
     <!-- Loading -->
     <div
@@ -171,6 +208,14 @@ onMounted(async () => {
           </p>
         </div>
       </div>
+      <!-- Communication graph -->
+      <ComponentGraphPane
+        v-else-if="view === 'graph'"
+        :components="filteredComponents"
+        :selected-id="selectedId"
+        class="min-h-0 flex-1"
+        @select="onGraphSelect"
+      />
       <ListDetail v-else>
         <template #list>
           <ComponentsList
