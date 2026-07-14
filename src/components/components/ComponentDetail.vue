@@ -9,6 +9,7 @@ import { useResourceNav } from '@/composables/useResourceNav'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
+import ComponentInstancesSection from '@/components/components/ComponentInstancesSection.vue'
 import type { Component } from '@/types/component'
 
 const props = defineProps<{
@@ -40,6 +41,10 @@ const relatedFindings = computed(() => {
   if (!id) return []
   return findingsStore.findings.filter((f) => f.resources.some((r) => r.resourceId === id))
 })
+
+const instances = computed(() =>
+  props.component ? store.getInstancesForComponent(props.component.componentId) : [],
+)
 
 function versionDates(c: Component | undefined): [string, string][] {
   if (!c?.version) return []
@@ -219,6 +224,11 @@ function versionDates(c: Component | undefined): [string, string][] {
           <span class="ml-auto shrink-0 font-mono text-[11px] text-text-4">{{ f.findingId }}</span>
         </button>
       </div>
+      <!-- Instances -->
+      <ComponentInstancesSection
+        v-if="instances.length > 0"
+        :instances="instances"
+      />
     </div>
   </div>
   <div

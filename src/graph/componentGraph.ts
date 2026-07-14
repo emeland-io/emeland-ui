@@ -7,6 +7,7 @@ export interface ComponentGraphInput {
   apiName: (id: string) => string | undefined
   apiVersion?: (id: string) => string | undefined
   systemName?: (id: string) => string | undefined
+  instanceCount?: (componentId: string) => number
 }
 
 export function buildComponentGraph({
@@ -14,6 +15,7 @@ export function buildComponentGraph({
   apiName,
   apiVersion,
   systemName,
+  instanceCount,
 }: ComponentGraphInput): GraphModel {
   const nodes: DagNodeSpec[] = []
   const edges: GraphEdge[] = []
@@ -33,7 +35,11 @@ export function buildComponentGraph({
     nodes.push({
       id: `comp:${c.componentId}`,
       kind: 'component',
-      data: { label: c.displayName, system: systemName?.(c.system) },
+      data: {
+        label: c.displayName,
+        system: systemName?.(c.system),
+        instanceCount: instanceCount?.(c.componentId),
+      },
     })
     for (const apiId of c.provides) {
       ensureApiNode(apiId)

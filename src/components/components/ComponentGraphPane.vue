@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useApiStore } from '@/stores/apis'
+import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { buildComponentGraph } from '@/graph/componentGraph'
 import type { GraphNodeClick } from '@/types/graph'
@@ -16,6 +17,7 @@ const emit = defineEmits<{
   select: [id: string]
 }>()
 
+const store = useComponentStore()
 const apiStore = useApiStore()
 const systemStore = useSystemStore()
 
@@ -25,6 +27,7 @@ const graphModel = computed(() =>
     apiName: (id) => apiStore.getApiName(id),
     apiVersion: (id) => apiStore.apiMap.get(id)?.version?.version || undefined,
     systemName: (id) => systemStore.systemMap.get(id)?.displayName,
+    instanceCount: (id) => store.getInstancesForComponent(id).length,
   }),
 )
 

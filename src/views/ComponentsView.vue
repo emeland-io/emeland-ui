@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
-import { IconCircleOff, IconLoader2 } from '@tabler/icons-vue'
+import { IconCircleOff, IconLoader2, IconList, IconBinaryTree } from '@tabler/icons-vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
@@ -9,6 +9,7 @@ import ListDetail from '@/components/ListDetail.vue'
 import ComponentsToolbar from '@/components/components/ComponentsToolbar.vue'
 import ComponentsList from '@/components/components/ComponentsList.vue'
 import ComponentDetail from '@/components/components/ComponentDetail.vue'
+import ViewModeSwitch from '@/components/ViewModeSwitch.vue'
 import { useSelectQuery } from '@/composables/useResourceNav'
 
 // Heavy (VueFlow + dagre) - only loaded when the graph view is first opened
@@ -84,6 +85,11 @@ function selectComponent(id: string) {
 
 const view = ref<'list' | 'graph'>('list')
 
+const viewModes = [
+  { value: 'list', label: 'List', icon: IconList },
+  { value: 'graph', label: 'Graph', icon: IconBinaryTree },
+]
+
 function onGraphSelect(id: string) {
   selectComponent(id)
   view.value = 'list'
@@ -114,9 +120,11 @@ watch(selectedId, (id) => {
 onMounted(async () => {
   findingsStore.load()
   systemStore.load()
+  systemStore.loadSystemInstances()
   apiStore.load()
   await store.load()
   await store.loadAllDetails()
+  store.loadComponentInstances()
 })
 </script>
 
@@ -124,40 +132,22 @@ onMounted(async () => {
   <div class="relative flex h-full flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <h1 class="text-base font-medium text-text-1">Components</h1>
-      <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-xs text-text-3">
-        {{ filteredComponents.length }}
-        <span
-          v-if="filteredComponents.length !== store.components.length"
-          class="text-text-4"
-        >
-          of {{ store.components.length }}
+      <div class="flex min-w-[11rem] items-center gap-3">
+        <h1 class="text-base font-medium text-text-1">Components</h1>
+        <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-xs text-text-3">
+          {{ filteredComponents.length }}
+          <span
+            v-if="filteredComponents.length !== store.components.length"
+            class="text-text-4"
+          >
+            of {{ store.components.length }}
+          </span>
         </span>
-      </span>
-      <div class="ml-auto flex items-center gap-1">
-        <button
-          class="rounded px-2 py-0.5 font-mono text-[11px] transition-colors"
-          :class="
-            view === 'list'
-              ? 'bg-accent/10 text-accent-text'
-              : 'text-text-4 hover:bg-bg-2 hover:text-text-3'
-          "
-          @click="view = 'list'"
-        >
-          List
-        </button>
-        <button
-          class="rounded px-2 py-0.5 font-mono text-[11px] transition-colors"
-          :class="
-            view === 'graph'
-              ? 'bg-accent/10 text-accent-text'
-              : 'text-text-4 hover:bg-bg-2 hover:text-text-3'
-          "
-          @click="view = 'graph'"
-        >
-          Graph
-        </button>
       </div>
+      <ViewModeSwitch
+        v-model="view"
+        :options="viewModes"
+      />
     </div>
     <!-- Loading -->
     <div

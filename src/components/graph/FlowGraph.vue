@@ -209,8 +209,17 @@ function onNodeClick({ node }: NodeMouseEvent) {
           "
           title="Open component"
         >
-          <div class="truncate text-sm font-medium text-text-1">
-            {{ (data as ComponentNodeData).label }}
+          <div class="flex items-center gap-2">
+            <span class="truncate text-sm font-medium text-text-1">
+              {{ (data as ComponentNodeData).label }}
+            </span>
+            <span
+              v-if="(data as ComponentNodeData).instanceCount"
+              class="ml-auto shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
+              :title="`${(data as ComponentNodeData).instanceCount} instance(s)`"
+            >
+              {{ (data as ComponentNodeData).instanceCount }}
+            </span>
           </div>
           <div
             v-if="(data as ComponentNodeData).system"

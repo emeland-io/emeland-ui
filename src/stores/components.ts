@@ -1,7 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { fetchComponents, fetchComponentById } from '@/api/components'
-import type { Component } from '@/types/component'
+import {
+  fetchComponents,
+  fetchComponentById,
+  fetchComponentInstances,
+  fetchComponentInstanceById,
+} from '@/api/components'
+import type { Component, ComponentInstance } from '@/types/component'
 import { useResourceErrors, loadDetailInto } from '@/composables/useResourceErrors'
 
 export const useComponentStore = defineStore('component', () => {
@@ -10,6 +15,9 @@ export const useComponentStore = defineStore('component', () => {
   const loaded = ref(false)
   const error = ref<string | null>(null)
   const detailsHydrated = ref(false)
+  const componentInstances = ref<ComponentInstance[]>([])
+  const instancesLoading = ref(false)
+  const instancesLoaded = ref(false)
 
   const hydratedComponents = new Set<string>()
   const inflightDetail = new Map<string, Promise<void>>()
@@ -71,12 +79,49 @@ export const useComponentStore = defineStore('component', () => {
     detailsHydrated.value = true
   }
 
+  const instancesByComponent = computed(() => {
+    const map = new Map<string, ComponentInstance[]>()
+    for (const ci of componentInstances.value) {
+      const list = map.get(ci.component) ?? []
+      list.push(ci)
+      map.set(ci.component, list)
+    }
+    return map
+  })
+
+  function getInstancesForComponent(componentId: string): ComponentInstance[] {
+    return instancesByComponent.value.get(componentId) ?? []
+  }
+
+  async function loadComponentInstances(): Promise<void> {
+    if (instancesLoaded.value || instancesLoading.value) return
+    instancesLoading.value = true
+    try {
+      const list = await fetchComponentInstances()
+      // The list endpoint is minimal, so hydrate each instance by id
+      componentInstances.value = await Promise.all(
+        list.map((i) => fetchComponentInstanceById(i.componentInstanceId).catch(() => i)),
+      )
+      instancesLoaded.value = true
+    } catch (e) {
+      error.value = (e as Error).message
+    } finally {
+      instancesLoading.value = false
+    }
+  }
+
   return {
     components,
     loading,
     loaded,
     error,
     detailsHydrated,
+    componentInstances,
+    instancesLoading,
+    instancesLoaded,
+    instancesByComponent,
+    getInstancesForComponent,
+    loadComponentInstances,
     componentMap,
     componentsBySystem,
     getComponentsForSystem,
