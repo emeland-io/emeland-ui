@@ -16,7 +16,7 @@ defineProps<{ count?: number }>()
     <slot />
     <span
       v-if="count !== undefined"
-      class="ml-auto shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
+      class="shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
     >
       {{ count }}
     </span>
