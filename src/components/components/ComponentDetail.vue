@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { IconArrowUpRight } from '@tabler/icons-vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
@@ -9,7 +9,8 @@ import { useResourceNav } from '@/composables/useResourceNav'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
-import ComponentInstancesSection from '@/components/components/ComponentInstancesSection.vue'
+import ComponentInstancesBoard from '@/components/components/ComponentInstancesBoard.vue'
+import ComponentInstanceDrawer from '@/components/components/ComponentInstanceDrawer.vue'
 import type { Component } from '@/types/component'
 
 const props = defineProps<{
@@ -45,6 +46,14 @@ const relatedFindings = computed(() => {
 const instances = computed(() =>
   props.component ? store.getInstancesForComponent(props.component.componentId) : [],
 )
+
+const drawerOpen = ref(false)
+const selectedInstanceId = ref('')
+
+function openInstance(id: string) {
+  selectedInstanceId.value = id
+  drawerOpen.value = true
+}
 
 function versionDates(c: Component | undefined): [string, string][] {
   if (!c?.version) return []
@@ -225,11 +234,18 @@ function versionDates(c: Component | undefined): [string, string][] {
         </button>
       </div>
       <!-- Instances -->
-      <ComponentInstancesSection
+      <ComponentInstancesBoard
         v-if="instances.length > 0"
         :instances="instances"
+        @select="openInstance"
       />
     </div>
+
+    <ComponentInstanceDrawer
+      :open="drawerOpen"
+      :selected-instance-id="selectedInstanceId"
+      @close="drawerOpen = false"
+    />
   </div>
   <div
     v-else
