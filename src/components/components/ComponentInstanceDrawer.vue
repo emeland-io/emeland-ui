@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconBox, IconArrowUp, IconArrowDown } from '@tabler/icons-vue'
+import { IconStack2, IconArrowUp, IconArrowDown } from '@tabler/icons-vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
@@ -70,10 +70,10 @@ const consumes = computed(() =>
     @close="emit('close')"
   >
     <template #icon>
-      <IconBox
-        :size="16"
+      <IconStack2
+        :size="18"
         :stroke-width="1.5"
-        class="text-text-3"
+        class="text-accent"
       />
     </template>
 
