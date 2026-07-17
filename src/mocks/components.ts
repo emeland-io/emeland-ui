@@ -1,4 +1,4 @@
-import type { Component } from '@/types/component'
+import type { Component, ComponentInstance } from '@/types/component'
 
 /**
  * Components mockups
@@ -104,5 +104,138 @@ export const components: Component[] = [
       'af6a7b8c-9d1e-4f2a-3b4c-5d6e7f8a9b1c', // metrics-scrape
     ],
     annotations: { 'emeland.io/owner': 'obs-team', 'emeland.io/runtime': 'go' },
+  },
+]
+
+export const componentInstances: ComponentInstance[] = [
+  {
+    componentInstanceId: 'd1a1b2c3-0000-4d5e-8f00-000000000001',
+    displayName: 'App Frontend (prod-eu)',
+    component: 'ca1b2c3d-4e5f-4a6b-8c9d-1e2f3a4b5c6d',
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e',
+    consumes: [],
+    provides: [],
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:24:11Z',
+      'emeland.io/cluster': 'ber-prod',
+      'emeland.io/namespace': 'app',
+    },
+  },
+  {
+    componentInstanceId: 'd2a1b2c3-0000-4d5e-8f00-000000000002',
+    displayName: 'App Frontend (staging)',
+    component: 'ca1b2c3d-4e5f-4a6b-8c9d-1e2f3a4b5c6d',
+    systemInstance: 'e8b9c1d2-0000-4b5c-8d7e-8f9a1b2c3d02',
+    consumes: [],
+    provides: [],
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:20:44Z',
+      'emeland.io/cluster': 'ber-staging',
+      'emeland.io/namespace': 'app',
+    },
+  },
+  {
+    componentInstanceId: 'd3a1b2c3-0000-4d5e-8f00-000000000003',
+    displayName: 'App Backend (prod-eu)',
+    component: 'cb2c3d4e-5f6a-4b7c-9d1e-2f3a4b5c6d7e',
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e',
+    consumes: [],
+    provides: [],
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:24:11Z',
+      'emeland.io/cluster': 'ber-prod',
+      'emeland.io/namespace': 'app',
+    },
+  },
+  {
+    componentInstanceId: 'd4a1b2c3-0000-4d5e-8f00-000000000004',
+    displayName: 'App Backend (staging)',
+    component: 'cb2c3d4e-5f6a-4b7c-9d1e-2f3a4b5c6d7e',
+    systemInstance: 'e8b9c1d2-0000-4b5c-8d7e-8f9a1b2c3d02',
+    consumes: [],
+    provides: [],
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:20:44Z',
+      'emeland.io/cluster': 'ber-staging',
+      'emeland.io/namespace': 'app',
+    },
+  },
+  {
+    componentInstanceId: 'd5a1b2c3-0000-4d5e-8f00-000000000005',
+    displayName: 'Kong Gateway (prod-eu)',
+    component: 'cc3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f',
+    systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f',
+    consumes: [],
+    provides: [],
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:24:08Z',
+      'emeland.io/cluster': 'ber-prod',
+      'emeland.io/namespace': 'kong',
+    },
+  },
+  {
+    componentInstanceId: 'd6a1b2c3-0000-4d5e-8f00-000000000006',
+    displayName: 'Kong Gateway (staging)',
+    component: 'cc3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f',
+    systemInstance: 'f9c1d2e3-0000-4c6d-8e8f-9a1b2c3d4e02',
+    consumes: [],
+    provides: [],
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:21:02Z',
+      'emeland.io/cluster': 'ber-staging',
+      'emeland.io/namespace': 'kong',
+    },
+  },
+  {
+    componentInstanceId: 'd7a1b2c3-0000-4d5e-8f00-000000000007',
+    displayName: 'Grafana Server (prod)',
+    component: 'cd4e5f6a-7b8c-4d9e-1f2a-3b4c5d6e7f8a',
+    systemInstance: '1a2b3c4d-5e6f-4a7b-8c9d-1e2f3a4b5c6d',
+    consumes: [],
+    provides: [],
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:23:55Z',
+      'emeland.io/cluster': 'ber-prod',
+      'emeland.io/namespace': 'monitoring',
+    },
+  },
+  {
+    componentInstanceId: 'd8a1b2c3-0000-4d5e-8f00-000000000008',
+    displayName: 'Grafana Server (staging)',
+    component: 'cd4e5f6a-7b8c-4d9e-1f2a-3b4c5d6e7f8a',
+    systemInstance: '1a2b3c4d-0000-4a8c-8d1e-2f3a4b5c6d02',
+    consumes: [],
+    provides: [],
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:22:19Z',
+      'emeland.io/cluster': 'ber-staging',
+      'emeland.io/namespace': 'monitoring',
+    },
+  },
+  {
+    componentInstanceId: 'd9a1b2c3-0000-4d5e-8f00-000000000009',
+    displayName: 'Prometheus Server (prod)',
+    component: 'ce5f6a7b-8c9d-4e1f-2a3b-4c5d6e7f8a9b',
+    systemInstance: '2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e',
+    consumes: [],
+    provides: [],
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:24:01Z',
+      'emeland.io/cluster': 'ber-prod',
+      'emeland.io/namespace': 'monitoring',
+    },
+  },
+  {
+    componentInstanceId: 'd10a1b2c3-0000-4d5e-8f00-00000000000a',
+    displayName: 'Prometheus Operator (prod)',
+    component: 'cf6a7b8c-9d1e-4f2a-3b4c-5d6e7f8a9b1c',
+    systemInstance: '3c4d5e6f-7a8b-4c9d-1e2f-3a4b5c6d7e8f',
+    consumes: [],
+    provides: [],
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:24:03Z',
+      'emeland.io/cluster': 'ber-prod',
+      'emeland.io/namespace': 'monitoring',
+    },
   },
 ]

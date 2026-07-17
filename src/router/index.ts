@@ -23,7 +23,11 @@ const routes = [
 
   // Structure P1
   { path: '/systems', name: 'Systems', component: () => import('@/views/SystemsView.vue') },
-  { path: '/components', name: 'Components', component: () => import('@/views/Tmp.vue') },
+  {
+    path: '/components',
+    name: 'Components',
+    component: () => import('@/views/ComponentsView.vue'),
+  },
   { path: '/apis', name: 'APIs', component: () => import('@/views/Tmp.vue') },
 
   // Identity P2
