@@ -13,9 +13,8 @@ const emit = defineEmits<{
   select: [id: string]
 }>()
 
-const { search, filtered, showFilter, systemInstanceName, meta } = useComponentInstanceList(
-  toRef(props, 'instances'),
-)
+const { search, filtered, showFilter, systemInstanceName, contextForInstance, meta } =
+  useComponentInstanceList(toRef(props, 'instances'))
 
 const view = ref<'cards' | 'list'>('cards')
 const viewModes = [
@@ -23,19 +22,31 @@ const viewModes = [
   { value: 'list', label: 'List', icon: IconList },
 ]
 
-const UNASSIGNED = 'unassigned'
+const NO_CONTEXT = 'NO_CONTEXT'
+
+const ctxByInstance = computed(() => {
+  const m = new Map<string, ReturnType<typeof contextForInstance>>()
+  for (const inst of props.instances) m.set(inst.componentInstanceId, contextForInstance(inst))
+  return m
+})
+
+function ctx(inst: ComponentInstance): ReturnType<typeof contextForInstance> {
+  return ctxByInstance.value.get(inst.componentInstanceId) ?? { unresolved: false }
+}
 
 const columns = computed(() => {
-  const map = new Map<string, ComponentInstance[]>()
+  const map = new Map<string, { label: string; unresolved: boolean; items: ComponentInstance[] }>()
   for (const inst of filtered.value) {
-    const key = meta(inst).cluster ?? UNASSIGNED
+    const c = ctx(inst)
+    const key = c.id ?? NO_CONTEXT
+    const label = c.unresolved ? 'Unresolved context' : (c.name ?? 'No context')
     const bucket = map.get(key)
-    if (bucket) bucket.push(inst)
-    else map.set(key, [inst])
+    if (bucket) bucket.items.push(inst)
+    else map.set(key, { label, unresolved: c.unresolved, items: [inst] })
   }
   return [...map.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([cluster, items]) => ({ cluster, items }))
+    .map(([key, v]) => ({ key, ...v }))
+    .sort((a, b) => a.label.localeCompare(b.label))
 })
 </script>
 
@@ -50,7 +61,7 @@ const columns = computed(() => {
       <span class="text-sm font-medium text-text-1">Instances</span>
       <span class="font-mono text-[11px] text-text-3">
         {{ filtered.length }} across {{ columns.length }}
-        {{ columns.length === 1 ? 'environment' : 'environments' }}
+        {{ columns.length === 1 ? 'context' : 'contexts' }}
       </span>
       <div class="ml-auto flex items-center gap-2">
         <div
@@ -76,7 +87,7 @@ const columns = computed(() => {
       </div>
     </div>
 
-    <!-- Cards: one column per cluster -->
+    <!-- Cards -->
     <div
       v-if="view === 'cards'"
       class="grid gap-2"
@@ -84,14 +95,15 @@ const columns = computed(() => {
     >
       <div
         v-for="col in columns"
-        :key="col.cluster"
+        :key="col.key"
         class="rounded border border-border-1 bg-bg-1 p-2.5"
       >
         <div class="mb-2 flex items-center gap-2">
           <span
-            class="min-w-0 flex-1 truncate font-mono text-[11px] uppercase tracking-wider text-text-3"
+            class="min-w-0 flex-1 truncate font-mono text-[11px] uppercase tracking-wider"
+            :class="col.unresolved ? 'text-error' : 'text-text-3'"
           >
-            {{ col.cluster }}
+            {{ col.label }}
           </span>
           <span
             class="shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
@@ -150,10 +162,10 @@ const columns = computed(() => {
           {{ inst.displayName }}
         </span>
         <span
-          v-if="meta(inst).cluster"
+          v-if="ctx(inst).name"
           class="shrink-0 rounded bg-bg-3 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
         >
-          {{ meta(inst).cluster }}
+          {{ ctx(inst).name }}
         </span>
         <span
           v-if="meta(inst).namespace"

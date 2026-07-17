@@ -4,6 +4,7 @@ import { IconStack2, IconArrowUp, IconArrowDown } from '@tabler/icons-vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
+import { useInstanceContext } from '@/composables/useInstanceContext'
 import { instanceMeta } from '@/utils/instanceMeta'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
@@ -22,6 +23,7 @@ const emit = defineEmits<{
 const store = useComponentStore()
 const systemStore = useSystemStore()
 const apiStore = useApiStore()
+const { contextForInstance } = useInstanceContext()
 
 const instance = computed(() =>
   store.componentInstances.find((i) => i.componentInstanceId === props.selectedInstanceId),
@@ -49,7 +51,9 @@ const detailRows = computed(() => {
     if (name) rows.push({ label: 'System instance', value: name })
     rows.push({ label: 'System instance ID', value: inst.systemInstance, copy: true })
   }
-  if (meta.value.cluster) rows.push({ label: 'Cluster', value: meta.value.cluster })
+  const c = contextForInstance(inst)
+  if (c.name) rows.push({ label: 'Context', value: c.name })
+  if (c.id) rows.push({ label: 'Context ID', value: c.id, copy: true })
   if (meta.value.namespace) rows.push({ label: 'Namespace', value: meta.value.namespace })
   if (meta.value.lastUpdate) rows.push({ label: 'Last update', value: meta.value.lastUpdate })
   return rows

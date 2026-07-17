@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { IconChevronRight, IconSearch, IconArrowUp } from '@tabler/icons-vue'
 import { useSystemStore } from '@/stores/systems'
+import { useInstanceContext } from '@/composables/useInstanceContext'
 import { instanceMeta } from '@/utils/instanceMeta'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
@@ -12,6 +13,7 @@ const props = defineProps<{
 }>()
 
 const systemStore = useSystemStore()
+const { contextForInstance } = useInstanceContext()
 
 const FILTER_THRESHOLD = 5
 
@@ -26,8 +28,13 @@ function meta(inst: ComponentInstance) {
   return instanceMeta(inst)
 }
 
+function ctxName(inst: ComponentInstance): string | undefined {
+  return contextForInstance(inst).name
+}
+
 function detailRows(inst: ComponentInstance): { label: string; value: string; copy?: boolean }[] {
   const m = meta(inst)
+  const c = contextForInstance(inst)
   const rows: { label: string; value: string; copy?: boolean }[] = [
     { label: 'Instance ID', value: inst.componentInstanceId, copy: true },
   ]
@@ -36,7 +43,8 @@ function detailRows(inst: ComponentInstance): { label: string; value: string; co
     if (name) rows.push({ label: 'System instance', value: name })
     rows.push({ label: 'System instance ID', value: inst.systemInstance, copy: true })
   }
-  if (m.cluster) rows.push({ label: 'Cluster', value: m.cluster })
+  if (c.name) rows.push({ label: 'Context', value: c.name })
+  if (c.id) rows.push({ label: 'Context ID', value: c.id, copy: true })
   if (m.namespace) rows.push({ label: 'Namespace', value: m.namespace })
   if (m.lastUpdate) rows.push({ label: 'Last update', value: m.lastUpdate })
   return rows
@@ -51,7 +59,7 @@ const filtered = computed(() => {
       i.displayName.toLowerCase().includes(q) ||
       i.componentInstanceId.toLowerCase().includes(q) ||
       (systemInstanceName(i.systemInstance) ?? '').toLowerCase().includes(q) ||
-      (m.cluster ?? '').toLowerCase().includes(q) ||
+      (ctxName(i) ?? '').toLowerCase().includes(q) ||
       (m.namespace ?? '').toLowerCase().includes(q)
     )
   })
@@ -139,10 +147,10 @@ function collapseAll() {
           {{ systemInstanceName(inst.systemInstance) }}
         </span>
         <span
-          v-if="meta(inst).cluster || meta(inst).namespace"
+          v-if="ctxName(inst) || meta(inst).namespace"
           class="ml-auto shrink-0 truncate font-mono text-[11px] text-text-4"
         >
-          {{ [meta(inst).cluster, meta(inst).namespace].filter(Boolean).join(' / ') }}
+          {{ [ctxName(inst), meta(inst).namespace].filter(Boolean).join(' / ') }}
         </span>
       </button>
 

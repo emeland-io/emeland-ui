@@ -4,6 +4,7 @@ import { IconCircleOff, IconLoader2, IconList, IconBinaryTree } from '@tabler/ic
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
+import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import ListDetail from '@/components/ListDetail.vue'
 import ComponentsToolbar from '@/components/components/ComponentsToolbar.vue'
@@ -20,6 +21,7 @@ const ComponentGraphPane = defineAsyncComponent(
 const store = useComponentStore()
 const systemStore = useSystemStore()
 const apiStore = useApiStore()
+const contextStore = useContextStore()
 const findingsStore = useFindingsStore()
 
 const search = ref('')
@@ -121,6 +123,7 @@ onMounted(async () => {
   findingsStore.load()
   systemStore.load()
   systemStore.loadSystemInstances()
+  contextStore.load()
   apiStore.load()
   await store.load()
   await store.loadAllDetails()
