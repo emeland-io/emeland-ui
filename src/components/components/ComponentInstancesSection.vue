@@ -3,8 +3,8 @@ import { computed, ref } from 'vue'
 import { IconChevronRight, IconSearch, IconArrowUp } from '@tabler/icons-vue'
 import { useSystemStore } from '@/stores/systems'
 import { useInstanceContext } from '@/composables/useInstanceContext'
-import { instanceMeta } from '@/utils/instanceMeta'
 import CopyButton from '@/components/CopyButton.vue'
+import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import type { ComponentInstance } from '@/types/component'
 
@@ -24,16 +24,11 @@ function systemInstanceName(id: string): string | undefined {
   return systemStore.systemInstances.find((si) => si.systemInstanceId === id)?.displayName
 }
 
-function meta(inst: ComponentInstance) {
-  return instanceMeta(inst)
-}
-
 function ctxName(inst: ComponentInstance): string | undefined {
   return contextForInstance(inst).name
 }
 
 function detailRows(inst: ComponentInstance): { label: string; value: string; copy?: boolean }[] {
-  const m = meta(inst)
   const c = contextForInstance(inst)
   const rows: { label: string; value: string; copy?: boolean }[] = [
     { label: 'Instance ID', value: inst.componentInstanceId, copy: true },
@@ -45,8 +40,6 @@ function detailRows(inst: ComponentInstance): { label: string; value: string; co
   }
   if (c.name) rows.push({ label: 'Context', value: c.name })
   if (c.id) rows.push({ label: 'Context ID', value: c.id, copy: true })
-  if (m.namespace) rows.push({ label: 'Namespace', value: m.namespace })
-  if (m.lastUpdate) rows.push({ label: 'Last update', value: m.lastUpdate })
   return rows
 }
 
@@ -54,13 +47,11 @@ const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
   if (!q) return props.instances
   return props.instances.filter((i) => {
-    const m = meta(i)
     return (
       i.displayName.toLowerCase().includes(q) ||
       i.componentInstanceId.toLowerCase().includes(q) ||
       (systemInstanceName(i.systemInstance) ?? '').toLowerCase().includes(q) ||
-      (ctxName(i) ?? '').toLowerCase().includes(q) ||
-      (m.namespace ?? '').toLowerCase().includes(q)
+      (ctxName(i) ?? '').toLowerCase().includes(q)
     )
   })
 })
@@ -147,10 +138,10 @@ function collapseAll() {
           {{ systemInstanceName(inst.systemInstance) }}
         </span>
         <span
-          v-if="ctxName(inst) || meta(inst).namespace"
+          v-if="ctxName(inst)"
           class="ml-auto shrink-0 truncate font-mono text-[11px] text-text-4"
         >
-          {{ [ctxName(inst), meta(inst).namespace].filter(Boolean).join(' / ') }}
+          {{ ctxName(inst) }}
         </span>
       </button>
 
@@ -175,6 +166,10 @@ function collapseAll() {
             />
           </span>
         </div>
+        <WellKnownAnnotationsTable
+          :annotations="inst.annotations"
+          columns="minmax(180px, 30%) minmax(0, 1fr)"
+        />
         <div
           v-for="(value, key) in inst.annotations"
           :key="key"

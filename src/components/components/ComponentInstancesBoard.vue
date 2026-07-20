@@ -13,7 +13,7 @@ const emit = defineEmits<{
   select: [id: string]
 }>()
 
-const { search, filtered, showFilter, systemInstanceName, contextForInstance, meta } =
+const { search, filtered, showFilter, systemInstanceName, contextForInstance } =
   useComponentInstanceList(toRef(props, 'instances'))
 
 const view = ref<'cards' | 'list'>('cards')
@@ -128,12 +128,6 @@ const columns = computed(() => {
           </span>
           <span class="flex flex-wrap items-center gap-1">
             <span
-              v-if="meta(inst).namespace"
-              class="rounded bg-bg-3 px-1 py-0.5 font-mono text-[10px] text-text-3"
-            >
-              {{ meta(inst).namespace }}
-            </span>
-            <span
               v-if="systemInstanceName(inst.systemInstance)"
               class="rounded bg-accent/10 px-1 py-0.5 font-mono text-[10px] text-accent"
             >
@@ -166,12 +160,6 @@ const columns = computed(() => {
           class="shrink-0 rounded bg-bg-3 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
         >
           {{ ctx(inst).name }}
-        </span>
-        <span
-          v-if="meta(inst).namespace"
-          class="hidden shrink-0 rounded bg-bg-3 px-1.5 py-0.5 font-mono text-[10px] text-text-3 sm:inline"
-        >
-          {{ meta(inst).namespace }}
         </span>
         <span
           v-if="systemInstanceName(inst.systemInstance)"

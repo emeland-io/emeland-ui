@@ -3,7 +3,6 @@ import { computed, ref, defineAsyncComponent } from 'vue'
 import { IconListDetails, IconLoader2, IconArrowUpRight } from '@tabler/icons-vue'
 import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
-import { instanceMeta } from '@/utils/instanceMeta'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
@@ -169,14 +168,6 @@ const drawerInstance = computed(() =>
                 >
                   {{ contextName(inst.context) }}
                 </span>
-              </div>
-              <div
-                v-if="instanceMeta(inst).cluster || instanceMeta(inst).namespace"
-                class="mt-1 truncate font-mono text-[10px] text-text-4"
-              >
-                <span v-if="instanceMeta(inst).cluster">{{ instanceMeta(inst).cluster }}</span>
-                <span v-if="instanceMeta(inst).cluster && instanceMeta(inst).namespace">/</span>
-                <span v-if="instanceMeta(inst).namespace">{{ instanceMeta(inst).namespace }}</span>
               </div>
             </div>
           </div>

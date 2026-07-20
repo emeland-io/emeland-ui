@@ -156,20 +156,6 @@ function onNodeClick({ node }: NodeMouseEvent) {
           "
         >
           <div class="truncate text-sm text-text-1">{{ (data as InstanceNodeData).label }}</div>
-          <div
-            v-if="(data as InstanceNodeData).cluster || (data as InstanceNodeData).namespace"
-            class="mt-1 truncate font-mono text-[10px] text-text-4"
-          >
-            <span v-if="(data as InstanceNodeData).cluster">
-              {{ (data as InstanceNodeData).cluster }}
-            </span>
-            <span v-if="(data as InstanceNodeData).cluster && (data as InstanceNodeData).namespace">
-              /
-            </span>
-            <span v-if="(data as InstanceNodeData).namespace">
-              {{ (data as InstanceNodeData).namespace }}
-            </span>
-          </div>
         </div>
         <Handle
           type="target"

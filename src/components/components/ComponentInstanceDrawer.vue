@@ -5,11 +5,11 @@ import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
 import { useInstanceContext } from '@/composables/useInstanceContext'
-import { instanceMeta } from '@/utils/instanceMeta'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
+import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
 
 const props = defineProps<{
   open: boolean
@@ -37,8 +37,6 @@ function systemInstanceName(id: string): string | undefined {
   return systemStore.systemInstances.find((si) => si.systemInstanceId === id)?.displayName
 }
 
-const meta = computed(() => (instance.value ? instanceMeta(instance.value) : {}))
-
 const detailRows = computed(() => {
   const inst = instance.value
   if (!inst) return [] as { label: string; value: string; copy?: boolean }[]
@@ -54,8 +52,6 @@ const detailRows = computed(() => {
   const c = contextForInstance(inst)
   if (c.name) rows.push({ label: 'Context', value: c.name })
   if (c.id) rows.push({ label: 'Context ID', value: c.id, copy: true })
-  if (meta.value.namespace) rows.push({ label: 'Namespace', value: meta.value.namespace })
-  if (meta.value.lastUpdate) rows.push({ label: 'Last update', value: meta.value.lastUpdate })
   return rows
 })
 
@@ -102,6 +98,10 @@ const consumes = computed(() =>
             />
           </span>
         </div>
+        <WellKnownAnnotationsTable
+          :annotations="instance.annotations"
+          columns="minmax(160px, 30%) minmax(0, 1fr)"
+        />
       </div>
 
       <div v-if="provides.length">

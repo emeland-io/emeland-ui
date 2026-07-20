@@ -5,7 +5,7 @@ import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import { useResourceNav } from '@/composables/useResourceNav'
-import { instanceMeta } from '@/utils/instanceMeta'
+import { wellKnownAnnotations } from '@/utils/annotations'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
@@ -220,24 +220,15 @@ function versionDates(s: System | undefined): [string, string][] {
             </span>
           </div>
           <div
-            v-if="
-              instanceMeta(inst).cluster ||
-              instanceMeta(inst).namespace ||
-              instanceMeta(inst).lastUpdate
-            "
+            v-if="wellKnownAnnotations(inst.annotations).length > 0"
             class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[11px] text-text-4"
           >
-            <span v-if="instanceMeta(inst).cluster">
-              cluster:
-              <span class="text-text-3">{{ instanceMeta(inst).cluster }}</span>
-            </span>
-            <span v-if="instanceMeta(inst).namespace">
-              ns:
-              <span class="text-text-3">{{ instanceMeta(inst).namespace }}</span>
-            </span>
-            <span v-if="instanceMeta(inst).lastUpdate">
-              last update
-              <span class="text-text-3">{{ instanceMeta(inst).lastUpdate }}</span>
+            <span
+              v-for="row in wellKnownAnnotations(inst.annotations)"
+              :key="row.key"
+            >
+              {{ row.label.toLowerCase() }}:
+              <span class="text-text-3">{{ row.value }}</span>
             </span>
           </div>
         </div>
