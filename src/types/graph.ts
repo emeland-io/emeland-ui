@@ -26,8 +26,6 @@ export interface SystemNodeData {
 }
 export interface InstanceNodeData {
   label: string
-  cluster?: string
-  namespace?: string
 }
 export interface ContextNodeData {
   label: string

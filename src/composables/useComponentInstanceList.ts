@@ -1,7 +1,6 @@
 import { computed, ref, type Ref } from 'vue'
 import { useSystemStore } from '@/stores/systems'
 import { useInstanceContext } from '@/composables/useInstanceContext'
-import { instanceMeta } from '@/utils/instanceMeta'
 import type { ComponentInstance } from '@/types/component'
 
 const FILTER_THRESHOLD = 1
@@ -19,13 +18,11 @@ export function useComponentInstanceList(instances: Ref<ComponentInstance[]>) {
     const q = search.value.trim().toLowerCase()
     if (!q) return instances.value
     return instances.value.filter((i) => {
-      const m = instanceMeta(i)
       return (
         i.displayName.toLowerCase().includes(q) ||
         i.componentInstanceId.toLowerCase().includes(q) ||
         (systemInstanceName(i.systemInstance) ?? '').toLowerCase().includes(q) ||
-        (contextForInstance(i).name ?? '').toLowerCase().includes(q) ||
-        (m.namespace ?? '').toLowerCase().includes(q)
+        (contextForInstance(i).name ?? '').toLowerCase().includes(q)
       )
     })
   })
@@ -38,6 +35,5 @@ export function useComponentInstanceList(instances: Ref<ComponentInstance[]>) {
     showFilter,
     systemInstanceName,
     contextForInstance,
-    meta: instanceMeta,
   }
 }

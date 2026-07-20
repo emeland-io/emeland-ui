@@ -1,6 +1,5 @@
 import type { System, SystemInstance } from '@/types/system'
 import type { GraphModel, GraphEdge } from '@/types/graph'
-import { instanceMeta } from '@/utils/instanceMeta'
 import {
   layoutFramedColumns,
   type LayoutAnchor,
@@ -63,13 +62,12 @@ export function buildInstanceGraph({
         ctxLabel(a).localeCompare(ctxLabel(b)) || a.displayName.localeCompare(b.displayName),
     )
     for (const inst of ordered) {
-      const meta = instanceMeta(inst)
       members.push({
         id: inst.systemInstanceId,
         kind: 'instance',
         frameId: frameOf(inst),
         rowKey: system.systemId,
-        data: { label: inst.displayName, cluster: meta.cluster, namespace: meta.namespace },
+        data: { label: inst.displayName },
       })
       edges.push({
         id: `${system.systemId}->${inst.systemInstanceId}`,
