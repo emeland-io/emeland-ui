@@ -36,16 +36,16 @@ const searchModel = computed({
         v-model="searchModel"
         type="text"
         placeholder="Search components, IDs, annotations..."
-        class="w-full bg-transparent font-mono text-xs text-text-2 outline-none placeholder:text-text-4"
+        class="w-full bg-transparent font-mono text-label text-text-2 outline-none placeholder:text-text-4"
       />
     </div>
     <template v-if="systems.length > 0">
       <div class="h-4 w-px shrink-0 bg-bg-3" />
-      <span class="text-[11px] text-text-4">System</span>
+      <span class="text-meta text-text-4">System</span>
       <button
         v-for="sys in systems"
         :key="sys.id"
-        class="rounded border px-2 py-1 font-mono text-[11px] transition-colors"
+        class="rounded border px-2 py-1 font-mono text-meta transition-colors"
         :class="
           activeSystems.has(sys.id)
             ? 'border-accent/20 bg-accent/10 text-accent-text'
@@ -58,7 +58,7 @@ const searchModel = computed({
     </template>
     <button
       v-if="hasActiveFilters"
-      class="flex items-center gap-1 text-[11px] text-text-4 hover:text-text-2"
+      class="flex items-center gap-1 text-meta text-text-4 hover:text-text-2"
       @click="emit('clear')"
     >
       Clear

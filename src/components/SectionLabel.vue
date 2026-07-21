@@ -11,12 +11,12 @@ defineProps<{ count?: number }>()
 
 <template>
   <div
-    class="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-text-4"
+    class="mb-3 flex items-center gap-2 text-meta font-semibold uppercase tracking-widest text-text-4"
   >
     <slot />
     <span
       v-if="count !== undefined"
-      class="shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
+      class="shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-micro text-text-3"
     >
       {{ count }}
     </span>

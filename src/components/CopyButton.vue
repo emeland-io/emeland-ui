@@ -30,7 +30,7 @@ const { copy, isCopied } = useClipboard()
 
     <!-- Tooltip -->
     <span
-      class="pointer-events-none absolute top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-bg-3 px-2 py-1 font-mono text-[10px] text-text-2 opacity-0 transition-opacity"
+      class="pointer-events-none absolute top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-bg-3 px-2 py-1 font-mono text-micro text-text-2 opacity-0 transition-opacity"
       :class="isCopied(props.value) ? 'opacity-100' : 'group-hover:opacity-100'"
     >
       {{ isCopied(props.value) ? 'Copied!' : 'Copy' }}

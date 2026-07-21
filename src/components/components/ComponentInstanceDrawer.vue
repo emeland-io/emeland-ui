@@ -85,7 +85,7 @@ const consumes = computed(() =>
         <div
           v-for="row in detailRows"
           :key="row.label"
-          class="grid gap-4 border-b border-border-1 py-1.5 text-sm last:border-b-0"
+          class="grid gap-4 border-b border-border-1 py-1.5 text-data last:border-b-0"
           style="grid-template-columns: minmax(160px, 30%) minmax(0, 1fr)"
         >
           <span class="font-mono text-text-3">{{ row.label }}</span>
@@ -110,7 +110,7 @@ const consumes = computed(() =>
           <span
             v-for="api in provides"
             :key="api.id"
-            class="flex items-center gap-1 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[11px] text-accent"
+            class="flex items-center gap-1 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent"
           >
             <IconArrowUp
               :size="11"
@@ -127,7 +127,7 @@ const consumes = computed(() =>
           <span
             v-for="api in consumes"
             :key="api.id"
-            class="flex items-center gap-1 rounded bg-bg-2 px-1.5 py-0.5 font-mono text-[11px] text-text-3"
+            class="flex items-center gap-1 rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta text-text-3"
           >
             <IconArrowDown
               :size="11"
@@ -151,7 +151,7 @@ const consumes = computed(() =>
       v-else
       class="flex flex-1 items-center justify-center"
     >
-      <span class="font-mono text-xs text-text-4">Instance not found</span>
+      <span class="font-mono text-label text-text-4">Instance not found</span>
     </div>
   </SlideOverDrawer>
 </template>

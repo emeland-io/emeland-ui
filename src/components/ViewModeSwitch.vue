@@ -22,7 +22,7 @@ const emit = defineEmits<{
     <button
       v-for="opt in options"
       :key="opt.value"
-      class="flex items-center gap-1.5 rounded px-2 py-1 text-[11px] transition-colors"
+      class="flex items-center gap-1.5 rounded px-2 py-1 text-meta transition-colors"
       :class="
         modelValue === opt.value
           ? 'bg-accent/10 text-accent-text'

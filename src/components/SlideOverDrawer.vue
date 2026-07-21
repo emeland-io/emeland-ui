@@ -44,10 +44,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       <div class="flex items-center justify-between border-b border-border-1 px-5 py-3">
         <div class="flex items-center gap-2">
           <slot name="icon" />
-          <h2 class="text-base font-medium text-text-1">{{ title }}</h2>
+          <h2 class="text-title font-medium text-text-1">{{ title }}</h2>
           <span
             v-if="count !== undefined"
-            class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-[10px] text-text-3"
+            class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro text-text-3"
           >
             {{ count }}
           </span>

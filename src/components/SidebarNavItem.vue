@@ -9,7 +9,7 @@ defineProps<{
 <template>
   <router-link
     :to="item.route"
-    class="group flex items-center gap-2 border-l-2 border-transparent px-3 py-1.5 text-[11px] font-medium text-text-2 transition-colors hover:bg-bg-3"
+    class="group flex items-center gap-2 border-l-2 border-transparent px-3 py-1.5 text-meta font-medium text-text-2 transition-colors hover:bg-bg-3"
     active-class="active-nav"
   >
     <component
@@ -21,7 +21,7 @@ defineProps<{
     <span class="flex-1 group-[.active-nav]:text-accent-text">{{ item.label }}</span>
     <span
       v-if="typeof item.badge === 'number'"
-      class="rounded-full bg-accent/10 px-1.5 font-mono text-[11px] text-accent"
+      class="rounded-full bg-accent/10 px-1.5 font-mono text-meta text-accent"
     >
       {{ item.badge }}
     </span>

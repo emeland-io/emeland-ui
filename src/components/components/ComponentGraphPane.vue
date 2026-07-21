@@ -69,7 +69,7 @@ function onNodeClick({ id, kind }: GraphNodeClick) {
             fill="var(--color-text-3)"
           />
         </svg>
-        <span class="font-mono text-[11px] text-text-3">provides</span>
+        <span class="font-mono text-meta text-text-3">provides</span>
       </div>
       <div class="flex items-center gap-2">
         <svg
@@ -92,7 +92,7 @@ function onNodeClick({ id, kind }: GraphNodeClick) {
             fill="var(--color-text-3)"
           />
         </svg>
-        <span class="font-mono text-[11px] text-text-3">consumes</span>
+        <span class="font-mono text-meta text-text-3">consumes</span>
       </div>
     </div>
   </div>

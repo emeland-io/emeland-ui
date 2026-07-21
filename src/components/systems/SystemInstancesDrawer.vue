@@ -80,9 +80,9 @@ const drawerInstance = computed(() =>
     <div class="flex flex-1 flex-col overflow-hidden">
       <!-- view toggle -->
       <div class="flex items-center gap-1 border-b border-border-1 px-4 py-1.5">
-        <span class="mr-1 text-[11px] text-text-4">View</span>
+        <span class="mr-1 text-meta text-text-4">View</span>
         <button
-          class="rounded px-2 py-0.5 font-mono text-[11px] transition-colors"
+          class="rounded px-2 py-0.5 font-mono text-meta transition-colors"
           :class="
             view === 'list'
               ? 'bg-accent/10 text-accent-text'
@@ -93,7 +93,7 @@ const drawerInstance = computed(() =>
           List
         </button>
         <button
-          class="rounded px-2 py-0.5 font-mono text-[11px] transition-colors"
+          class="rounded px-2 py-0.5 font-mono text-meta transition-colors"
           :class="
             view === 'graph'
               ? 'bg-accent/10 text-accent-text'
@@ -114,7 +114,7 @@ const drawerInstance = computed(() =>
             :stroke-width="1.5"
             class="animate-spin"
           />
-          <span class="text-sm">Loading instances...</span>
+          <span class="text-body">Loading instances...</span>
         </div>
       </div>
       <!-- Graph view -->
@@ -141,10 +141,10 @@ const drawerInstance = computed(() =>
             <div
               class="sticky top-0 z-10 flex items-center gap-2 border-b border-border-1 bg-bg-0 px-4 py-1.5"
             >
-              <span class="truncate text-[11px] font-semibold uppercase tracking-wide text-text-3">
+              <span class="truncate text-meta font-semibold uppercase tracking-wide text-text-3">
                 {{ group.system.displayName }}
               </span>
-              <span class="ml-auto shrink-0 font-mono text-[10px] text-text-4">
+              <span class="ml-auto shrink-0 font-mono text-micro text-text-4">
                 {{ group.instances.length }}
               </span>
             </div>
@@ -161,10 +161,12 @@ const drawerInstance = computed(() =>
               @click="emit('select', inst.systemInstanceId)"
             >
               <div class="flex items-center gap-2">
-                <span class="truncate text-sm font-medium text-text-1">{{ inst.displayName }}</span>
+                <span class="truncate text-body font-medium text-text-1">
+                  {{ inst.displayName }}
+                </span>
                 <span
                   v-if="contextName(inst.context)"
-                  class="ml-auto shrink-0 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[10px] text-accent"
+                  class="ml-auto shrink-0 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-micro text-accent"
                 >
                   {{ contextName(inst.context) }}
                 </span>
@@ -178,10 +180,12 @@ const drawerInstance = computed(() =>
           class="flex-1 overflow-y-auto px-6 py-5"
         >
           <div class="flex items-center gap-2">
-            <h3 class="text-base font-medium text-text-1">{{ drawerInstance.displayName }}</h3>
+            <h3 class="text-title font-medium text-text-1">{{ drawerInstance.displayName }}</h3>
           </div>
           <div class="mt-2 flex items-center gap-2">
-            <span class="font-mono text-xs text-text-4">{{ drawerInstance.systemInstanceId }}</span>
+            <span class="font-mono text-label text-text-4">
+              {{ drawerInstance.systemInstanceId }}
+            </span>
             <CopyButton
               :value="drawerInstance.systemInstanceId"
               :size="13"
@@ -199,12 +203,12 @@ const drawerInstance = computed(() =>
               @click="emit('go-to-system', drawerInstance.system)"
             >
               <span
-                class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-[11px] font-semibold uppercase text-accent"
+                class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
               >
                 System
               </span>
               <span
-                class="max-w-full truncate text-sm text-text-2 transition-colors group-hover:text-accent"
+                class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
               >
                 {{
                   store.systemMap.get(drawerInstance.system)?.displayName ?? drawerInstance.system
@@ -223,7 +227,7 @@ const drawerInstance = computed(() =>
             class="mt-6"
           >
             <SectionLabel>Context</SectionLabel>
-            <span class="rounded bg-accent/10 px-2 py-0.5 font-mono text-xs text-accent">
+            <span class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent">
               {{ contextName(drawerInstance.context) }}
             </span>
           </div>
@@ -243,7 +247,7 @@ const drawerInstance = computed(() =>
           v-else
           class="flex flex-1 items-center justify-center"
         >
-          <span class="font-mono text-xs text-text-4">Select a system instance</span>
+          <span class="font-mono text-label text-text-4">Select a system instance</span>
         </div>
       </div>
     </div>

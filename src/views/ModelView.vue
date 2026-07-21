@@ -22,7 +22,7 @@ onMounted(() => store.load())
   <div class="flex h-full flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <h1 class="text-base font-medium text-text-1">Model</h1>
+      <h1 class="text-title font-medium text-text-1">Model</h1>
     </div>
 
     <!-- Loading -->
@@ -36,7 +36,7 @@ onMounted(() => store.load())
           :stroke-width="1.5"
           class="animate-spin"
         />
-        <span class="text-sm">Loading model...</span>
+        <span class="text-body">Loading model...</span>
       </div>
     </div>
 
@@ -45,7 +45,7 @@ onMounted(() => store.load())
       v-else-if="store.error"
       class="flex flex-1 items-center justify-center"
     >
-      <p class="text-sm text-error">{{ store.error }}</p>
+      <p class="text-body text-error">{{ store.error }}</p>
     </div>
 
     <!-- Detail -->
@@ -58,10 +58,10 @@ onMounted(() => store.load())
         <div class="flex items-start gap-3">
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2.5">
-              <h2 class="text-lg font-medium text-text-1">{{ store.model.displayName }}</h2>
+              <h2 class="text-display font-medium text-text-1">{{ store.model.displayName }}</h2>
               <span
                 v-if="store.model.status"
-                class="rounded px-2 py-0.5 font-mono text-xs"
+                class="rounded px-2 py-0.5 font-mono text-label"
                 :class="statusStyle(store.model.status)"
               >
                 {{ store.model.status }}
@@ -69,7 +69,7 @@ onMounted(() => store.load())
             </div>
             <p
               v-if="store.model.description"
-              class="mt-1 text-sm text-text-3"
+              class="mt-1 text-body text-text-3"
             >
               {{ store.model.description }}
             </p>
@@ -78,13 +78,13 @@ onMounted(() => store.load())
 
         <!-- Hosting -->
         <div class="mt-8">
-          <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+          <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
             Hosting
           </div>
           <dl class="space-y-0">
             <div
               v-if="store.model.host"
-              class="grid gap-4 border-b border-border-1 py-2 text-sm"
+              class="grid gap-4 border-b border-border-1 py-2 text-data"
               style="grid-template-columns: minmax(140px, 25%) minmax(0, 1fr)"
             >
               <dt class="font-mono text-text-3">Host</dt>
@@ -92,7 +92,7 @@ onMounted(() => store.load())
             </div>
             <div
               v-if="store.model.region"
-              class="grid gap-4 border-b border-border-1 py-2 text-sm"
+              class="grid gap-4 border-b border-border-1 py-2 text-data"
               style="grid-template-columns: minmax(140px, 25%) minmax(0, 1fr)"
             >
               <dt class="font-mono text-text-3">Region</dt>
@@ -100,7 +100,7 @@ onMounted(() => store.load())
             </div>
             <div
               v-if="store.model.environment"
-              class="grid gap-4 border-b border-border-1 py-2 text-sm"
+              class="grid gap-4 border-b border-border-1 py-2 text-data"
               style="grid-template-columns: minmax(140px, 25%) minmax(0, 1fr)"
             >
               <dt class="font-mono text-text-3">Environment</dt>
@@ -111,13 +111,13 @@ onMounted(() => store.load())
 
         <!-- Connection -->
         <div class="mt-8">
-          <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+          <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
             Connection
           </div>
           <dl class="space-y-0">
             <div
               v-if="store.model.baseUrl"
-              class="grid gap-4 border-b border-border-1 py-2 text-sm"
+              class="grid gap-4 border-b border-border-1 py-2 text-data"
               style="grid-template-columns: minmax(140px, 25%) minmax(0, 1fr)"
             >
               <dt class="font-mono text-text-3">Server URL</dt>
@@ -131,14 +131,14 @@ onMounted(() => store.load())
             </div>
             <div
               v-if="store.model.version"
-              class="grid gap-4 border-b border-border-1 py-2 text-sm"
+              class="grid gap-4 border-b border-border-1 py-2 text-data"
               style="grid-template-columns: minmax(140px, 25%) minmax(0, 1fr)"
             >
               <dt class="font-mono text-text-3">Version</dt>
               <dd class="font-mono text-text-2">{{ store.model.version }}</dd>
             </div>
             <div
-              class="grid gap-4 border-b border-border-1 py-2 text-sm"
+              class="grid gap-4 border-b border-border-1 py-2 text-data"
               style="grid-template-columns: minmax(140px, 25%) minmax(0, 1fr)"
             >
               <dt class="font-mono text-text-3">Model ID</dt>
@@ -158,14 +158,14 @@ onMounted(() => store.load())
           v-if="store.model.annotations && Object.keys(store.model.annotations).length > 0"
           class="mt-8"
         >
-          <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+          <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
             Annotations
           </div>
           <dl class="space-y-0">
             <div
               v-for="(value, key) in store.model.annotations"
               :key="key"
-              class="grid gap-4 border-b border-border-1 py-2 text-sm"
+              class="grid gap-4 border-b border-border-1 py-2 text-data"
               style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
             >
               <dt

@@ -29,7 +29,7 @@ function logout() {
 
 <template>
   <header class="flex h-10 items-center gap-3 border-b border-border-1 bg-bg-1 px-4">
-    <div class="flex w-37 shrink-0 items-center text-[13px] font-medium">
+    <div class="flex w-37 shrink-0 items-center text-data font-medium">
       <span class="text-accent">EmE</span>
       <span class="text-text-1">Land</span>
     </div>

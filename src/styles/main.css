@@ -1,6 +1,26 @@
 @import 'tailwindcss';
 @import './theme.css';
 
+/*
+ * Root font-size drives the whole rem-based type scale (--text-*).
+ * Percentages (not px) keep the user's browser base-font-size / accessibility
+ * zoom intact, while stepping the whole scale up proportionally on large
+ * displays. Role ratios stay identical — everything scales together.
+ */
+html {
+  font-size: 100%; /* = user default, typically 16px */
+}
+@media (min-width: 1920px) {
+  html {
+    font-size: 106.25%; /* ~17px at a 16px base */
+  }
+}
+@media (min-width: 2560px) {
+  html {
+    font-size: 112.5%; /* ~18px at a 16px base */
+  }
+}
+
 body {
   background-color: var(--color-bg-0);
   color: var(--color-text-1);

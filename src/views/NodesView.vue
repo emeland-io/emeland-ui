@@ -148,8 +148,8 @@ function closeTypesDrawer() {
   <div class="relative flex h-full flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <h1 class="text-base font-medium text-text-1">Nodes</h1>
-      <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-xs text-text-3">
+      <h1 class="text-title font-medium text-text-1">Nodes</h1>
+      <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
         {{ filteredNodes.length }}
         <span
           v-if="filteredNodes.length !== store.nodes.length"
@@ -159,7 +159,7 @@ function closeTypesDrawer() {
         </span>
       </span>
       <button
-        class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs transition-colors"
+        class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-label transition-colors"
         :class="
           typesDrawerOpen
             ? 'border-accent/20 bg-accent/10 text-accent-text'
@@ -174,7 +174,7 @@ function closeTypesDrawer() {
         Node Types
         <span
           v-if="store.typesLoaded"
-          class="font-mono text-[10px] text-text-4"
+          class="font-mono text-micro text-text-4"
         >
           {{ store.nodeTypes.length }}
         </span>
@@ -191,7 +191,7 @@ function closeTypesDrawer() {
           :stroke-width="1.5"
           class="animate-spin"
         />
-        <span class="text-sm">Loading nodes...</span>
+        <span class="text-body">Loading nodes...</span>
       </div>
     </div>
     <!-- Error -->
@@ -199,7 +199,7 @@ function closeTypesDrawer() {
       v-else-if="store.error && store.nodes.length === 0"
       class="flex flex-1 items-center justify-center"
     >
-      <p class="text-sm text-error">{{ store.error }}</p>
+      <p class="text-body text-error">{{ store.error }}</p>
     </div>
     <template v-else>
       <!-- Toolbar -->
@@ -217,15 +217,15 @@ function closeTypesDrawer() {
             v-model="search"
             type="text"
             placeholder="Search nodes, annotations..."
-            class="w-full bg-transparent font-mono text-xs text-text-2 placeholder:text-text-4 outline-none"
+            class="w-full bg-transparent font-mono text-label text-text-2 placeholder:text-text-4 outline-none"
           />
         </div>
         <div class="h-4 w-px shrink-0 bg-bg-3" />
-        <span class="text-[11px] text-text-4">Type</span>
+        <span class="text-meta text-text-4">Type</span>
         <button
           v-for="type in allTypes"
           :key="type"
-          class="rounded border px-2 py-1 font-mono text-[11px] transition-colors"
+          class="rounded border px-2 py-1 font-mono text-meta transition-colors"
           :class="
             activeTypes.has(type)
               ? 'border-accent/20 bg-accent/10 text-accent-text'
@@ -237,7 +237,7 @@ function closeTypesDrawer() {
         </button>
         <button
           v-if="hasActiveFilters"
-          class="ml-auto flex items-center gap-1 text-[11px] text-text-4 hover:text-text-2"
+          class="ml-auto flex items-center gap-1 text-meta text-text-4 hover:text-text-2"
           @click="clearFilters"
         >
           Clear
@@ -254,8 +254,8 @@ function closeTypesDrawer() {
             :stroke-width="1.5"
             class="mx-auto text-text-4"
           />
-          <p class="mt-3 text-sm text-text-2">No nodes</p>
-          <p class="mt-1 text-xs text-text-4">
+          <p class="mt-3 text-body text-text-2">No nodes</p>
+          <p class="mt-1 text-label text-text-4">
             {{ hasActiveFilters ? 'No results for current filters' : 'No nodes discovered yet' }}
           </p>
         </div>
@@ -275,17 +275,17 @@ function closeTypesDrawer() {
             "
             @click="selectNode(node.nodeId)"
           >
-            <div class="text-sm font-medium text-text-1">{{ node.displayName }}</div>
+            <div class="text-body font-medium text-text-1">{{ node.displayName }}</div>
             <div class="mt-2 flex items-center gap-1.5">
               <span
-                class="rounded px-1.5 py-0.5 font-mono text-[11px]"
+                class="rounded px-1.5 py-0.5 font-mono text-meta"
                 :class="categoryColorForNode(node)"
               >
                 {{ store.getTypeName(node) }}
               </span>
               <span
                 v-if="nodeVersion(node.annotations)"
-                class="font-mono text-[11px] text-text-id"
+                class="font-mono text-meta text-text-id"
               >
                 {{ nodeVersion(node.annotations) }}
               </span>
@@ -301,9 +301,9 @@ function closeTypesDrawer() {
           >
             <div class="border-b border-border-1 px-6 py-4">
               <div class="flex items-start justify-between gap-4">
-                <h2 class="text-base font-medium text-text-1">{{ selectedNode.displayName }}</h2>
+                <h2 class="text-title font-medium text-text-1">{{ selectedNode.displayName }}</h2>
                 <div class="flex items-center gap-1.5">
-                  <span class="font-mono text-xs text-text-id">{{ selectedNode.nodeId }}</span>
+                  <span class="font-mono text-label text-text-id">{{ selectedNode.nodeId }}</span>
                   <CopyButton
                     :value="selectedNode.nodeId"
                     :size="13"
@@ -313,7 +313,7 @@ function closeTypesDrawer() {
               <div class="mt-2">
                 <button
                   v-if="selectedNode.nodeType?.nodeTypeId"
-                  class="group inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-xs transition-opacity hover:opacity-80"
+                  class="group inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-label transition-opacity hover:opacity-80"
                   :class="categoryColorForNode(selectedNode)"
                   title="Show node type"
                   @click="openTypeInDrawer(selectedNode.nodeType.nodeTypeId)"
@@ -322,7 +322,7 @@ function closeTypesDrawer() {
                 </button>
                 <span
                   v-else
-                  class="rounded px-2 py-0.5 font-mono text-xs"
+                  class="rounded px-2 py-0.5 font-mono text-label"
                   :class="categoryColorForNode(selectedNode)"
                 >
                   {{ store.getTypeName(selectedNode) }}
@@ -336,21 +336,21 @@ function closeTypesDrawer() {
                 class="flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
               >
                 <div class="min-w-0">
-                  <div class="text-sm text-error">Could not load full details</div>
-                  <div class="mt-0.5 font-mono text-[11px] text-error/80">
+                  <div class="text-body text-error">Could not load full details</div>
+                  <div class="mt-0.5 font-mono text-meta text-error/80">
                     Showing basic info only — the detail request failed.
                   </div>
                 </div>
               </div>
               <!-- annotations -->
               <div v-if="Object.keys(selectedNode.annotations).length > 0">
-                <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+                <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
                   Annotations
                 </div>
                 <div
                   v-for="(value, key) in selectedNode.annotations"
                   :key="key"
-                  class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
+                  class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-data"
                   style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
                 >
                   <span
@@ -364,7 +364,7 @@ function closeTypesDrawer() {
               </div>
               <!-- Related findings -->
               <div v-if="relatedFindings.length > 0">
-                <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+                <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
                   Findings
                 </div>
                 <button
@@ -375,12 +375,12 @@ function closeTypesDrawer() {
                   @click="goToFinding(f.findingId)"
                 >
                   <span
-                    class="shrink-0 rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-[10px] text-sensor"
+                    class="shrink-0 rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-micro text-sensor"
                   >
                     {{ findingsStore.getKindForFinding(f) }}
                   </span>
                   <span
-                    class="max-w-full truncate text-sm text-text-2 transition-colors group-hover:text-accent"
+                    class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
                   >
                     {{ f.displayName }}
                   </span>
@@ -389,19 +389,19 @@ function closeTypesDrawer() {
                     :stroke-width="2"
                     class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
                   />
-                  <span class="ml-auto shrink-0 font-mono text-[11px] text-text-id">
+                  <span class="ml-auto shrink-0 font-mono text-meta text-text-id">
                     {{ f.findingId }}
                   </span>
                 </button>
               </div>
               <!-- Node type -->
               <div>
-                <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+                <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
                   Node type
                 </div>
                 <div class="flex items-center gap-3 border-b border-border-1 py-2 last:border-b-0">
                   <span
-                    class="flex w-28 shrink-0 items-center justify-center gap-1 rounded px-2 py-0.5 text-center font-mono text-[11px] font-semibold uppercase"
+                    class="flex w-28 shrink-0 items-center justify-center gap-1 rounded px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase"
                     :class="
                       selectedNodeTypeUnknown
                         ? 'bg-error/10 text-error'
@@ -418,20 +418,20 @@ function closeTypesDrawer() {
                   <!-- name (description as secondary line if present) -->
                   <div class="min-w-0 flex-1">
                     <div
-                      class="truncate text-sm"
+                      class="truncate text-body"
                       :class="selectedNodeTypeUnknown ? 'text-error' : 'text-text-2'"
                     >
                       {{ selectedNode.nodeType?.displayName || 'Unknown' }}
                     </div>
                     <div
                       v-if="selectedNodeTypeUnknown"
-                      class="mt-0.5 truncate font-mono text-[11px] text-error/80"
+                      class="mt-0.5 truncate font-mono text-meta text-error/80"
                     >
                       References a node type that does not exist.
                     </div>
                     <div
                       v-else-if="store.getTypeForNode(selectedNode)?.description"
-                      class="mt-0.5 truncate font-mono text-[11px] text-text-id"
+                      class="mt-0.5 truncate font-mono text-meta text-text-id"
                     >
                       {{ store.getTypeForNode(selectedNode)?.description }}
                     </div>
@@ -441,7 +441,7 @@ function closeTypesDrawer() {
                     v-if="selectedNode.nodeType?.nodeTypeId"
                     class="flex items-center gap-1.5 shrink-0"
                   >
-                    <span class="font-mono text-[11px] text-text-id">
+                    <span class="font-mono text-meta text-text-id">
                       {{ selectedNode.nodeType.nodeTypeId }}
                     </span>
                     <CopyButton
@@ -457,7 +457,7 @@ function closeTypesDrawer() {
             v-else
             class="flex flex-1 items-center justify-center"
           >
-            <span class="font-mono text-xs text-text-id">Select a node to inspect</span>
+            <span class="font-mono text-label text-text-id">Select a node to inspect</span>
           </div>
         </template>
       </ListDetail>
@@ -487,7 +487,7 @@ function closeTypesDrawer() {
             :stroke-width="1.5"
             class="animate-spin"
           />
-          <span class="text-sm">Loading types...</span>
+          <span class="text-body">Loading types...</span>
         </div>
       </div>
       <template v-else>
@@ -505,7 +505,7 @@ function closeTypesDrawer() {
             @click="selectTypeInDrawer(type.nodeTypeId)"
           >
             <span
-              class="rounded px-1.5 py-0.5 font-mono text-[11px]"
+              class="rounded px-1.5 py-0.5 font-mono text-meta"
               :class="categoryColorForName(type.displayName)"
             >
               {{ type.displayName }}
@@ -519,12 +519,12 @@ function closeTypesDrawer() {
         >
           <div class="flex items-center gap-2">
             <span
-              class="rounded px-2 py-0.5 font-mono text-xs"
+              class="rounded px-2 py-0.5 font-mono text-label"
               :class="categoryColorForName(selectedType.displayName)"
             >
               {{ selectedType.displayName }}
             </span>
-            <span class="font-mono text-xs text-text-id">{{ selectedType.nodeTypeId }}</span>
+            <span class="font-mono text-label text-text-id">{{ selectedType.nodeTypeId }}</span>
             <CopyButton
               :value="selectedType.nodeTypeId"
               :size="13"
@@ -532,7 +532,7 @@ function closeTypesDrawer() {
           </div>
           <p
             v-if="selectedType.description"
-            class="mt-4 font-mono text-sm leading-relaxed text-text-2"
+            class="mt-4 font-mono text-body leading-relaxed text-text-2"
           >
             {{ selectedType.description }}
           </p>
@@ -540,13 +540,13 @@ function closeTypesDrawer() {
             v-if="Object.keys(selectedType.annotations).length > 0"
             class="mt-6"
           >
-            <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+            <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
               Annotations
             </div>
             <div
               v-for="(value, key) in selectedType.annotations"
               :key="key"
-              class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
+              class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-data"
               style="grid-template-columns: minmax(180px, 30%) minmax(0, 1fr)"
             >
               <span
@@ -563,7 +563,7 @@ function closeTypesDrawer() {
           v-else
           class="flex flex-1 items-center justify-center"
         >
-          <span class="font-mono text-xs text-text-id">Select a node type</span>
+          <span class="font-mono text-label text-text-id">Select a node type</span>
         </div>
       </template>
     </SlideOverDrawer>

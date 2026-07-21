@@ -21,10 +21,10 @@ onMounted(() => store.load())
     title="Model details"
   >
     <span class="flex items-center gap-1.5">
-      <span class="text-xs font-medium text-text-1">{{ store.model.displayName }}</span>
+      <span class="text-label font-medium text-text-1">{{ store.model.displayName }}</span>
       <span
         v-if="store.model.version"
-        class="font-mono text-[11px] text-text-id"
+        class="font-mono text-meta text-text-id"
       >
         {{ store.model.version }}
       </span>

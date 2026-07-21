@@ -72,18 +72,18 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
         :value="search"
         type="text"
         placeholder="Search summary, description, annotations..."
-        class="w-full bg-transparent font-mono text-xs text-text-2 placeholder:text-text-4 outline-none"
+        class="w-full bg-transparent font-mono text-label text-text-2 placeholder:text-text-4 outline-none"
         @input="emit('update:search', ($event.target as HTMLInputElement).value)"
       />
     </div>
 
     <!-- Type filters -->
     <div class="h-4 w-px shrink-0 bg-bg-3" />
-    <span class="text-[11px] text-text-4">Type</span>
+    <span class="text-meta text-text-4">Type</span>
     <button
       v-for="kind in visibleTypes"
       :key="kind"
-      class="rounded border px-2 py-1 font-mono text-[11px] transition-colors"
+      class="rounded border px-2 py-1 font-mono text-meta transition-colors"
       :class="
         activeTypes.has(kind)
           ? 'border-sensor/20 bg-sensor/10 text-sensor'
@@ -99,7 +99,7 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
       class="relative"
     >
       <button
-        class="flex items-center gap-1 rounded border px-2 py-1 font-mono text-[11px] transition-colors"
+        class="flex items-center gap-1 rounded border px-2 py-1 font-mono text-meta transition-colors"
         :class="
           hasActiveOverflowType
             ? 'border-sensor/20 bg-sensor/10 text-sensor'
@@ -125,7 +125,7 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
         <button
           v-for="kind in overflowTypes"
           :key="kind"
-          class="flex w-full items-center gap-2 px-3 py-1.5 font-mono text-[11px] transition-colors"
+          class="flex w-full items-center gap-2 px-3 py-1.5 font-mono text-meta transition-colors"
           :class="activeTypes.has(kind) ? 'bg-sensor/10 text-sensor' : 'text-text-3 hover:bg-bg-2'"
           @click="emit('toggle-type', kind)"
         >
@@ -140,11 +140,11 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
 
     <!-- Resource filters -->
     <div class="h-4 w-px shrink-0 bg-bg-3" />
-    <span class="text-[11px] text-text-4">Resource</span>
+    <span class="text-meta text-text-4">Resource</span>
     <button
       v-for="rt in visibleResTypes"
       :key="rt"
-      class="rounded border px-2 py-1 font-mono text-[11px] transition-colors"
+      class="rounded border px-2 py-1 font-mono text-meta transition-colors"
       :class="
         activeResourceTypes.has(rt)
           ? 'border-accent/20 bg-accent/10 text-accent-text'
@@ -160,7 +160,7 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
       class="relative"
     >
       <button
-        class="flex items-center gap-1 rounded border px-2 py-1 font-mono text-[11px] transition-colors"
+        class="flex items-center gap-1 rounded border px-2 py-1 font-mono text-meta transition-colors"
         :class="
           hasActiveOverflowRes
             ? 'border-accent/20 bg-accent/10 text-accent-text'
@@ -186,7 +186,7 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
         <button
           v-for="rt in overflowResTypes"
           :key="rt"
-          class="flex w-full items-center gap-2 px-3 py-1.5 font-mono text-[11px] transition-colors"
+          class="flex w-full items-center gap-2 px-3 py-1.5 font-mono text-meta transition-colors"
           :class="
             activeResourceTypes.has(rt)
               ? 'bg-accent/10 text-accent-text'
@@ -206,7 +206,7 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
     <!-- Clear -->
     <button
       v-if="hasActiveFilters"
-      class="ml-auto flex items-center gap-1 text-[11px] text-text-4 hover:text-text-2"
+      class="ml-auto flex items-center gap-1 text-meta text-text-4 hover:text-text-2"
       @click="emit('clear')"
     >
       <IconX

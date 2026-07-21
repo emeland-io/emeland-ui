@@ -73,9 +73,9 @@ function versionDates(c: Component | undefined): [string, string][] {
   >
     <div class="border-b border-border-1 px-6 py-4">
       <div class="flex items-start justify-between gap-4">
-        <h2 class="text-base font-medium text-text-1">{{ component.displayName }}</h2>
+        <h2 class="text-title font-medium text-text-1">{{ component.displayName }}</h2>
         <div class="flex items-center gap-1.5">
-          <span class="font-mono text-xs text-text-4">{{ component.componentId }}</span>
+          <span class="font-mono text-label text-text-4">{{ component.componentId }}</span>
           <CopyButton
             :value="component.componentId"
             :size="13"
@@ -86,7 +86,7 @@ function versionDates(c: Component | undefined): [string, string][] {
         v-if="component.version?.version"
         class="mt-2 flex items-center gap-2"
       >
-        <span class="rounded bg-bg-2 px-2 py-0.5 font-mono text-xs text-text-3">
+        <span class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3">
           v{{ component.version.version }}
         </span>
       </div>
@@ -98,8 +98,8 @@ function versionDates(c: Component | undefined): [string, string][] {
         class="flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
       >
         <div class="min-w-0">
-          <div class="text-sm text-error">Could not load full details</div>
-          <div class="mt-0.5 font-mono text-[11px] text-error/80">
+          <div class="text-body text-error">Could not load full details</div>
+          <div class="mt-0.5 font-mono text-meta text-error/80">
             Showing basic info only — the detail request failed.
           </div>
         </div>
@@ -107,7 +107,7 @@ function versionDates(c: Component | undefined): [string, string][] {
       <!-- description -->
       <p
         v-if="component.description"
-        class="font-mono text-sm leading-relaxed text-text-2"
+        class="font-mono text-body leading-relaxed text-text-2"
       >
         {{ component.description }}
       </p>
@@ -121,12 +121,12 @@ function versionDates(c: Component | undefined): [string, string][] {
           @click="goToResource('System', component.system)"
         >
           <span
-            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-[11px] font-semibold uppercase text-accent"
+            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
           >
             System
           </span>
           <span
-            class="max-w-full truncate text-sm text-text-2 transition-colors group-hover/row:text-accent"
+            class="max-w-full truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
           >
             {{ systemName }}
           </span>
@@ -136,7 +136,7 @@ function versionDates(c: Component | undefined): [string, string][] {
             class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
           />
           <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-[11px] text-text-4">{{ component.system }}</span>
+            <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
             <CopyButton
               :value="component.system"
               :size="12"
@@ -149,14 +149,14 @@ function versionDates(c: Component | undefined): [string, string][] {
           class="flex items-center gap-3 border-b border-border-1 py-2 last:border-b-0"
         >
           <span
-            class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-[11px] font-semibold uppercase text-error"
+            class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
           >
             System
           </span>
           <div class="min-w-0 flex-1">
-            <div class="truncate text-sm text-error">Unresolved system</div>
+            <div class="truncate text-body text-error">Unresolved system</div>
           </div>
-          <span class="font-mono text-[11px] text-text-4">{{ component.system }}</span>
+          <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
         </div>
       </div>
       <!-- Provides -->
@@ -166,7 +166,7 @@ function versionDates(c: Component | undefined): [string, string][] {
           <span
             v-for="api in provides"
             :key="api.id"
-            class="rounded bg-accent/10 px-2 py-0.5 font-mono text-xs text-accent"
+            class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent"
             :title="api.id"
           >
             {{ api.name }}
@@ -180,7 +180,7 @@ function versionDates(c: Component | undefined): [string, string][] {
           <span
             v-for="api in consumes"
             :key="api.id"
-            class="rounded bg-bg-2 px-2 py-0.5 font-mono text-xs text-text-3"
+            class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3"
             :title="api.id"
           >
             {{ api.name }}
@@ -193,7 +193,7 @@ function versionDates(c: Component | undefined): [string, string][] {
         <div
           v-for="[label, value] in versionDates(component)"
           :key="label"
-          class="grid gap-4 border-b border-border-1 py-1.5 text-sm last:border-b-0"
+          class="grid gap-4 border-b border-border-1 py-1.5 text-data last:border-b-0"
           style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
         >
           <span class="font-mono text-text-3">{{ label }}</span>
@@ -216,12 +216,12 @@ function versionDates(c: Component | undefined): [string, string][] {
           @click="goToFinding(f.findingId)"
         >
           <span
-            class="shrink-0 rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-[10px] text-sensor"
+            class="shrink-0 rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-micro text-sensor"
           >
             {{ findingsStore.getKindForFinding(f) }}
           </span>
           <span
-            class="max-w-full truncate text-sm text-text-2 transition-colors group-hover:text-accent"
+            class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
           >
             {{ f.displayName }}
           </span>
@@ -230,7 +230,7 @@ function versionDates(c: Component | undefined): [string, string][] {
             :stroke-width="2"
             class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
           />
-          <span class="ml-auto shrink-0 font-mono text-[11px] text-text-4">{{ f.findingId }}</span>
+          <span class="ml-auto shrink-0 font-mono text-meta text-text-4">{{ f.findingId }}</span>
         </button>
       </div>
       <!-- Instances -->
@@ -251,6 +251,6 @@ function versionDates(c: Component | undefined): [string, string][] {
     v-else
     class="flex flex-1 items-center justify-center"
   >
-    <span class="font-mono text-xs text-text-4">Select a component to inspect</span>
+    <span class="font-mono text-label text-text-4">Select a component to inspect</span>
   </div>
 </template>

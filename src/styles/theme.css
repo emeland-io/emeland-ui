@@ -3,26 +3,51 @@
   --color-bg-1: #111514;
   --color-bg-2: #15201c;
   --color-bg-3: #1a2824;
+
   --color-text-1: #e8eae4;
   --color-text-2: #a8b8b0;
   --color-text-3: #6a8078;
   --color-text-4: #3a4a44;
   --color-text-id: var(--color-text-3);
+
   --color-border-1: #222827;
   --color-border-2: #3a4541;
+  --color-sep: var(--color-border-2);
+
   --color-accent: #1d9e75;
   --color-accent-text: #9fe1cb;
+  --color-error: #e24b4a;
+  --color-warning: #ba7517;
+
   --color-sensor: #3a8fc4;
   --color-node-sensor: #3a8fc4;
   --color-node-filter: #7f77dd;
   --color-node-injector: #d4722a;
   --color-node-external: #6a8078;
-  --color-error: #e24b4a;
-  --color-warning: #ba7517;
-  --color-sep: var(--color-border-2);
+
   --font-sans: 'Geist', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Clear Tailwind's default text sizes (xs/sm/base/...) so the only  */
+  /* way to size text is via a role below; no bypassing the scale*/
+  --text-*: initial;
+  --text-micro: 0.625rem;
+  /* 10px: counts, tiniest badges */
+  --text-meta: 0.6875rem;
+  /* 11px: dense meta, badges, chrome */
+  --text-label: 0.75rem;
+  /* 12px: field labels, secondary text */
+  --text-data: 0.8125rem;
+  /* 13px: detail & annotation values (mono) */
+  --text-body: 0.875rem;
+  /* 14px: primary body, list items, descriptions */
+  --text-title: 1rem;
+  /* 16px: pane & section titles */
+  --text-display: 1.125rem;
+  /* 18px: page-level headline */
 }
 
+/* Light theme overrides (colors only) */
 [data-theme='light'] {
   --color-bg-0: #ffffff;
   --color-bg-1: #fafaf8;

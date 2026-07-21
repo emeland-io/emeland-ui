@@ -43,29 +43,29 @@ function instanceCount(id: string): number {
       "
       @click="emit('select', sys.systemId)"
     >
-      <div class="text-sm font-medium text-text-1">{{ sys.displayName }}</div>
+      <div class="text-body font-medium text-text-1">{{ sys.displayName }}</div>
       <div class="mt-2 flex flex-wrap items-center gap-1.5">
         <span
-          class="rounded px-1.5 py-0.5 font-mono text-[11px]"
+          class="rounded px-1.5 py-0.5 font-mono text-meta"
           :class="sys.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent'"
         >
           {{ store.getKindForSystem(sys) }}
         </span>
         <span
           v-if="sys.version?.version"
-          class="font-mono text-[11px] text-text-4"
+          class="font-mono text-meta text-text-4"
         >
           v{{ sys.version.version }}
         </span>
         <span
           v-if="store.getParentName(sys)"
-          class="font-mono text-[11px] text-text-4"
+          class="font-mono text-meta text-text-4"
         >
           ↳ {{ store.getParentName(sys) }}
         </span>
         <span
           v-if="store.instancesLoaded && instanceCount(sys.systemId) > 0"
-          class="ml-auto shrink-0 rounded-full bg-bg-2 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
+          class="ml-auto shrink-0 rounded-full bg-bg-2 px-1.5 py-0.5 font-mono text-micro text-text-3"
           :title="`${instanceCount(sys.systemId)} system instance(s)`"
         >
           {{ instanceCount(sys.systemId) }} inst
@@ -105,18 +105,18 @@ function instanceCount(id: string): number {
         v-else
         class="h-4 w-4 shrink-0"
       />
-      <span class="truncate text-sm font-medium text-text-1">
+      <span class="truncate text-body font-medium text-text-1">
         {{ row.system.displayName }}
       </span>
       <span
-        class="shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px]"
+        class="shrink-0 rounded px-1.5 py-0.5 font-mono text-micro"
         :class="row.system.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent'"
       >
         {{ store.getKindForSystem(row.system) }}
       </span>
       <span
         v-if="store.instancesLoaded && instanceCount(row.system.systemId) > 0"
-        class="ml-auto shrink-0 rounded-full bg-bg-2 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
+        class="ml-auto shrink-0 rounded-full bg-bg-2 px-1.5 py-0.5 font-mono text-micro text-text-3"
         :title="`${instanceCount(row.system.systemId)} system instance(s)`"
       >
         {{ instanceCount(row.system.systemId) }} inst

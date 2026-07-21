@@ -136,8 +136,8 @@ onMounted(async () => {
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
       <div class="flex min-w-[11rem] items-center gap-3">
-        <h1 class="text-base font-medium text-text-1">Components</h1>
-        <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-xs text-text-3">
+        <h1 class="text-title font-medium text-text-1">Components</h1>
+        <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
           {{ filteredComponents.length }}
           <span
             v-if="filteredComponents.length !== store.components.length"
@@ -163,7 +163,7 @@ onMounted(async () => {
           :stroke-width="1.5"
           class="animate-spin"
         />
-        <span class="text-sm">Loading components...</span>
+        <span class="text-body">Loading components...</span>
       </div>
     </div>
     <!-- Error -->
@@ -171,7 +171,7 @@ onMounted(async () => {
       v-else-if="store.error && store.components.length === 0"
       class="flex flex-1 items-center justify-center"
     >
-      <p class="text-sm text-error">{{ store.error }}</p>
+      <p class="text-body text-error">{{ store.error }}</p>
     </div>
     <template v-else>
       <ComponentsToolbar
@@ -193,8 +193,8 @@ onMounted(async () => {
             :stroke-width="1.5"
             class="mx-auto text-text-4"
           />
-          <p class="mt-3 text-sm text-text-2">No components</p>
-          <p class="mt-1 text-xs text-text-4">
+          <p class="mt-3 text-body text-text-2">No components</p>
+          <p class="mt-1 text-label text-text-4">
             {{
               hasActiveFilters ? 'No results for current filters' : 'No components discovered yet'
             }}

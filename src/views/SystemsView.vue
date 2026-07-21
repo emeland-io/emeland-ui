@@ -253,8 +253,8 @@ function goToParent(parentId: string) {
   <div class="relative flex h-full flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <h1 class="text-base font-medium text-text-1">Systems</h1>
-      <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-xs text-text-3">
+      <h1 class="text-title font-medium text-text-1">Systems</h1>
+      <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
         {{ filteredSystems.length }}
         <span
           v-if="filteredSystems.length !== store.systems.length"
@@ -264,7 +264,7 @@ function goToParent(parentId: string) {
         </span>
       </span>
       <button
-        class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs transition-colors"
+        class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-label transition-colors"
         :class="
           instancesDrawerOpen
             ? 'border-accent/20 bg-accent/10 text-accent-text'
@@ -279,7 +279,7 @@ function goToParent(parentId: string) {
         System Instances
         <span
           v-if="store.instancesLoaded"
-          class="font-mono text-[10px] text-text-4"
+          class="font-mono text-micro text-text-4"
         >
           {{ store.systemInstances.length }}
         </span>
@@ -296,7 +296,7 @@ function goToParent(parentId: string) {
           :stroke-width="1.5"
           class="animate-spin"
         />
-        <span class="text-sm">Loading systems...</span>
+        <span class="text-body">Loading systems...</span>
       </div>
     </div>
     <!-- Error -->
@@ -304,7 +304,7 @@ function goToParent(parentId: string) {
       v-else-if="store.error && store.systems.length === 0"
       class="flex flex-1 items-center justify-center"
     >
-      <p class="text-sm text-error">{{ store.error }}</p>
+      <p class="text-body text-error">{{ store.error }}</p>
     </div>
     <template v-else>
       <!-- Toolbar -->
@@ -334,8 +334,8 @@ function goToParent(parentId: string) {
             :stroke-width="1.5"
             class="mx-auto text-text-4"
           />
-          <p class="mt-3 text-sm text-text-2">No systems</p>
-          <p class="mt-1 text-xs text-text-4">
+          <p class="mt-3 text-body text-text-2">No systems</p>
+          <p class="mt-1 text-label text-text-4">
             {{ hasActiveFilters ? 'No results for current filters' : 'No systems discovered yet' }}
           </p>
         </div>
