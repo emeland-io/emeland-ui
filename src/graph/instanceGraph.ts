@@ -11,6 +11,7 @@ export interface InstanceGraphInput {
   systems: System[]
   instancesOf: (systemId: string) => SystemInstance[]
   contextName: (contextId: string | undefined) => string | undefined
+  findingCountOf?: (systemId: string) => number
 }
 
 const NO_CONTEXT = 'no-context'
@@ -19,8 +20,12 @@ export function buildInstanceGraph({
   systems,
   instancesOf,
   contextName,
+  findingCountOf,
 }: InstanceGraphInput): GraphModel {
-  const withInstances = systems
+  // Robust against a not-yet-loaded list: a missing systems array yields an
+  // empty graph rather than throwing.
+  const allSystems = systems ?? []
+  const withInstances = allSystems
     .map((system) => ({ system, instances: instancesOf(system.systemId) }))
     .filter((g) => g.instances.length > 0)
   const hasInstances = new Set(withInstances.map((g) => g.system.systemId))
@@ -29,7 +34,7 @@ export function buildInstanceGraph({
     inst.context ? (contextName(inst.context) ?? inst.context) : 'No context'
   const frameOf = (inst: SystemInstance) => inst.context ?? NO_CONTEXT
 
-  const anchors: LayoutAnchor[] = systems
+  const anchors: LayoutAnchor[] = allSystems
     .filter((system) => hasInstances.has(system.systemId) || system.abstract)
     .map((system) => ({
       id: system.systemId,
@@ -40,6 +45,7 @@ export function buildInstanceGraph({
         label: system.displayName,
         abstract: system.abstract,
         version: system.version?.version || undefined,
+        findings: findingCountOf?.(system.systemId) || undefined,
       },
     }))
 

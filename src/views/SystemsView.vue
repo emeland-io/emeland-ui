@@ -1,15 +1,29 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { IconCircleOff, IconLoader2, IconListDetails } from '@tabler/icons-vue'
+import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
+import {
+  IconCircleOff,
+  IconLoader2,
+  IconList,
+  IconHierarchy,
+  IconBinaryTree,
+  IconArrowDown,
+  IconArrowUp,
+} from '@tabler/icons-vue'
 import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import ListDetail from '@/components/ListDetail.vue'
+import ViewModeSwitch from '@/components/ViewModeSwitch.vue'
 import SystemsToolbar from '@/components/systems/SystemsToolbar.vue'
 import SystemsList from '@/components/systems/SystemsList.vue'
 import SystemDetail from '@/components/systems/SystemDetail.vue'
 import SystemInstancesDrawer from '@/components/systems/SystemInstancesDrawer.vue'
 import { useSelectQuery } from '@/composables/useResourceNav'
+
+// Heavy - only loaded when the graph view is first opened
+const SystemGraphPane = defineAsyncComponent(
+  () => import('@/components/systems/SystemGraphPane.vue'),
+)
 
 const store = useSystemStore()
 const contextStore = useContextStore()
@@ -100,7 +114,15 @@ function clearFilters() {
   activeContexts.value = new Set()
 }
 
-const viewMode = ref<'list' | 'tree'>('tree')
+const viewMode = ref<'list' | 'tree' | 'graph'>('tree')
+
+const viewModes = [
+  { value: 'list', label: 'List', icon: IconList },
+  { value: 'tree', label: 'Tree', icon: IconHierarchy },
+  { value: 'graph', label: 'Graph', icon: IconBinaryTree },
+]
+
+const listViewMode = computed<'list' | 'tree'>(() => (viewMode.value === 'tree' ? 'tree' : 'list'))
 
 interface TreeRow {
   system: (typeof store.systems)[number]
@@ -171,6 +193,11 @@ function selectSystem(id: string) {
   if (id) store.loadSystemDetail(id)
 }
 
+function onGraphSelect(id: string) {
+  selectSystem(id)
+  viewMode.value = 'list'
+}
+
 useSelectQuery(
   selectedId,
   computed(() => store.systems),
@@ -209,19 +236,9 @@ onMounted(async () => {
   await Promise.all([store.loadAllDetails(), store.loadSystemInstances()])
 })
 
-// System Instances drawer
+// System Instances drawer 
 const instancesDrawerOpen = ref(false)
 const selectedInstanceId = ref('')
-
-function openInstancesDrawer() {
-  instancesDrawerOpen.value = true
-  const own = selectedInstances.value
-  if (own.length > 0) {
-    selectInstanceInDrawer(own[0].systemInstanceId)
-  } else if (!selectedInstanceId.value && store.systemInstances.length > 0) {
-    selectInstanceInDrawer(store.systemInstances[0].systemInstanceId)
-  }
-}
 
 function selectInstanceInDrawer(id: string) {
   selectedInstanceId.value = id
@@ -263,27 +280,10 @@ function goToParent(parentId: string) {
           of {{ store.systems.length }}
         </span>
       </span>
-      <button
-        class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-label transition-colors"
-        :class="
-          instancesDrawerOpen
-            ? 'border-accent/20 bg-accent/10 text-accent-text'
-            : 'border-border-1 text-text-3 hover:bg-bg-2 hover:text-text-2'
-        "
-        @click="openInstancesDrawer"
-      >
-        <IconListDetails
-          :size="13"
-          :stroke-width="1.5"
-        />
-        System Instances
-        <span
-          v-if="store.instancesLoaded"
-          class="font-mono text-micro text-text-4"
-        >
-          {{ store.systemInstances.length }}
-        </span>
-      </button>
+      <ViewModeSwitch
+        v-model="viewMode"
+        :options="viewModes"
+      />
     </div>
     <!-- Loading -->
     <div
@@ -310,18 +310,14 @@ function goToParent(parentId: string) {
       <!-- Toolbar -->
       <SystemsToolbar
         v-model:search="search"
-        v-model:view-mode="viewMode"
         :kinds="KINDS"
         :active-kinds="activeKinds"
         :contexts="allContexts"
         :active-contexts="activeContexts"
         :has-active-filters="hasActiveFilters"
-        :can-expand="expandableIds.size > 0"
-        :all-collapsed="allCollapsed"
         @toggle-kind="toggleKind"
         @toggle-context="toggleContext"
         @clear="clearFilters"
-        @toggle-all="toggleAll"
       />
       <!-- Empty state -->
       <div
@@ -340,19 +336,50 @@ function goToParent(parentId: string) {
           </p>
         </div>
       </div>
+      <!-- Graph -->
+      <SystemGraphPane
+        v-else-if="viewMode === 'graph'"
+        :systems="filteredSystems"
+        :selected-id="selectedId"
+        class="min-h-0 flex-1"
+        @select="onGraphSelect"
+        @open-instance="openInstanceInDrawer"
+      />
       <!-- List-Detail -->
       <ListDetail v-else>
         <!-- List -->
         <template #list>
-          <SystemsList
-            :systems="filteredSystems"
-            :tree-rows="treeRows"
-            :view-mode="viewMode"
-            :selected-id="selectedId"
-            :collapsed="collapsed"
-            @select="selectSystem"
-            @toggle-collapse="toggleCollapse"
-          />
+          <div class="flex h-full flex-col">
+            <div class="min-h-0 flex-1 overflow-y-auto">
+              <SystemsList
+                :systems="filteredSystems"
+                :tree-rows="treeRows"
+                :view-mode="listViewMode"
+                :selected-id="selectedId"
+                :collapsed="collapsed"
+                @select="selectSystem"
+                @toggle-collapse="toggleCollapse"
+              />
+            </div>
+            <!-- expand / collapse all footer (tree mode) -->
+            <div
+              v-if="viewMode === 'tree' && expandableIds.size > 0"
+              class="shrink-0 border-t border-border-1 bg-bg-0 px-3 py-2"
+            >
+              <button
+                class="flex w-full items-center justify-center gap-1.5 rounded border border-border-1 px-2 py-1 text-meta text-text-3 transition-colors hover:bg-bg-2 hover:text-text-2"
+                :title="allCollapsed ? 'Expand all' : 'Collapse all'"
+                @click="toggleAll"
+              >
+                <component
+                  :is="allCollapsed ? IconArrowDown : IconArrowUp"
+                  :size="13"
+                  :stroke-width="1.75"
+                />
+                {{ allCollapsed ? 'Expand all' : 'Collapse all' }}
+              </button>
+            </div>
+          </div>
         </template>
 
         <!-- Detail -->
@@ -372,7 +399,6 @@ function goToParent(parentId: string) {
       :open="instancesDrawerOpen"
       :selected-instance-id="selectedInstanceId"
       @close="closeInstancesDrawer"
-      @select="selectInstanceInDrawer"
       @go-to-system="goToSystem"
     />
   </div>

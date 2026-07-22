@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconSearch, IconList, IconHierarchy, IconArrowDown, IconArrowUp } from '@tabler/icons-vue'
+import { IconSearch } from '@tabler/icons-vue'
 
 const props = defineProps<{
   search: string
@@ -9,9 +9,6 @@ const props = defineProps<{
   contexts: { id: string; name: string }[]
   activeContexts: Set<string>
   hasActiveFilters: boolean
-  viewMode: 'list' | 'tree'
-  canExpand: boolean
-  allCollapsed: boolean
 }>()
 
 const emit = defineEmits<{
@@ -19,8 +16,6 @@ const emit = defineEmits<{
   'toggle-kind': [kind: string]
   'toggle-context': [id: string]
   clear: []
-  'update:viewMode': [mode: 'list' | 'tree']
-  'toggle-all': []
 }>()
 
 const searchModel = computed({
@@ -86,48 +81,5 @@ const searchModel = computed({
     >
       Clear
     </button>
-    <div class="ml-auto flex items-center gap-2">
-      <!-- expand / collapse all (tree mode only) -->
-      <button
-        v-if="viewMode === 'tree' && canExpand"
-        class="flex items-center gap-1.5 rounded border border-border-1 px-2 py-1 text-meta text-text-3 transition-colors hover:bg-bg-2 hover:text-text-2"
-        :title="allCollapsed ? 'Expand all' : 'Collapse all'"
-        @click="emit('toggle-all')"
-      >
-        <component
-          :is="allCollapsed ? IconArrowDown : IconArrowUp"
-          :size="13"
-          :stroke-width="1.75"
-        />
-        {{ allCollapsed ? 'Expand all' : 'Collapse all' }}
-      </button>
-      <!-- view mode toggle: tree first, then list -->
-      <div class="flex items-center gap-0.5 rounded border border-border-1 bg-bg-1 p-0.5">
-        <button
-          class="flex h-6 w-6 items-center justify-center rounded transition-colors"
-          :class="viewMode === 'tree' ? 'bg-bg-3 text-text-1' : 'text-text-4 hover:text-text-2'"
-          title="Hierarchy view"
-          aria-label="Hierarchy view"
-          @click="emit('update:viewMode', 'tree')"
-        >
-          <IconHierarchy
-            :size="13"
-            :stroke-width="1.75"
-          />
-        </button>
-        <button
-          class="flex h-6 w-6 items-center justify-center rounded transition-colors"
-          :class="viewMode === 'list' ? 'bg-bg-3 text-text-1' : 'text-text-4 hover:text-text-2'"
-          title="List view"
-          aria-label="List view"
-          @click="emit('update:viewMode', 'list')"
-        >
-          <IconList
-            :size="13"
-            :stroke-width="1.75"
-          />
-        </button>
-      </div>
-    </div>
   </div>
 </template>
