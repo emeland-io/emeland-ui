@@ -36,7 +36,7 @@ const emit = defineEmits<{
       <div class="mt-2 flex items-center gap-2.5">
         <button
           v-if="finding.findingType"
-          class="group flex items-center gap-1 rounded bg-sensor/10 px-2 py-0.5 font-mono text-label text-sensor transition-colors hover:bg-sensor/20"
+          class="group flex items-center gap-1 rounded border border-warning/20 bg-warning/10 px-2 py-0.5 font-mono text-label text-warning transition-colors hover:bg-warning/20"
           title="Show finding type"
           @click="emit('openType', finding.findingType.findingTypeId)"
         >
@@ -44,7 +44,7 @@ const emit = defineEmits<{
         </button>
         <span
           v-else
-          class="rounded bg-sensor/10 px-2 py-0.5 font-mono text-label text-sensor"
+          class="rounded border border-warning/20 bg-warning/10 px-2 py-0.5 font-mono text-label text-warning"
         >
           {{ kind }}
         </span>

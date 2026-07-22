@@ -86,7 +86,7 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
       class="rounded border px-2 py-1 font-mono text-meta transition-colors"
       :class="
         activeTypes.has(kind)
-          ? 'border-sensor/20 bg-sensor/10 text-sensor'
+          ? 'border-warning/20 bg-warning/10 text-warning'
           : 'border-transparent text-text-4 hover:bg-bg-2 hover:text-text-3'
       "
       @click="emit('toggle-type', kind)"
@@ -102,14 +102,14 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
         class="flex items-center gap-1 rounded border px-2 py-1 font-mono text-meta transition-colors"
         :class="
           hasActiveOverflowType
-            ? 'border-sensor/20 bg-sensor/10 text-sensor'
+            ? 'border-warning/20 bg-warning/10 text-warning'
             : 'border-border-1 text-text-4 hover:bg-bg-2 hover:text-text-3'
         "
         @click.stop="toggleTypeOverflow"
       >
         <span
           v-if="hasActiveOverflowType"
-          class="h-1.5 w-1.5 shrink-0 rounded-full bg-sensor"
+          class="h-1.5 w-1.5 shrink-0 rounded-full bg-warning"
         />
         +{{ overflowTypes.length }}
         <IconChevronDown
@@ -126,12 +126,14 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
           v-for="kind in overflowTypes"
           :key="kind"
           class="flex w-full items-center gap-2 px-3 py-1.5 font-mono text-meta transition-colors"
-          :class="activeTypes.has(kind) ? 'bg-sensor/10 text-sensor' : 'text-text-3 hover:bg-bg-2'"
+          :class="
+            activeTypes.has(kind) ? 'bg-warning/10 text-warning' : 'text-text-3 hover:bg-bg-2'
+          "
           @click="emit('toggle-type', kind)"
         >
           <span
             class="h-1.5 w-1.5 shrink-0 rounded-full"
-            :class="activeTypes.has(kind) ? 'bg-sensor' : ''"
+            :class="activeTypes.has(kind) ? 'bg-warning' : ''"
           />
           {{ kind }}
         </button>
