@@ -236,7 +236,7 @@ onMounted(async () => {
   await Promise.all([store.loadAllDetails(), store.loadSystemInstances()])
 })
 
-// System Instances drawer 
+// System Instances drawer
 const instancesDrawerOpen = ref(false)
 const selectedInstanceId = ref('')
 
