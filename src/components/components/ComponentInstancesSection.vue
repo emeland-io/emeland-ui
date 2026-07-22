@@ -81,7 +81,7 @@ function collapseAll() {
       <div class="mb-1.5 ml-auto flex items-center gap-2">
         <button
           v-if="anyExpanded"
-          class="flex items-center gap-1 text-[11px] text-text-4 transition-colors hover:text-text-2"
+          class="flex items-center gap-1 text-meta text-text-4 transition-colors hover:text-text-2"
           title="Collapse all"
           @click="collapseAll"
         >
@@ -104,7 +104,7 @@ function collapseAll() {
             v-model="search"
             type="text"
             placeholder="Filter instances..."
-            class="w-40 bg-transparent font-mono text-[11px] text-text-2 outline-none placeholder:text-text-4"
+            class="w-40 bg-transparent font-mono text-meta text-text-2 outline-none placeholder:text-text-4"
           />
         </div>
       </div>
@@ -128,18 +128,18 @@ function collapseAll() {
           class="shrink-0 text-text-4 transition-transform"
           :class="{ 'rotate-90': expanded.has(inst.componentInstanceId) }"
         />
-        <span class="truncate text-sm text-text-2 transition-colors group-hover/row:text-accent">
+        <span class="truncate text-body text-text-2 transition-colors group-hover/row:text-accent">
           {{ inst.displayName }}
         </span>
         <span
           v-if="systemInstanceName(inst.systemInstance)"
-          class="shrink-0 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[11px] text-accent"
+          class="shrink-0 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent"
         >
           {{ systemInstanceName(inst.systemInstance) }}
         </span>
         <span
           v-if="ctxName(inst)"
-          class="ml-auto shrink-0 truncate font-mono text-[11px] text-text-4"
+          class="ml-auto shrink-0 truncate font-mono text-meta text-text-4"
         >
           {{ ctxName(inst) }}
         </span>
@@ -153,7 +153,7 @@ function collapseAll() {
         <div
           v-for="row in detailRows(inst)"
           :key="row.label"
-          class="grid gap-4 border-b border-border-1 py-1.5 text-sm last:border-b-0"
+          class="grid gap-4 border-b border-border-1 py-1.5 text-data last:border-b-0"
           style="grid-template-columns: minmax(180px, 30%) minmax(0, 1fr)"
         >
           <span class="font-mono text-text-3">{{ row.label }}</span>
@@ -173,7 +173,7 @@ function collapseAll() {
         <div
           v-for="(value, key) in inst.annotations"
           :key="key"
-          class="grid gap-4 border-b border-border-1 py-1.5 text-sm last:border-b-0"
+          class="grid gap-4 border-b border-border-1 py-1.5 text-data last:border-b-0"
           style="grid-template-columns: minmax(180px, 30%) minmax(0, 1fr)"
         >
           <span
@@ -189,7 +189,7 @@ function collapseAll() {
 
     <p
       v-if="filtered.length === 0"
-      class="py-2 font-mono text-[11px] text-text-4"
+      class="py-2 font-mono text-meta text-text-4"
     >
       No instances match the filter.
     </p>

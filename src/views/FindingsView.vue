@@ -141,8 +141,8 @@ function closeTypesDrawer() {
   <div class="relative flex h-full flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <h1 class="text-base font-medium text-text-1">Findings</h1>
-      <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-xs text-text-3">
+      <h1 class="text-title font-medium text-text-1">Findings</h1>
+      <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
         {{ filteredFindings.length }}
         <span
           v-if="filteredFindings.length !== store.findings.length"
@@ -152,7 +152,7 @@ function closeTypesDrawer() {
         </span>
       </span>
       <button
-        class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs transition-colors"
+        class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-label transition-colors"
         :class="
           typesDrawerOpen
             ? 'border-accent/20 bg-accent/10 text-accent-text'
@@ -167,7 +167,7 @@ function closeTypesDrawer() {
         Finding Types
         <span
           v-if="store.typesLoaded"
-          class="font-mono text-[10px] text-text-4"
+          class="font-mono text-micro text-text-4"
         >
           {{ store.findingTypes.length }}
         </span>
@@ -184,7 +184,7 @@ function closeTypesDrawer() {
           :stroke-width="1.5"
           class="animate-spin"
         />
-        <span class="text-sm">Loading findings...</span>
+        <span class="text-body">Loading findings...</span>
       </div>
     </div>
     <!-- Error -->
@@ -192,7 +192,7 @@ function closeTypesDrawer() {
       v-else-if="store.error && store.findings.length === 0"
       class="flex flex-1 items-center justify-center"
     >
-      <p class="text-sm text-error">{{ store.error }}</p>
+      <p class="text-body text-error">{{ store.error }}</p>
     </div>
     <template v-else>
       <!-- Toolbar -->
@@ -218,8 +218,10 @@ function closeTypesDrawer() {
             :stroke-width="1.5"
             class="mx-auto text-accent"
           />
-          <p class="mt-3 text-sm text-text-2">No findings</p>
-          <p class="mt-1 text-xs text-text-4">All rules passed or no results for current filters</p>
+          <p class="mt-3 text-body text-text-2">No findings</p>
+          <p class="mt-1 text-label text-text-4">
+            All rules passed or no results for current filters
+          </p>
         </div>
       </div>
       <!-- List-Detail -->
@@ -244,8 +246,8 @@ function closeTypesDrawer() {
               class="m-4 mb-0 flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
             >
               <div class="min-w-0">
-                <div class="text-sm text-error">Could not load full details</div>
-                <div class="mt-0.5 font-mono text-[11px] text-error/80">
+                <div class="text-body text-error">Could not load full details</div>
+                <div class="mt-0.5 font-mono text-meta text-error/80">
                   Showing basic info only — the detail request failed.
                 </div>
               </div>
@@ -262,7 +264,7 @@ function closeTypesDrawer() {
             v-else
             class="flex flex-1 items-center justify-center"
           >
-            <span class="font-mono text-xs text-text-id">Select a finding to inspect</span>
+            <span class="font-mono text-label text-text-id">Select a finding to inspect</span>
           </div>
         </template>
       </ListDetail>
@@ -292,7 +294,7 @@ function closeTypesDrawer() {
             :stroke-width="1.5"
             class="animate-spin"
           />
-          <span class="text-sm">Loading types...</span>
+          <span class="text-body">Loading types...</span>
         </div>
       </div>
       <!-- Type list -->
@@ -310,14 +312,14 @@ function closeTypesDrawer() {
             @click="selectTypeInDrawer(type.findingTypeId)"
           >
             <div
-              class="text-sm font-medium"
+              class="text-body font-medium"
               :class="type.findingTypeId === selectedTypeId ? 'text-accent-text' : 'text-text-1'"
             >
               {{ type.displayName }}
             </div>
             <div
               v-if="type.description"
-              class="mt-1 truncate font-mono text-[11px] text-text-id"
+              class="mt-1 truncate font-mono text-meta text-text-id"
             >
               {{ type.description }}
             </div>
@@ -328,9 +330,9 @@ function closeTypesDrawer() {
           v-if="selectedType"
           class="flex-1 overflow-y-auto px-6 py-5"
         >
-          <h3 class="text-base font-medium text-text-1">{{ selectedType.displayName }}</h3>
+          <h3 class="text-title font-medium text-text-1">{{ selectedType.displayName }}</h3>
           <div class="mt-2 flex items-center gap-2">
-            <span class="font-mono text-xs text-text-id">{{ selectedType.findingTypeId }}</span>
+            <span class="font-mono text-label text-text-id">{{ selectedType.findingTypeId }}</span>
             <CopyButton
               :value="selectedType.findingTypeId"
               :size="13"
@@ -338,7 +340,7 @@ function closeTypesDrawer() {
           </div>
           <p
             v-if="selectedType.description"
-            class="mt-4 font-mono text-sm leading-relaxed text-text-2"
+            class="mt-4 font-mono text-body leading-relaxed text-text-2"
           >
             {{ selectedType.description }}
           </p>
@@ -346,13 +348,13 @@ function closeTypesDrawer() {
             v-if="Object.keys(selectedType.annotations).length > 0"
             class="mt-6"
           >
-            <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+            <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
               Annotations
             </div>
             <div
               v-for="(value, key) in selectedType.annotations"
               :key="key"
-              class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
+              class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-data"
               style="grid-template-columns: minmax(180px, 30%) minmax(0, 1fr)"
             >
               <span
@@ -369,7 +371,7 @@ function closeTypesDrawer() {
           v-else
           class="flex flex-1 items-center justify-center"
         >
-          <span class="font-mono text-xs text-text-id">Select a finding type</span>
+          <span class="font-mono text-label text-text-id">Select a finding type</span>
         </div>
       </template>
     </SlideOverDrawer>

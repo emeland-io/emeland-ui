@@ -24,9 +24,9 @@ const emit = defineEmits<{
     <!-- Header -->
     <div class="border-b border-border-1 px-6 py-4">
       <div class="flex items-start justify-between gap-4">
-        <h2 class="text-base font-medium text-text-1">{{ finding.displayName }}</h2>
+        <h2 class="text-title font-medium text-text-1">{{ finding.displayName }}</h2>
         <div class="flex items-center gap-1.5 shrink-0">
-          <span class="font-mono text-xs text-text-id">{{ finding.findingId }}</span>
+          <span class="font-mono text-label text-text-id">{{ finding.findingId }}</span>
           <CopyButton
             :value="finding.findingId"
             :size="13"
@@ -36,7 +36,7 @@ const emit = defineEmits<{
       <div class="mt-2 flex items-center gap-2.5">
         <button
           v-if="finding.findingType"
-          class="group flex items-center gap-1 rounded bg-sensor/10 px-2 py-0.5 font-mono text-xs text-sensor transition-colors hover:bg-sensor/20"
+          class="group flex items-center gap-1 rounded bg-sensor/10 px-2 py-0.5 font-mono text-label text-sensor transition-colors hover:bg-sensor/20"
           title="Show finding type"
           @click="emit('openType', finding.findingType.findingTypeId)"
         >
@@ -44,24 +44,26 @@ const emit = defineEmits<{
         </button>
         <span
           v-else
-          class="rounded bg-sensor/10 px-2 py-0.5 font-mono text-xs text-sensor"
+          class="rounded bg-sensor/10 px-2 py-0.5 font-mono text-label text-sensor"
         >
           {{ kind }}
         </span>
-        <button class="text-xs text-text-4 transition-colors hover:text-text-2">View Policy</button>
+        <button class="text-label text-text-4 transition-colors hover:text-text-2">
+          View Policy
+        </button>
       </div>
     </div>
     <div class="flex flex-col gap-5 px-6 py-5">
       <!-- Description -->
       <div
         v-if="finding.description"
-        class="rounded border border-border-1 bg-bg-1 px-4 py-3 font-mono text-sm leading-relaxed text-text-2"
+        class="rounded border border-border-1 bg-bg-1 px-4 py-3 font-mono text-body leading-relaxed text-text-2"
       >
         {{ finding.description }}
       </div>
       <!-- Resources -->
       <div v-if="finding.resources.length > 0">
-        <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+        <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
           Resources
         </div>
         <div
@@ -70,7 +72,7 @@ const emit = defineEmits<{
           class="flex items-center gap-3 border-b border-border-1 py-2 last:border-b-0"
         >
           <span
-            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-[11px] font-semibold uppercase text-accent"
+            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
           >
             {{ res.resourceType }}
           </span>
@@ -81,7 +83,7 @@ const emit = defineEmits<{
             :title="`Go to ${res.resourceType}`"
             @click="emit('navigateResource', res.resourceType, res.resourceId)"
           >
-            <span class="truncate text-sm text-text-2 transition-colors group-hover:text-accent">
+            <span class="truncate text-body text-text-2 transition-colors group-hover:text-accent">
               {{ res.displayName || res.resourceId }}
             </span>
             <IconArrowUpRight
@@ -93,13 +95,13 @@ const emit = defineEmits<{
           <!-- Non-navigable: name (or id fallback) -->
           <span
             v-else
-            class="min-w-0 flex-1 truncate text-sm text-text-2"
+            class="min-w-0 flex-1 truncate text-body text-text-2"
           >
             {{ res.displayName || res.resourceId }}
           </span>
           <!-- id + copy -->
           <div class="flex items-center gap-1.5 shrink-0">
-            <span class="font-mono text-[11px] text-text-id">{{ res.resourceId }}</span>
+            <span class="font-mono text-meta text-text-id">{{ res.resourceId }}</span>
             <CopyButton
               :value="res.resourceId"
               :size="12"
@@ -109,13 +111,13 @@ const emit = defineEmits<{
       </div>
       <!-- Annotations -->
       <div v-if="Object.keys(finding.annotations).length > 0">
-        <div class="mb-3 text-[11px] font-semibold uppercase tracking-widest text-text-4">
+        <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
           Annotations
         </div>
         <div
           v-for="(value, key) in finding.annotations"
           :key="key"
-          class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-sm"
+          class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-data"
           style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
         >
           <span

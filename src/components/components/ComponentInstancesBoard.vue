@@ -58,8 +58,8 @@ const columns = computed(() => {
         :stroke-width="2"
         class="text-accent"
       />
-      <span class="text-sm font-medium text-text-1">Instances</span>
-      <span class="font-mono text-[11px] text-text-3">
+      <span class="text-body font-medium text-text-1">Instances</span>
+      <span class="font-mono text-meta text-text-3">
         {{ filtered.length }} across {{ columns.length }}
         {{ columns.length === 1 ? 'context' : 'contexts' }}
       </span>
@@ -77,7 +77,7 @@ const columns = computed(() => {
             v-model="search"
             type="text"
             placeholder="Filter instances..."
-            class="w-36 bg-transparent font-mono text-[11px] text-text-2 outline-none placeholder:text-text-4"
+            class="w-36 bg-transparent font-mono text-meta text-text-2 outline-none placeholder:text-text-4"
           />
         </div>
         <ViewModeSwitch
@@ -100,13 +100,13 @@ const columns = computed(() => {
       >
         <div class="mb-2 flex items-center gap-2">
           <span
-            class="min-w-0 flex-1 truncate font-mono text-[11px] uppercase tracking-wider"
+            class="min-w-0 flex-1 truncate font-mono text-meta uppercase tracking-wider"
             :class="col.unresolved ? 'text-error' : 'text-text-3'"
           >
             {{ col.label }}
           </span>
           <span
-            class="shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
+            class="shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-micro text-text-3"
           >
             {{ col.items.length }}
           </span>
@@ -120,7 +120,7 @@ const columns = computed(() => {
         >
           <span class="flex items-center gap-1">
             <span
-              class="min-w-0 flex-1 truncate text-[13px] text-text-2 transition-colors group-hover:text-text-1"
+              class="min-w-0 flex-1 truncate text-data text-text-2 transition-colors group-hover:text-text-1"
               :title="inst.displayName"
             >
               {{ inst.displayName }}
@@ -129,7 +129,7 @@ const columns = computed(() => {
           <span class="flex flex-wrap items-center gap-1">
             <span
               v-if="systemInstanceName(inst.systemInstance)"
-              class="rounded bg-accent/10 px-1 py-0.5 font-mono text-[10px] text-accent"
+              class="rounded bg-accent/10 px-1 py-0.5 font-mono text-micro text-accent"
             >
               {{ systemInstanceName(inst.systemInstance) }}
             </span>
@@ -150,20 +150,20 @@ const columns = computed(() => {
         @click="emit('select', inst.componentInstanceId)"
       >
         <span
-          class="min-w-0 flex-1 truncate text-[13px] text-text-2 transition-colors group-hover:text-text-1"
+          class="min-w-0 flex-1 truncate text-data text-text-2 transition-colors group-hover:text-text-1"
           :title="inst.displayName"
         >
           {{ inst.displayName }}
         </span>
         <span
           v-if="ctx(inst).name"
-          class="shrink-0 rounded bg-bg-3 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
+          class="shrink-0 rounded bg-bg-3 px-1.5 py-0.5 font-mono text-micro text-text-3"
         >
           {{ ctx(inst).name }}
         </span>
         <span
           v-if="systemInstanceName(inst.systemInstance)"
-          class="shrink-0 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-[10px] text-accent"
+          class="shrink-0 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-micro text-accent"
         >
           {{ systemInstanceName(inst.systemInstance) }}
         </span>
@@ -172,7 +172,7 @@ const columns = computed(() => {
 
     <p
       v-if="filtered.length === 0"
-      class="py-2 font-mono text-[11px] text-text-4"
+      class="py-2 font-mono text-meta text-text-4"
     >
       No instances match the filter.
     </p>

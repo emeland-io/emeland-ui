@@ -17,6 +17,6 @@ onMounted(async () => {
 
 <template>
   <div class="flex h-full items-center justify-center">
-    <p class="text-sm text-text-3">Completing login…</p>
+    <p class="text-body text-text-3">Completing login…</p>
   </div>
 </template>

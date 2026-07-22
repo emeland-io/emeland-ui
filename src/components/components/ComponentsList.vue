@@ -31,17 +31,17 @@ function systemName(id: string): string | undefined {
     "
     @click="emit('select', comp.componentId)"
   >
-    <div class="text-sm font-medium text-text-1">{{ comp.displayName }}</div>
+    <div class="text-body font-medium text-text-1">{{ comp.displayName }}</div>
     <div class="mt-2 flex flex-wrap items-center gap-1.5">
       <span
         v-if="systemName(comp.system)"
-        class="rounded bg-bg-2 px-1.5 py-0.5 font-mono text-[11px] text-text-3"
+        class="rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta text-text-3"
       >
         {{ systemName(comp.system) }}
       </span>
       <span
         v-if="comp.version?.version"
-        class="font-mono text-[11px] text-text-4"
+        class="font-mono text-meta text-text-4"
       >
         v{{ comp.version.version }}
       </span>
@@ -52,7 +52,7 @@ function systemName(id: string): string | undefined {
       >
         <span
           v-if="comp.provides.length"
-          class="flex items-center gap-0.5 rounded-full bg-bg-2 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
+          class="flex items-center gap-0.5 rounded-full bg-bg-2 px-1.5 py-0.5 font-mono text-micro text-text-3"
         >
           <IconArrowUp
             :size="11"
@@ -62,7 +62,7 @@ function systemName(id: string): string | undefined {
         </span>
         <span
           v-if="comp.consumes.length"
-          class="flex items-center gap-0.5 rounded-full bg-bg-2 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
+          class="flex items-center gap-0.5 rounded-full bg-bg-2 px-1.5 py-0.5 font-mono text-micro text-text-3"
         >
           <IconArrowDown
             :size="11"

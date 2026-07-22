@@ -104,7 +104,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
       <template #node-context="{ data }">
         <div class="h-full w-full rounded-lg border border-dashed border-border-2 bg-transparent">
           <div
-            class="truncate px-2.5 pt-1.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-text-4"
+            class="truncate px-2.5 pt-1.5 font-mono text-micro font-semibold uppercase tracking-wide text-text-4"
           >
             {{ (data as ContextNodeData).label }}
           </div>
@@ -117,12 +117,12 @@ function onNodeClick({ node }: NodeMouseEvent) {
           class="w-56 cursor-pointer rounded-md border border-border-2 bg-bg-2 px-3 py-2 shadow-sm transition-colors hover:border-accent"
           title="Open system"
         >
-          <div class="truncate text-sm font-medium text-text-1">
+          <div class="truncate text-body font-medium text-text-1">
             {{ (data as SystemNodeData).label }}
           </div>
           <div class="mt-1 flex items-center gap-1.5">
             <span
-              class="rounded px-1.5 py-0.5 font-mono text-[10px]"
+              class="rounded px-1.5 py-0.5 font-mono text-micro"
               :class="
                 (data as SystemNodeData).abstract
                   ? 'bg-bg-2 text-text-3'
@@ -133,7 +133,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </span>
             <span
               v-if="(data as SystemNodeData).version"
-              class="font-mono text-[10px] text-text-4"
+              class="font-mono text-micro text-text-4"
             >
               v{{ (data as SystemNodeData).version }}
             </span>
@@ -155,7 +155,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
               : 'border-border-1 hover:border-border-2'
           "
         >
-          <div class="truncate text-sm text-text-1">{{ (data as InstanceNodeData).label }}</div>
+          <div class="truncate text-body text-text-1">{{ (data as InstanceNodeData).label }}</div>
         </div>
         <Handle
           type="target"
@@ -166,10 +166,10 @@ function onNodeClick({ node }: NodeMouseEvent) {
       <!-- API node -->
       <template #node-api="{ data }">
         <div class="w-52 rounded-md border border-border-2 bg-bg-1 px-3 py-2 shadow-sm">
-          <div class="truncate text-sm text-text-1">{{ (data as ApiNodeData).label }}</div>
+          <div class="truncate text-body text-text-1">{{ (data as ApiNodeData).label }}</div>
           <div
             v-if="(data as ApiNodeData).version"
-            class="mt-1 font-mono text-[10px] text-text-4"
+            class="mt-1 font-mono text-micro text-text-4"
           >
             v{{ (data as ApiNodeData).version }}
           </div>
@@ -196,12 +196,12 @@ function onNodeClick({ node }: NodeMouseEvent) {
           title="Open component"
         >
           <div class="flex items-center gap-2">
-            <span class="truncate text-sm font-medium text-text-1">
+            <span class="truncate text-body font-medium text-text-1">
               {{ (data as ComponentNodeData).label }}
             </span>
             <span
               v-if="(data as ComponentNodeData).instanceCount"
-              class="ml-auto shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-[10px] text-text-3"
+              class="ml-auto shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-micro text-text-3"
               :title="`${(data as ComponentNodeData).instanceCount} instance(s)`"
             >
               {{ (data as ComponentNodeData).instanceCount }}
@@ -209,7 +209,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
           </div>
           <div
             v-if="(data as ComponentNodeData).system"
-            class="mt-0.5 truncate font-mono text-[10px] text-text-4"
+            class="mt-0.5 truncate font-mono text-micro text-text-4"
           >
             {{ (data as ComponentNodeData).system }}
           </div>

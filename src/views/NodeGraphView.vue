@@ -43,12 +43,12 @@ import { IconArrowsMaximize, IconPlus, IconMinus } from '@tabler/icons-vue'
 
     <div class="border-t border-border-1 bg-bg-1">
       <div
-        class="flex items-center gap-2 border-b border-border-1 px-3 py-1.5 text-[10px] text-text-4"
+        class="flex items-center gap-2 border-b border-border-1 px-3 py-1.5 text-micro text-text-4"
       >
         <span class="font-mono">No node selected</span>
       </div>
       <div class="flex h-20 items-center justify-center">
-        <span class="font-mono text-[10px] text-text-4">Select a node to inspect</span>
+        <span class="font-mono text-micro text-text-4">Select a node to inspect</span>
       </div>
     </div>
   </div>
