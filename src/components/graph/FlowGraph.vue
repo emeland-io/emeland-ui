@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch, nextTick, useId } from 'vue'
+import { IconAlertTriangle } from '@tabler/icons-vue'
 import {
   VueFlow,
   useVueFlow,
@@ -136,6 +137,17 @@ function onNodeClick({ node }: NodeMouseEvent) {
               class="font-mono text-micro text-text-4"
             >
               v{{ (data as SystemNodeData).version }}
+            </span>
+            <span
+              v-if="(data as SystemNodeData).findings"
+              class="flex items-center gap-1 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
+              :title="`${(data as SystemNodeData).findings} finding(s)`"
+            >
+              <IconAlertTriangle
+                :size="10"
+                :stroke-width="2"
+              />
+              {{ (data as SystemNodeData).findings }}
             </span>
           </div>
         </div>

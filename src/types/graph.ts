@@ -23,6 +23,7 @@ export interface SystemNodeData {
   label: string
   abstract: boolean
   version?: string
+  findings?: number
 }
 export interface InstanceNodeData {
   label: string

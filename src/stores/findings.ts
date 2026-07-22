@@ -25,6 +25,20 @@ export const useFindingsStore = defineStore('findings', () => {
 
   const typeMap = computed(() => new Map(findingTypes.value.map((ft) => [ft.findingTypeId, ft])))
 
+  const findingCountByResource = computed(() => {
+    const m = new Map<string, number>()
+    for (const f of findings.value) {
+      for (const r of f.resources) {
+        m.set(r.resourceId, (m.get(r.resourceId) ?? 0) + 1)
+      }
+    }
+    return m
+  })
+
+  function findingCountFor(resourceId: string): number {
+    return findingCountByResource.value.get(resourceId) ?? 0
+  }
+
   function getTypeForFinding(f: Finding | undefined): FindingType | undefined {
     return f?.findingType ? typeMap.value.get(f.findingType.findingTypeId) : undefined
   }
@@ -91,6 +105,7 @@ export const useFindingsStore = defineStore('findings', () => {
     typesLoaded,
     selectedTypeDetail,
     typeMap,
+    findingCountFor,
     getTypeForFinding,
     getKindForFinding,
     hasDetailError: errs.hasDetailError,
