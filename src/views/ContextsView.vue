@@ -182,8 +182,7 @@ const relatedFindings = computed(() => {
 
 onMounted(async () => {
   findingsStore.load()
-  await store.load()
-  await Promise.all([store.loadAllDetails(), store.loadContextTypes()])
+  await store.ensureHydrated()
 })
 
 const typesDrawerOpen = ref(false)

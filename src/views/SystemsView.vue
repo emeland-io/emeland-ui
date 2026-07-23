@@ -231,7 +231,7 @@ function contextName(contextId: string | undefined): string | undefined {
 
 onMounted(async () => {
   findingsStore.load()
-  contextStore.load()
+  contextStore.ensureHydrated()
   await store.load()
   await Promise.all([store.loadAllDetails(), store.loadSystemInstances()])
 })
