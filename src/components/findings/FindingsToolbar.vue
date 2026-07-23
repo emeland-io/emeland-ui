@@ -60,7 +60,7 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
   <div class="flex flex-wrap items-center gap-2 border-b border-border-1 px-4 py-2">
     <!-- Search -->
     <div
-      class="flex items-center gap-2 rounded border border-border-1 bg-bg-1 px-2.5 py-1.5"
+      class="flex items-center gap-2 rounded bg-bg-2 px-2.5 py-1.5 transition-shadow focus-within:ring-1 focus-within:ring-border-2"
       style="min-width: 300px"
     >
       <IconSearch
@@ -78,138 +78,140 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
     </div>
 
     <!-- Type filters -->
-    <div class="h-4 w-px shrink-0 bg-bg-3" />
-    <span
-      class="cursor-default select-none text-micro font-medium uppercase tracking-wider text-text-4"
-    >
-      Type
-    </span>
-    <button
-      v-for="kind in visibleTypes"
-      :key="kind"
-      class="rounded border px-2 py-1 font-mono text-meta transition-colors"
-      :class="
-        activeTypes.has(kind)
-          ? 'border-warning/20 bg-warning/10 text-warning'
-          : 'border-transparent text-text-4 hover:bg-bg-2 hover:text-text-3'
-      "
-      @click="emit('toggle-type', kind)"
-    >
-      {{ kind }}
-    </button>
-
-    <div
-      v-if="overflowTypes.length > 0"
-      class="relative"
-    >
-      <button
-        class="flex items-center gap-1 rounded border px-2 py-1 font-mono text-meta transition-colors"
-        :class="
-          hasActiveOverflowType
-            ? 'border-warning/20 bg-warning/10 text-warning'
-            : 'border-border-1 text-text-4 hover:bg-bg-2 hover:text-text-3'
-        "
-        @click.stop="toggleTypeOverflow"
+    <div class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1">
+      <span
+        class="shrink-0 cursor-default select-none text-micro font-medium uppercase tracking-wider text-text-4"
       >
-        <span
-          v-if="hasActiveOverflowType"
-          class="h-1.5 w-1.5 shrink-0 rounded-full bg-warning"
-        />
-        +{{ overflowTypes.length }}
-        <IconChevronDown
-          :size="10"
-          :stroke-width="2"
-        />
+        Type
+      </span>
+      <button
+        v-for="kind in visibleTypes"
+        :key="kind"
+        class="rounded px-2 py-0.5 font-mono text-meta transition-colors"
+        :class="
+          activeTypes.has(kind)
+            ? 'bg-warning/10 text-warning'
+            : 'bg-bg-0 text-text-3 hover:bg-bg-1 hover:text-text-1'
+        "
+        @click="emit('toggle-type', kind)"
+      >
+        {{ kind }}
       </button>
+
       <div
-        v-if="showTypeOverflow"
-        class="absolute left-0 top-full z-50 mt-1 min-w-max rounded border border-border-1 bg-bg-1 py-1 shadow-lg"
-        @click.stop
+        v-if="overflowTypes.length > 0"
+        class="relative"
       >
         <button
-          v-for="kind in overflowTypes"
-          :key="kind"
-          class="flex w-full items-center gap-2 px-3 py-1.5 font-mono text-meta transition-colors"
+          class="flex items-center gap-1 rounded px-2 py-0.5 font-mono text-meta transition-colors"
           :class="
-            activeTypes.has(kind) ? 'bg-warning/10 text-warning' : 'text-text-3 hover:bg-bg-2'
+            hasActiveOverflowType
+              ? 'bg-warning/10 text-warning'
+              : 'bg-bg-0 text-text-3 hover:bg-bg-1 hover:text-text-1'
           "
-          @click="emit('toggle-type', kind)"
+          @click.stop="toggleTypeOverflow"
         >
           <span
-            class="h-1.5 w-1.5 shrink-0 rounded-full"
-            :class="activeTypes.has(kind) ? 'bg-warning' : ''"
+            v-if="hasActiveOverflowType"
+            class="h-1.5 w-1.5 shrink-0 rounded-full bg-warning"
           />
-          {{ kind }}
+          +{{ overflowTypes.length }}
+          <IconChevronDown
+            :size="10"
+            :stroke-width="2"
+          />
         </button>
+        <div
+          v-if="showTypeOverflow"
+          class="absolute left-0 top-full z-50 mt-1 min-w-max rounded border border-border-1 bg-bg-1 py-1 shadow-lg"
+          @click.stop
+        >
+          <button
+            v-for="kind in overflowTypes"
+            :key="kind"
+            class="flex w-full items-center gap-2 px-3 py-1.5 font-mono text-meta transition-colors"
+            :class="
+              activeTypes.has(kind) ? 'bg-warning/10 text-warning' : 'text-text-3 hover:bg-bg-2'
+            "
+            @click="emit('toggle-type', kind)"
+          >
+            <span
+              class="h-1.5 w-1.5 shrink-0 rounded-full"
+              :class="activeTypes.has(kind) ? 'bg-warning' : ''"
+            />
+            {{ kind }}
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- Resource filters -->
-    <div class="h-4 w-px shrink-0 bg-bg-3" />
-    <span
-      class="cursor-default select-none text-micro font-medium uppercase tracking-wider text-text-4"
-    >
-      Resource
-    </span>
-    <button
-      v-for="rt in visibleResTypes"
-      :key="rt"
-      class="rounded border px-2 py-1 font-mono text-meta transition-colors"
-      :class="
-        activeResourceTypes.has(rt)
-          ? 'border-accent/20 bg-accent/10 text-accent-text'
-          : 'border-transparent text-text-4 hover:bg-bg-2 hover:text-text-3'
-      "
-      @click="emit('toggle-resource-type', rt)"
-    >
-      {{ rt }}
-    </button>
-
-    <div
-      v-if="overflowResTypes.length > 0"
-      class="relative"
-    >
-      <button
-        class="flex items-center gap-1 rounded border px-2 py-1 font-mono text-meta transition-colors"
-        :class="
-          hasActiveOverflowRes
-            ? 'border-accent/20 bg-accent/10 text-accent-text'
-            : 'border-border-1 text-text-4 hover:bg-bg-2 hover:text-text-3'
-        "
-        @click.stop="toggleResOverflow"
+    <div class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1">
+      <span
+        class="shrink-0 cursor-default select-none text-micro font-medium uppercase tracking-wider text-text-4"
       >
-        <span
-          v-if="hasActiveOverflowRes"
-          class="h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
-        />
-        +{{ overflowResTypes.length }}
-        <IconChevronDown
-          :size="10"
-          :stroke-width="2"
-        />
+        Resource
+      </span>
+      <button
+        v-for="rt in visibleResTypes"
+        :key="rt"
+        class="rounded px-2 py-0.5 font-mono text-meta transition-colors"
+        :class="
+          activeResourceTypes.has(rt)
+            ? 'bg-accent/10 text-accent-text'
+            : 'bg-bg-0 text-text-3 hover:bg-bg-1 hover:text-text-1'
+        "
+        @click="emit('toggle-resource-type', rt)"
+      >
+        {{ rt }}
       </button>
+
       <div
-        v-if="showResOverflow"
-        class="absolute left-0 top-full z-50 mt-1 min-w-max rounded border border-border-1 bg-bg-1 py-1 shadow-lg"
-        @click.stop
+        v-if="overflowResTypes.length > 0"
+        class="relative"
       >
         <button
-          v-for="rt in overflowResTypes"
-          :key="rt"
-          class="flex w-full items-center gap-2 px-3 py-1.5 font-mono text-meta transition-colors"
+          class="flex items-center gap-1 rounded px-2 py-0.5 font-mono text-meta transition-colors"
           :class="
-            activeResourceTypes.has(rt)
+            hasActiveOverflowRes
               ? 'bg-accent/10 text-accent-text'
-              : 'text-text-3 hover:bg-bg-2'
+              : 'bg-bg-0 text-text-3 hover:bg-bg-1 hover:text-text-1'
           "
-          @click="emit('toggle-resource-type', rt)"
+          @click.stop="toggleResOverflow"
         >
           <span
-            class="h-1.5 w-1.5 shrink-0 rounded-full"
-            :class="activeResourceTypes.has(rt) ? 'bg-accent' : ''"
+            v-if="hasActiveOverflowRes"
+            class="h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
           />
-          {{ rt }}
+          +{{ overflowResTypes.length }}
+          <IconChevronDown
+            :size="10"
+            :stroke-width="2"
+          />
         </button>
+        <div
+          v-if="showResOverflow"
+          class="absolute left-0 top-full z-50 mt-1 min-w-max rounded border border-border-1 bg-bg-1 py-1 shadow-lg"
+          @click.stop
+        >
+          <button
+            v-for="rt in overflowResTypes"
+            :key="rt"
+            class="flex w-full items-center gap-2 px-3 py-1.5 font-mono text-meta transition-colors"
+            :class="
+              activeResourceTypes.has(rt)
+                ? 'bg-accent/10 text-accent-text'
+                : 'text-text-3 hover:bg-bg-2'
+            "
+            @click="emit('toggle-resource-type', rt)"
+          >
+            <span
+              class="h-1.5 w-1.5 shrink-0 rounded-full"
+              :class="activeResourceTypes.has(rt) ? 'bg-accent' : ''"
+            />
+            {{ rt }}
+          </button>
+        </div>
       </div>
     </div>
 
