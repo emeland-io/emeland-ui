@@ -91,9 +91,9 @@ function navigate(type: 'Component' | 'System' | 'Context', id: string) {
           class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug"
           style="grid-template-columns: minmax(160px, 30%) minmax(0, 1fr)"
         >
-          <span class="font-mono text-text-3">Instance ID</span>
+          <span class="text-text-3">Instance ID</span>
           <span class="flex min-w-0 items-center gap-1.5">
-            <span class="break-all font-mono text-text-2">
+            <span class="break-all text-text-2">
               {{ instance.componentInstanceId }}
             </span>
             <CopyButton
