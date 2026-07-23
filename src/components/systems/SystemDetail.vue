@@ -247,11 +247,11 @@ function versionDates(s: System | undefined): [string, string][] {
         <div
           v-for="[label, value] in versionDates(system)"
           :key="label"
-          class="grid gap-4 border-b border-border-1 py-1.5 text-data last:border-b-0"
+          class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
           style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
         >
-          <span class="font-mono text-text-3">{{ label }}</span>
-          <span class="break-all font-mono text-text-2">{{ value }}</span>
+          <span class="text-text-3">{{ label }}</span>
+          <span class="break-all text-text-2">{{ value }}</span>
         </div>
       </div>
       <!-- annotations -->

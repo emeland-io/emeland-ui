@@ -15,15 +15,15 @@ withDefaults(defineProps<{ annotations: Record<string, string>; columns?: string
   <div
     v-for="(value, key) in annotations"
     :key="key"
-    class="grid gap-4 border-b border-border-1 py-1.5 text-data last:border-b-0"
+    class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
     :style="{ gridTemplateColumns: columns }"
   >
     <span
-      class="truncate font-mono text-text-3"
+      class="truncate text-text-3"
       :title="key"
     >
       {{ key }}
     </span>
-    <span class="break-all font-mono text-text-2">{{ value }}</span>
+    <span class="break-all text-text-2">{{ value }}</span>
   </div>
 </template>

@@ -36,12 +36,16 @@ const searchModel = computed({
         v-model="searchModel"
         type="text"
         placeholder="Search components, IDs, annotations..."
-        class="w-full bg-transparent font-mono text-label text-text-2 outline-none placeholder:text-text-4"
+        class="w-full bg-transparent font-mono text-label text-text-2 outline-none placeholder:text-meta placeholder:text-text-4"
       />
     </div>
     <template v-if="systems.length > 0">
       <div class="h-4 w-px shrink-0 bg-bg-3" />
-      <span class="text-meta text-text-4">System</span>
+      <span
+        class="cursor-default select-none text-micro font-medium uppercase tracking-wider text-text-4"
+      >
+        System
+      </span>
       <button
         v-for="sys in systems"
         :key="sys.id"

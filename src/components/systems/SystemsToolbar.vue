@@ -39,11 +39,15 @@ const searchModel = computed({
         v-model="searchModel"
         type="text"
         placeholder="Search systems, IDs, annotations..."
-        class="w-full bg-transparent font-mono text-label text-text-2 outline-none placeholder:text-text-4"
+        class="w-full bg-transparent font-mono text-label text-text-2 outline-none placeholder:text-meta placeholder:text-text-4"
       />
     </div>
     <div class="h-4 w-px shrink-0 bg-bg-3" />
-    <span class="text-meta text-text-4">Kind</span>
+    <span
+      class="cursor-default select-none text-micro font-medium uppercase tracking-wider text-text-4"
+    >
+      Kind
+    </span>
     <button
       v-for="kind in kinds"
       :key="kind"
@@ -59,7 +63,11 @@ const searchModel = computed({
     </button>
     <template v-if="contexts.length > 0">
       <div class="h-4 w-px shrink-0 bg-bg-3" />
-      <span class="text-meta text-text-4">Context</span>
+      <span
+        class="cursor-default select-none text-micro font-medium uppercase tracking-wider text-text-4"
+      >
+        Context
+      </span>
       <button
         v-for="ctx in contexts"
         :key="ctx.id"

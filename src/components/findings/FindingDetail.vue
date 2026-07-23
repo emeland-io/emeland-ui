@@ -57,7 +57,7 @@ const emit = defineEmits<{
       <!-- Description -->
       <div
         v-if="finding.description"
-        class="rounded border border-border-1 bg-bg-1 px-4 py-3 font-mono text-body leading-relaxed text-text-2"
+        class="text-body leading-relaxed text-text-2"
       >
         {{ finding.description }}
       </div>
@@ -117,16 +117,16 @@ const emit = defineEmits<{
         <div
           v-for="(value, key) in finding.annotations"
           :key="key"
-          class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-data"
+          class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
           style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
         >
           <span
-            class="truncate font-mono text-text-3"
+            class="truncate text-text-3"
             :title="key"
           >
             {{ key }}
           </span>
-          <span class="break-all font-mono text-text-2">{{ value }}</span>
+          <span class="break-all text-text-2">{{ value }}</span>
         </div>
       </div>
     </div>

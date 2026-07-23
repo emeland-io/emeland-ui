@@ -236,7 +236,7 @@ onMounted(async () => {
   await Promise.all([store.loadAllDetails(), store.loadSystemInstances()])
 })
 
-// System Instances drawer
+// System Instances drawer (opened per-instance from the detail pane)
 const instancesDrawerOpen = ref(false)
 const selectedInstanceId = ref('')
 
@@ -270,16 +270,18 @@ function goToParent(parentId: string) {
   <div class="relative flex h-full flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <h1 class="text-title font-medium text-text-1">Systems</h1>
-      <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-        {{ filteredSystems.length }}
-        <span
-          v-if="filteredSystems.length !== store.systems.length"
-          class="text-text-4"
-        >
-          of {{ store.systems.length }}
+      <div class="flex min-w-44 items-center gap-3">
+        <h1 class="text-title font-medium text-text-1">Systems</h1>
+        <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
+          {{ filteredSystems.length }}
+          <span
+            v-if="filteredSystems.length !== store.systems.length"
+            class="text-text-4"
+          >
+            of {{ store.systems.length }}
+          </span>
         </span>
-      </span>
+      </div>
       <ViewModeSwitch
         v-model="viewMode"
         :options="viewModes"
@@ -336,7 +338,7 @@ function goToParent(parentId: string) {
           </p>
         </div>
       </div>
-      <!-- Graph -->
+      <!-- Graph (instance landscape) -->
       <SystemGraphPane
         v-else-if="viewMode === 'graph'"
         :systems="filteredSystems"

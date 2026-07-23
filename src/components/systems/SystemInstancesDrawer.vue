@@ -67,7 +67,7 @@ const drawerInstance = computed(() =>
       <!-- identity -->
       <div>
         <div
-          class="grid gap-4 border-b border-border-1 py-1.5 text-data"
+          class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug"
           style="grid-template-columns: minmax(160px, 30%) minmax(0, 1fr)"
         >
           <span class="font-mono text-text-3">Instance ID</span>

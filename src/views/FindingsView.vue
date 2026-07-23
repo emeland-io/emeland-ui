@@ -141,16 +141,18 @@ function closeTypesDrawer() {
   <div class="relative flex h-full flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <h1 class="text-title font-medium text-text-1">Findings</h1>
-      <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-        {{ filteredFindings.length }}
-        <span
-          v-if="filteredFindings.length !== store.findings.length"
-          class="text-text-4"
-        >
-          of {{ store.findings.length }}
+      <div class="flex min-w-44 items-center gap-3">
+        <h1 class="text-title font-medium text-text-1">Findings</h1>
+        <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
+          {{ filteredFindings.length }}
+          <span
+            v-if="filteredFindings.length !== store.findings.length"
+            class="text-text-4"
+          >
+            of {{ store.findings.length }}
+          </span>
         </span>
-      </span>
+      </div>
       <button
         class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-label transition-colors"
         :class="
@@ -319,7 +321,7 @@ function closeTypesDrawer() {
             </div>
             <div
               v-if="type.description"
-              class="mt-1 truncate font-mono text-meta text-text-id"
+              class="mt-1 truncate text-meta text-text-id"
             >
               {{ type.description }}
             </div>
@@ -340,7 +342,7 @@ function closeTypesDrawer() {
           </div>
           <p
             v-if="selectedType.description"
-            class="mt-4 font-mono text-body leading-relaxed text-text-2"
+            class="mt-4 text-body leading-relaxed text-text-2"
           >
             {{ selectedType.description }}
           </p>
@@ -354,16 +356,16 @@ function closeTypesDrawer() {
             <div
               v-for="(value, key) in selectedType.annotations"
               :key="key"
-              class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-data"
+              class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
               style="grid-template-columns: minmax(180px, 30%) minmax(0, 1fr)"
             >
               <span
-                class="truncate font-mono text-text-3"
+                class="truncate text-text-3"
                 :title="key"
               >
                 {{ key }}
               </span>
-              <span class="break-all font-mono text-text-2">{{ value }}</span>
+              <span class="break-all text-text-2">{{ value }}</span>
             </div>
           </div>
         </div>
