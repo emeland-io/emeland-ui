@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconStack2, IconArrowUp, IconArrowDown } from '@tabler/icons-vue'
+import { IconStack2, IconArrowUpRight, IconArrowUp, IconArrowDown } from '@tabler/icons-vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
+import { useContextStore } from '@/stores/contexts'
 import { useInstanceContext } from '@/composables/useInstanceContext'
+import { useResourceNav } from '@/composables/useResourceNav'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
@@ -23,7 +25,9 @@ const emit = defineEmits<{
 const store = useComponentStore()
 const systemStore = useSystemStore()
 const apiStore = useApiStore()
+const contextStore = useContextStore()
 const { contextForInstance } = useInstanceContext()
+const { goToResource } = useResourceNav()
 
 const instance = computed(() =>
   store.componentInstances.find((i) => i.componentInstanceId === props.selectedInstanceId),
@@ -33,26 +37,21 @@ const componentName = computed(() =>
   instance.value ? store.componentMap.get(instance.value.component)?.displayName : undefined,
 )
 
-function systemInstanceName(id: string): string | undefined {
-  return systemStore.systemInstances.find((si) => si.systemInstanceId === id)?.displayName
-}
+const systemInstance = computed(() => {
+  const id = instance.value?.systemInstance
+  if (!id) return undefined
+  return systemStore.systemInstances.find((si) => si.systemInstanceId === id)
+})
 
-const detailRows = computed(() => {
-  const inst = instance.value
-  if (!inst) return [] as { label: string; value: string; copy?: boolean }[]
-  const rows: { label: string; value: string; copy?: boolean }[] = [
-    { label: 'Instance ID', value: inst.componentInstanceId, copy: true },
-  ]
-  if (componentName.value) rows.push({ label: 'Component', value: componentName.value })
-  if (inst.systemInstance) {
-    const name = systemInstanceName(inst.systemInstance)
-    if (name) rows.push({ label: 'System instance', value: name })
-    rows.push({ label: 'System instance ID', value: inst.systemInstance, copy: true })
-  }
-  const c = contextForInstance(inst)
-  if (c.name) rows.push({ label: 'Context', value: c.name })
-  if (c.id) rows.push({ label: 'Context ID', value: c.id, copy: true })
-  return rows
+const context = computed(() => (instance.value ? contextForInstance(instance.value) : undefined))
+
+const contextType = computed(() => {
+  const id = context.value?.id
+  if (!id) return undefined
+  const ctx = contextStore.contextMap.get(id)
+  if (!ctx) return undefined
+  const type = contextStore.getTypeName(ctx)
+  return type === 'Unknown' ? undefined : type
 })
 
 const provides = computed(() =>
@@ -61,6 +60,11 @@ const provides = computed(() =>
 const consumes = computed(() =>
   (instance.value?.consumes ?? []).map((id) => ({ id, name: apiStore.getApiName(id) ?? id })),
 )
+
+function navigate(type: 'Component' | 'System' | 'Context', id: string) {
+  emit('close')
+  goToResource(type, id)
+}
 </script>
 
 <template>
@@ -81,19 +85,19 @@ const consumes = computed(() =>
       v-if="instance"
       class="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-4"
     >
+      <!-- identity -->
       <div>
         <div
-          v-for="row in detailRows"
-          :key="row.label"
-          class="grid gap-4 border-b border-border-1 py-1.5 text-data last:border-b-0"
+          class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug"
           style="grid-template-columns: minmax(160px, 30%) minmax(0, 1fr)"
         >
-          <span class="font-mono text-text-3">{{ row.label }}</span>
+          <span class="font-mono text-text-3">Instance ID</span>
           <span class="flex min-w-0 items-center gap-1.5">
-            <span class="break-all font-mono text-text-2">{{ row.value }}</span>
+            <span class="break-all font-mono text-text-2">
+              {{ instance.componentInstanceId }}
+            </span>
             <CopyButton
-              v-if="row.copy"
-              :value="row.value"
+              :value="instance.componentInstanceId"
               :size="12"
             />
           </span>
@@ -104,6 +108,114 @@ const consumes = computed(() =>
         />
       </div>
 
+      <!-- owning component -->
+      <div v-if="instance.component">
+        <SectionLabel>Component</SectionLabel>
+        <button
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          title="Go to component"
+          @click="navigate('Component', instance.component)"
+        >
+          <span
+            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+          >
+            Component
+          </span>
+          <span
+            class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
+          >
+            {{ componentName ?? instance.component }}
+          </span>
+          <IconArrowUpRight
+            :size="16"
+            :stroke-width="2"
+            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
+          />
+          <div class="ml-auto flex shrink-0 items-center gap-1.5">
+            <span class="font-mono text-meta text-text-4">{{ instance.component }}</span>
+            <CopyButton
+              :value="instance.component"
+              :size="12"
+              @click.stop
+            />
+          </div>
+        </button>
+      </div>
+
+      <!-- system instance -->
+      <div v-if="instance.systemInstance">
+        <SectionLabel>System instance</SectionLabel>
+        <component
+          :is="systemInstance?.system ? 'button' : 'div'"
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          :title="systemInstance?.system ? 'Go to system' : undefined"
+          @click="systemInstance?.system && navigate('System', systemInstance.system)"
+        >
+          <span
+            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+          >
+            Instance
+          </span>
+          <span
+            class="max-w-full truncate text-body text-text-2 transition-colors"
+            :class="systemInstance?.system ? 'group-hover:text-accent' : ''"
+          >
+            {{ systemInstance?.displayName ?? instance.systemInstance }}
+          </span>
+          <IconArrowUpRight
+            v-if="systemInstance?.system"
+            :size="16"
+            :stroke-width="2"
+            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
+          />
+          <div class="ml-auto flex shrink-0 items-center gap-1.5">
+            <span class="font-mono text-meta text-text-4">{{ instance.systemInstance }}</span>
+            <CopyButton
+              :value="instance.systemInstance"
+              :size="12"
+              @click.stop
+            />
+          </div>
+        </component>
+      </div>
+
+      <!-- context -->
+      <div v-if="context?.id">
+        <SectionLabel>Context</SectionLabel>
+        <button
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          title="Go to context"
+          @click="navigate('Context', context.id)"
+        >
+          <span
+            v-if="contextType"
+            class="shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+          >
+            {{ contextType }}
+          </span>
+          <span
+            class="max-w-full truncate text-body transition-colors group-hover:text-accent"
+            :class="context.unresolved ? 'text-error' : 'text-text-2'"
+          >
+            {{ context.name ?? (context.unresolved ? 'Unresolved context' : context.id) }}
+          </span>
+          <IconArrowUpRight
+            :size="16"
+            :stroke-width="2"
+            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
+          />
+          <div class="ml-auto flex shrink-0 items-center gap-1.5">
+            <span class="font-mono text-meta text-text-4">{{ context.id }}</span>
+            <CopyButton
+              :value="context.id"
+              :size="12"
+              @click.stop
+            />
+          </div>
+        </button>
+      </div>
+
+      <!-- provides -->
       <div v-if="provides.length">
         <SectionLabel :count="provides.length">Provides APIs</SectionLabel>
         <div class="flex flex-wrap gap-1.5">
@@ -121,6 +233,7 @@ const consumes = computed(() =>
         </div>
       </div>
 
+      <!-- consumes -->
       <div v-if="consumes.length">
         <SectionLabel :count="consumes.length">Consumes APIs</SectionLabel>
         <div class="flex flex-wrap gap-1.5">
@@ -138,6 +251,7 @@ const consumes = computed(() =>
         </div>
       </div>
 
+      <!-- annotations -->
       <div v-if="Object.keys(instance.annotations).length">
         <SectionLabel>Annotations</SectionLabel>
         <AnnotationsTable
