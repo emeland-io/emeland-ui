@@ -69,26 +69,38 @@ function versionDates(c: Component | undefined): [string, string][] {
 <template>
   <div
     v-if="component"
-    class="flex-1 overflow-y-auto"
+    class="@container flex-1 overflow-y-auto"
   >
     <div class="border-b border-border-1 px-6 py-4">
       <div class="flex items-start justify-between gap-4">
-        <h2 class="text-title font-medium text-text-1">{{ component.displayName }}</h2>
-        <div class="flex items-center gap-1.5">
-          <span class="font-mono text-label text-text-4">{{ component.componentId }}</span>
-          <CopyButton
-            :value="component.componentId"
-            :size="13"
-          />
+        <div class="min-w-0">
+          <h2 class="text-title font-medium text-text-1">{{ component.displayName }}</h2>
+          <div
+            v-if="component.version?.version"
+            class="mt-2 flex items-center gap-2"
+          >
+            <span class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3">
+              v{{ component.version.version }}
+            </span>
+          </div>
         </div>
-      </div>
-      <div
-        v-if="component.version?.version"
-        class="mt-2 flex items-center gap-2"
-      >
-        <span class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3">
-          v{{ component.version.version }}
-        </span>
+        <div class="shrink-0 text-right">
+          <div class="flex items-center justify-end gap-1.5">
+            <span class="font-mono text-label text-text-4">{{ component.componentId }}</span>
+            <CopyButton
+              :value="component.componentId"
+              :size="13"
+            />
+          </div>
+          <div
+            v-for="[label, value] in versionDates(component)"
+            :key="label"
+            class="mt-1 flex items-baseline justify-end gap-3 font-mono text-micro text-text-4"
+          >
+            <span>{{ label }}</span>
+            <span class="tabular-nums text-text-3">{{ value }}</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="flex flex-col gap-5 px-6 py-5">
@@ -104,109 +116,72 @@ function versionDates(c: Component | undefined): [string, string][] {
           </div>
         </div>
       </div>
-      <!-- description -->
-      <p
-        v-if="component.description"
-        class="text-body leading-relaxed text-text-2"
-      >
-        {{ component.description }}
-      </p>
-      <!-- Owning system -->
-      <div v-if="component.system">
-        <SectionLabel>System</SectionLabel>
-        <button
-          v-if="!systemUnresolved"
-          class="group/row flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
-          title="Go to system"
-          @click="goToResource('System', component.system)"
-        >
-          <span
-            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+      <div class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3">
+        <div>
+          <!-- description -->
+          <p
+            v-if="component.description"
+            class="text-body leading-relaxed text-text-2"
           >
-            System
-          </span>
-          <span
-            class="max-w-full truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-          >
-            {{ systemName }}
-          </span>
-          <IconArrowUpRight
-            :size="16"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-          />
-          <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
-            <CopyButton
-              :value="component.system"
-              :size="12"
-              @click.stop
-            />
+            {{ component.description }}
+          </p>
+        </div>
+        <div>
+          <div>
+            <SectionLabel :count="provides.length">Provides APIs</SectionLabel>
+            <p
+              v-if="provides.length === 0"
+              class="text-data leading-snug text-text-4"
+            >
+              Provides no interfaces.
+            </p>
+            <div
+              v-else
+              class="flex flex-wrap gap-1.5"
+            >
+              <span
+                v-for="api in provides"
+                :key="api.id"
+                class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent"
+                :title="api.id"
+              >
+                {{ api.name }}
+              </span>
+            </div>
           </div>
-        </button>
-        <div
-          v-else
-          class="flex items-center gap-3 border-b border-border-1 py-2 last:border-b-0"
-        >
-          <span
-            class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
-          >
-            System
-          </span>
-          <div class="min-w-0 flex-1">
-            <div class="truncate text-body text-error">Unresolved system</div>
+        </div>
+        <div>
+          <!-- Consumes -->
+          <div>
+            <SectionLabel :count="consumes.length">Consumes APIs</SectionLabel>
+            <p
+              v-if="consumes.length === 0"
+              class="text-data leading-snug text-text-4"
+            >
+              Consumes no interfaces.
+            </p>
+            <div
+              v-else
+              class="flex flex-wrap gap-1.5"
+            >
+              <span
+                v-for="api in consumes"
+                :key="api.id"
+                class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3"
+                :title="api.id"
+              >
+                {{ api.name }}
+              </span>
+            </div>
           </div>
-          <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
         </div>
       </div>
-      <!-- Provides -->
-      <div v-if="provides.length > 0">
-        <SectionLabel :count="provides.length">Provides APIs</SectionLabel>
-        <div class="flex flex-wrap gap-1.5">
-          <span
-            v-for="api in provides"
-            :key="api.id"
-            class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent"
-            :title="api.id"
-          >
-            {{ api.name }}
-          </span>
-        </div>
-      </div>
-      <!-- Consumes -->
-      <div v-if="consumes.length > 0">
-        <SectionLabel :count="consumes.length">Consumes APIs</SectionLabel>
-        <div class="flex flex-wrap gap-1.5">
-          <span
-            v-for="api in consumes"
-            :key="api.id"
-            class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3"
-            :title="api.id"
-          >
-            {{ api.name }}
-          </span>
-        </div>
-      </div>
-      <!-- Version dates -->
-      <div v-if="versionDates(component).length > 0">
-        <SectionLabel>Version</SectionLabel>
-        <div
-          v-for="[label, value] in versionDates(component)"
-          :key="label"
-          class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
-          style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
-        >
-          <span class="text-text-3">{{ label }}</span>
-          <span class="break-all text-text-2">{{ value }}</span>
-        </div>
-      </div>
-      <!-- Annotations -->
-      <div v-if="Object.keys(component.annotations).length > 0">
-        <SectionLabel>Annotations</SectionLabel>
-        <AnnotationsTable :annotations="component.annotations" />
-      </div>
+
       <!-- Related findings -->
-      <div v-if="relatedFindings.length > 0">
+      <div
+        v-if="relatedFindings.length > 0"
+        class="max-w-5xl"
+      >
         <SectionLabel>Findings</SectionLabel>
         <button
           v-for="f in relatedFindings"
@@ -230,9 +205,73 @@ function versionDates(c: Component | undefined): [string, string][] {
             :stroke-width="2"
             class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
           />
-          <span class="ml-auto shrink-0 font-mono text-meta text-text-4">{{ f.findingId }}</span>
+          <span class="ml-auto shrink-0 font-mono text-meta text-text-4">
+            {{ f.findingId }}
+          </span>
         </button>
       </div>
+      <div
+        v-if="component.system"
+        class="max-w-5xl"
+      >
+        <SectionLabel>System</SectionLabel>
+        <button
+          v-if="!systemUnresolved"
+          class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+          title="Go to system"
+          @click="goToResource('System', component.system)"
+        >
+          <span class="group/row flex w-full items-center gap-3">
+            <span
+              class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+            >
+              System
+            </span>
+            <span
+              class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
+            >
+              {{ systemName }}
+            </span>
+            <IconArrowUpRight
+              :size="16"
+              :stroke-width="2"
+              class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
+            />
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
+            <CopyButton
+              :value="component.system"
+              :size="12"
+              @click.stop
+            />
+          </span>
+        </button>
+        <div
+          v-else
+          class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
+        >
+          <div class="flex items-center gap-3">
+            <span
+              class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
+            >
+              System
+            </span>
+            <span class="min-w-0 truncate text-body text-error">Unresolved system</span>
+          </div>
+          <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
+        </div>
+      </div>
+
+      <!-- Annotations -->
+      <div
+        v-if="Object.keys(component.annotations).length > 0"
+        class="max-w-5xl"
+      >
+        <SectionLabel>Annotations</SectionLabel>
+        <AnnotationsTable :annotations="component.annotations" />
+      </div>
+
       <!-- Instances -->
       <ComponentInstancesBoard
         v-if="instances.length > 0"
