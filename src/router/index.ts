@@ -28,6 +28,11 @@ const routes = [
     name: 'Components',
     component: () => import('@/views/ComponentsView.vue'),
   },
+  {
+    path: '/components-split',
+    name: 'ComponentsSplit',
+    component: () => import('@/views/ComponentsSplitView.vue'),
+  },
   { path: '/apis', name: 'APIs', component: () => import('@/views/Tmp.vue') },
 
   // Identity P2

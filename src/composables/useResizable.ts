@@ -8,6 +8,7 @@ export interface ResizableOptions {
   initial?: number
   min?: number
   max?: number
+  axis?: 'x' | 'y'
 }
 
 export function useResizable(options: ResizableOptions = {}) {
@@ -15,6 +16,7 @@ export function useResizable(options: ResizableOptions = {}) {
     initial = RESIZABLE_INITIAL_SIZE,
     min = RESIZABLE_MIN_SIZE,
     max = RESIZABLE_MAX_SIZE,
+    axis = 'x',
   } = options
 
   const width = ref(initial)
@@ -23,11 +25,12 @@ export function useResizable(options: ResizableOptions = {}) {
 
   function onResizeStart(e: MouseEvent) {
     isResizing.value = true
-    const startX = e.clientX
+    const start = axis === 'x' ? e.clientX : e.clientY
     const startWidth = width.value
 
     function onMove(ev: MouseEvent) {
-      width.value = Math.max(min, Math.min(max, startWidth + (ev.clientX - startX)))
+      const current = axis === 'x' ? ev.clientX : ev.clientY
+      width.value = Math.max(min, Math.min(max, startWidth + (current - start)))
     }
     function onUp() {
       isResizing.value = false
@@ -47,6 +50,7 @@ export function useResizable(options: ResizableOptions = {}) {
 
   return {
     width,
+    size: width,
     isResizing,
     onResizeStart,
   }
