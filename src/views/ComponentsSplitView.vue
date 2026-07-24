@@ -132,6 +132,7 @@ function toggleGraph() {
     graphFullscreen.value = false
     return
   }
+  if (graphHeight.value < SNAP_CLOSE) graphHeight.value = DEFAULT_HEIGHT
   refitGraph()
 }
 
@@ -141,12 +142,28 @@ function toggleFullscreen() {
   refitGraph()
 }
 
-// Graph and detail share the right column; this splits them vertically.
+const SNAP_CLOSE = 100
+const DEFAULT_HEIGHT = 320
+
 const {
   size: graphHeight,
   isResizing: isResizingGraph,
   onResizeStart: onGraphResizeStart,
-} = useResizable({ initial: 320, min: 160, max: 700, axis: 'y' })
+} = useResizable({ initial: DEFAULT_HEIGHT, min: 48, max: 700, axis: 'y' })
+
+watch(graphHeight, (h) => {
+  if (!isResizingGraph.value) return
+  graphVisible.value = h >= SNAP_CLOSE
+})
+
+watch(isResizingGraph, (resizing) => {
+  if (!resizing) refitGraph()
+})
+
+function onGraphHandleDown(e: MouseEvent) {
+  if (!graphVisible.value) graphHeight.value = SNAP_CLOSE
+  onGraphResizeStart(e)
+}
 
 useSelectQuery(
   selectedId,
@@ -271,7 +288,7 @@ onMounted(async () => {
           >
             <!-- Graph toolbar -->
             <div
-              class="grid shrink-0 cursor-pointer select-none grid-cols-[1fr_auto_1fr] items-center border-b border-border-1 bg-bg-1 px-2 py-1"
+              class="grid h-9 shrink-0 cursor-pointer select-none grid-cols-[1fr_auto_1fr] items-center border-b border-border-1 bg-bg-1 px-2"
               :title="graphVisible ? 'Double-click to hide graph' : 'Double-click to show graph'"
               @dblclick="toggleGraph"
             >
@@ -403,12 +420,12 @@ onMounted(async () => {
               />
             </div>
 
-            <!-- Resize handle -->
             <div
-              v-if="graphVisible && !graphFullscreen"
+              v-if="!graphFullscreen"
               class="h-0.5 shrink-0 cursor-row-resize transition-colors hover:bg-accent/40"
               :class="isResizingGraph ? 'bg-accent/60' : 'bg-bg-3'"
-              @mousedown.prevent="onGraphResizeStart"
+              :title="graphVisible ? 'Drag to resize' : 'Drag to open the graph'"
+              @mousedown.prevent="onGraphHandleDown"
             />
 
             <!-- Detail -->
