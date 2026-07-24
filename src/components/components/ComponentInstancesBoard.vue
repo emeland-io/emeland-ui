@@ -96,57 +96,59 @@ const columns = computed(() => {
       <div
         v-for="col in columns"
         :key="col.key"
-        class="rounded border border-border-1 bg-bg-1 p-2.5"
+        class="card-cut bg-border-1"
       >
-        <div class="mb-2 flex items-center gap-2">
-          <span
-            class="min-w-0 flex-1 truncate font-mono text-meta uppercase tracking-wider"
-            :class="col.unresolved ? 'text-error' : 'text-text-3'"
-          >
-            {{ col.label }}
-          </span>
-          <span
-            class="shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-micro text-text-3"
-          >
-            {{ col.items.length }}
-          </span>
-        </div>
+        <div class="card-cut-inner bg-bg-1 p-2.5">
+          <div class="mb-2 flex items-center gap-2">
+            <span
+              class="min-w-0 flex-1 truncate font-mono text-meta uppercase tracking-wider"
+              :class="col.unresolved ? 'text-error' : 'text-text-3'"
+            >
+              {{ col.label }}
+            </span>
+            <span
+              class="shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-micro text-text-3"
+            >
+              {{ col.items.length }}
+            </span>
+          </div>
 
-        <button
-          v-for="inst in col.items"
-          :key="inst.componentInstanceId"
-          class="group -mx-1 flex w-[calc(100%+0.5rem)] flex-col gap-0.5 rounded border-t border-border-1 px-1 py-1.5 text-left transition-colors first:border-t-0 hover:bg-accent/5 focus-visible:bg-accent/10 focus-visible:outline-none"
-          @click="emit('select', inst.componentInstanceId)"
-        >
-          <span class="flex items-center gap-1">
-            <span
-              class="min-w-0 flex-1 truncate text-data text-text-2 transition-colors group-hover:text-text-1"
-              :title="inst.displayName"
-            >
-              {{ inst.displayName }}
+          <button
+            v-for="inst in col.items"
+            :key="inst.componentInstanceId"
+            class="instance-cut group mt-1 flex w-full flex-col gap-0.5 bg-bg-2 px-2 py-1.5 text-left transition-colors first:mt-0 hover:bg-bg-3 focus-visible:bg-accent/10 focus-visible:outline-none"
+            @click="emit('select', inst.componentInstanceId)"
+          >
+            <span class="flex items-center gap-1">
+              <span
+                class="min-w-0 flex-1 truncate text-data text-text-2 transition-colors group-hover:text-text-1"
+                :title="inst.displayName"
+              >
+                {{ inst.displayName }}
+              </span>
             </span>
-          </span>
-          <span class="flex flex-wrap items-center gap-1">
-            <span
-              v-if="systemInstanceName(inst.systemInstance)"
-              class="rounded bg-accent/10 px-1 py-0.5 font-mono text-micro text-accent"
-            >
-              {{ systemInstanceName(inst.systemInstance) }}
+            <span class="flex flex-wrap items-center gap-1">
+              <span
+                v-if="systemInstanceName(inst.systemInstance)"
+                class="rounded bg-accent/10 px-1 py-0.5 font-mono text-micro text-accent"
+              >
+                {{ systemInstanceName(inst.systemInstance) }}
+              </span>
             </span>
-          </span>
-        </button>
+          </button>
+        </div>
       </div>
     </div>
 
     <!-- List -->
     <div
       v-else
-      class="rounded border border-border-1 bg-bg-1"
+      class="rounded bg-bg-1 p-1"
     >
       <button
         v-for="inst in filtered"
         :key="inst.componentInstanceId"
-        class="group flex w-full items-center gap-2 border-b border-border-1 px-2.5 py-2 text-left transition-colors last:border-b-0 hover:bg-accent/5 focus-visible:bg-accent/10 focus-visible:outline-none"
+        class="instance-cut group mt-1 flex w-full items-center gap-2 bg-bg-2 px-2.5 py-2 text-left transition-colors first:mt-0 hover:bg-bg-3 focus-visible:bg-accent/10 focus-visible:outline-none"
         @click="emit('select', inst.componentInstanceId)"
       >
         <span
@@ -178,3 +180,22 @@ const columns = computed(() => {
     </p>
   </div>
 </template>
+
+<style scoped>
+.card-cut {
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+}
+.card-cut-inner {
+  clip-path: polygon(
+    1px 1px,
+    calc(100% - 15px) 1px,
+    calc(100% - 1px) 15px,
+    calc(100% - 1px) calc(100% - 1px),
+    1px calc(100% - 1px)
+  );
+}
+
+.instance-cut {
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+}
+</style>
