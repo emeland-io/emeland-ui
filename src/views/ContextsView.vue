@@ -15,6 +15,7 @@ import {
 import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import ListDetail from '@/components/ListDetail.vue'
+import ViewModeSwitch from '@/components/ViewModeSwitch.vue'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
@@ -66,6 +67,11 @@ function isTypeUnknown(c: (typeof store.contexts)[number]): boolean {
 }
 
 const viewMode = ref<'list' | 'tree'>('tree')
+
+const viewModes = [
+  { value: 'list', label: 'List', icon: IconList },
+  { value: 'tree', label: 'Tree', icon: IconHierarchy },
+]
 
 interface TreeRow {
   context: (typeof store.contexts)[number]
@@ -182,8 +188,7 @@ const relatedFindings = computed(() => {
 
 onMounted(async () => {
   findingsStore.load()
-  await store.load()
-  await Promise.all([store.loadAllDetails(), store.loadContextTypes()])
+  await store.ensureHydrated()
 })
 
 const typesDrawerOpen = ref(false)
@@ -233,16 +238,22 @@ function goToParent(parentId: string) {
   <div class="relative flex h-full flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <h1 class="text-title font-medium text-text-1">Contexts</h1>
-      <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-        {{ filteredContexts.length }}
-        <span
-          v-if="filteredContexts.length !== store.contexts.length"
-          class="text-text-4"
-        >
-          of {{ store.contexts.length }}
+      <div class="flex min-w-44 items-center gap-3">
+        <h1 class="text-title font-medium text-text-1">Contexts</h1>
+        <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
+          {{ filteredContexts.length }}
+          <span
+            v-if="filteredContexts.length !== store.contexts.length"
+            class="text-text-4"
+          >
+            of {{ store.contexts.length }}
+          </span>
         </span>
-      </span>
+      </div>
+      <ViewModeSwitch
+        v-model="viewMode"
+        :options="viewModes"
+      />
       <button
         class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-label transition-colors"
         :class="
@@ -290,7 +301,7 @@ function goToParent(parentId: string) {
       <!-- Toolbar -->
       <div class="flex flex-wrap items-center gap-2 border-b border-border-1 px-4 py-2">
         <div
-          class="flex items-center gap-2 rounded border border-border-1 bg-bg-1 px-2.5 py-1.5"
+          class="flex items-center gap-2 rounded bg-bg-2 px-2.5 py-1.5 transition-shadow focus-within:ring-1 focus-within:ring-border-2"
           style="min-width: 300px"
         >
           <IconSearch
@@ -302,24 +313,29 @@ function goToParent(parentId: string) {
             v-model="search"
             type="text"
             placeholder="Search contexts, annotations..."
-            class="w-full bg-transparent font-mono text-label text-text-2 placeholder:text-text-4 outline-none"
+            class="w-full bg-transparent font-mono text-label text-text-2 placeholder:text-meta placeholder:text-text-4 outline-none"
           />
         </div>
-        <div class="h-4 w-px shrink-0 bg-bg-3" />
-        <span class="text-meta text-text-4">Type</span>
-        <button
-          v-for="type in allTypes"
-          :key="type"
-          class="rounded border px-2 py-1 font-mono text-meta transition-colors"
-          :class="
-            activeTypes.has(type)
-              ? 'border-accent/20 bg-accent/10 text-accent-text'
-              : 'border-transparent text-text-4 hover:bg-bg-2 hover:text-text-3'
-          "
-          @click="toggleType(type)"
-        >
-          {{ type }}
-        </button>
+        <div class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1">
+          <span
+            class="shrink-0 cursor-default select-none text-micro font-medium uppercase tracking-wider text-text-4"
+          >
+            Type
+          </span>
+          <button
+            v-for="type in allTypes"
+            :key="type"
+            class="rounded px-2 py-0.5 font-mono text-meta transition-colors"
+            :class="
+              activeTypes.has(type)
+                ? 'bg-accent/10 text-accent-text'
+                : 'bg-bg-0 text-text-3 hover:bg-bg-1 hover:text-text-1'
+            "
+            @click="toggleType(type)"
+          >
+            {{ type }}
+          </button>
+        </div>
         <button
           v-if="hasActiveFilters"
           class="flex items-center gap-1 text-meta text-text-4 hover:text-text-2"
@@ -327,49 +343,6 @@ function goToParent(parentId: string) {
         >
           Clear
         </button>
-        <div class="ml-auto flex items-center gap-2">
-          <!-- expand / collapse all (tree mode only) -->
-          <button
-            v-if="viewMode === 'tree' && expandableIds.size > 0"
-            class="flex items-center gap-1.5 rounded border border-border-1 px-2 py-1 text-meta text-text-3 transition-colors hover:bg-bg-2 hover:text-text-2"
-            :title="allCollapsed ? 'Expand all' : 'Collapse all'"
-            @click="toggleAll"
-          >
-            <component
-              :is="allCollapsed ? IconArrowDown : IconArrowUp"
-              :size="13"
-              :stroke-width="1.75"
-            />
-            {{ allCollapsed ? 'Expand all' : 'Collapse all' }}
-          </button>
-          <!-- view mode toggle: tree first, then list -->
-          <div class="flex items-center gap-0.5 rounded border border-border-1 bg-bg-1 p-0.5">
-            <button
-              class="flex h-6 w-6 items-center justify-center rounded transition-colors"
-              :class="viewMode === 'tree' ? 'bg-bg-3 text-text-1' : 'text-text-4 hover:text-text-2'"
-              title="Hierarchy view"
-              aria-label="Hierarchy view"
-              @click="viewMode = 'tree'"
-            >
-              <IconHierarchy
-                :size="13"
-                :stroke-width="1.75"
-              />
-            </button>
-            <button
-              class="flex h-6 w-6 items-center justify-center rounded transition-colors"
-              :class="viewMode === 'list' ? 'bg-bg-3 text-text-1' : 'text-text-4 hover:text-text-2'"
-              title="List view"
-              aria-label="List view"
-              @click="viewMode = 'list'"
-            >
-              <IconList
-                :size="13"
-                :stroke-width="1.75"
-              />
-            </button>
-          </div>
-        </div>
       </div>
       <!-- Empty state -->
       <div
@@ -392,83 +365,106 @@ function goToParent(parentId: string) {
       <ListDetail v-else>
         <!-- List -->
         <template #list>
-          <!-- flat list -->
-          <template v-if="viewMode === 'list'">
-            <div
-              v-for="ctx in filteredContexts"
-              :key="ctx.contextId"
-              class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
-              :class="
-                ctx.contextId === selectedId
-                  ? 'border-l-accent bg-accent/5'
-                  : 'border-l-transparent hover:bg-bg-1'
-              "
-              @click="selectContext(ctx.contextId)"
-            >
-              <div class="text-body font-medium text-text-1">{{ ctx.displayName }}</div>
-              <div class="mt-2 flex items-center gap-1.5">
-                <span
-                  class="rounded px-1.5 py-0.5 font-mono text-meta"
+          <div class="flex h-full flex-col">
+            <div class="min-h-0 flex-1 overflow-y-auto">
+              <!-- flat list -->
+              <template v-if="viewMode === 'list'">
+                <div
+                  v-for="ctx in filteredContexts"
+                  :key="ctx.contextId"
+                  class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
                   :class="
-                    isTypeUnknown(ctx) ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent'
+                    ctx.contextId === selectedId
+                      ? 'border-l-accent bg-accent/5'
+                      : 'border-l-transparent hover:bg-bg-1'
                   "
+                  @click="selectContext(ctx.contextId)"
                 >
-                  {{ store.getTypeName(ctx) }}
-                </span>
-                <span
-                  v-if="store.getParentName(ctx)"
-                  class="font-mono text-meta text-text-4"
+                  <div class="text-body font-medium text-text-1">{{ ctx.displayName }}</div>
+                  <div class="mt-2 flex items-center gap-1.5">
+                    <span
+                      class="rounded px-1.5 py-0.5 font-mono text-meta"
+                      :class="
+                        isTypeUnknown(ctx) ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent'
+                      "
+                    >
+                      {{ store.getTypeName(ctx) }}
+                    </span>
+                    <span
+                      v-if="store.getParentName(ctx)"
+                      class="font-mono text-meta text-text-4"
+                    >
+                      ↳ {{ store.getParentName(ctx) }}
+                    </span>
+                  </div>
+                </div>
+              </template>
+              <!-- hierarchy tree -->
+              <template v-else>
+                <div
+                  v-for="row in treeRows"
+                  :key="row.context.contextId"
+                  class="flex cursor-pointer items-center gap-2 border-b border-border-1 border-l-2 py-2.5 pr-4 transition-colors"
+                  :class="
+                    row.context.contextId === selectedId
+                      ? 'border-l-accent bg-accent/5'
+                      : 'border-l-transparent hover:bg-bg-1'
+                  "
+                  :style="{ paddingLeft: `${16 + row.depth * 18}px` }"
+                  @click="selectContext(row.context.contextId)"
                 >
-                  ↳ {{ store.getParentName(ctx) }}
-                </span>
-              </div>
+                  <!-- expand/collapse toggle (parents) or spacer (leaves) -->
+                  <button
+                    v-if="row.hasChildren"
+                    class="flex h-4 w-4 shrink-0 items-center justify-center rounded text-text-4 hover:text-text-2"
+                    :aria-label="collapsed.has(row.context.contextId) ? 'Expand' : 'Collapse'"
+                    @click.stop="toggleCollapse(row.context.contextId)"
+                  >
+                    <IconChevronRight
+                      :size="14"
+                      :stroke-width="2"
+                      class="transition-transform"
+                      :class="{ 'rotate-90': !collapsed.has(row.context.contextId) }"
+                    />
+                  </button>
+                  <span
+                    v-else
+                    class="h-4 w-4 shrink-0"
+                  />
+                  <span class="truncate text-body font-medium text-text-1">
+                    {{ row.context.displayName }}
+                  </span>
+                  <span
+                    class="shrink-0 rounded px-1.5 py-0.5 font-mono text-micro"
+                    :class="
+                      isTypeUnknown(row.context)
+                        ? 'bg-error/10 text-error'
+                        : 'bg-accent/10 text-accent'
+                    "
+                  >
+                    {{ store.getTypeName(row.context) }}
+                  </span>
+                </div>
+              </template>
             </div>
-          </template>
-          <!-- hierarchy tree -->
-          <template v-else>
             <div
-              v-for="row in treeRows"
-              :key="row.context.contextId"
-              class="flex cursor-pointer items-center gap-2 border-b border-border-1 border-l-2 py-2.5 pr-4 transition-colors"
-              :class="
-                row.context.contextId === selectedId
-                  ? 'border-l-accent bg-accent/5'
-                  : 'border-l-transparent hover:bg-bg-1'
-              "
-              :style="{ paddingLeft: `${16 + row.depth * 18}px` }"
-              @click="selectContext(row.context.contextId)"
+              v-if="viewMode === 'tree' && expandableIds.size > 0"
+              class="shrink-0 border-t border-border-1 bg-bg-0 px-3 py-2"
             >
-              <!-- expand/collapse toggle (parents) or spacer (leaves) -->
               <button
-                v-if="row.hasChildren"
-                class="flex h-4 w-4 shrink-0 items-center justify-center rounded text-text-4 hover:text-text-2"
-                :aria-label="collapsed.has(row.context.contextId) ? 'Expand' : 'Collapse'"
-                @click.stop="toggleCollapse(row.context.contextId)"
+                class="flex w-full items-center justify-center gap-1.5 rounded border border-border-1 px-2 py-1 text-meta text-text-3 transition-colors hover:bg-bg-2 hover:text-text-2"
+                :title="allCollapsed ? 'Expand all' : 'Collapse all'"
+                @click="toggleAll"
               >
-                <IconChevronRight
-                  :size="14"
-                  :stroke-width="2"
-                  class="transition-transform"
-                  :class="{ 'rotate-90': !collapsed.has(row.context.contextId) }"
+                <component
+                  :is="allCollapsed ? IconArrowDown : IconArrowUp"
+                  :size="13"
+                  :stroke-width="1.75"
                 />
+                {{ allCollapsed ? 'Expand all' : 'Collapse all' }}
               </button>
-              <span
-                v-else
-                class="h-4 w-4 shrink-0"
-              />
-              <span class="truncate text-body font-medium text-text-1">
-                {{ row.context.displayName }}
-              </span>
-              <span
-                class="shrink-0 rounded px-1.5 py-0.5 font-mono text-micro"
-                :class="
-                  isTypeUnknown(row.context) ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent'
-                "
-              >
-                {{ store.getTypeName(row.context) }}
-              </span>
             </div>
-          </template>
+          </div>
         </template>
 
         <!-- Detail -->
@@ -528,7 +524,7 @@ function goToParent(parentId: string) {
               <!-- description -->
               <p
                 v-if="selectedContext.description"
-                class="font-mono text-body leading-relaxed text-text-2"
+                class="text-body leading-relaxed text-text-2"
               >
                 {{ selectedContext.description }}
               </p>
@@ -602,16 +598,16 @@ function goToParent(parentId: string) {
                 <div
                   v-for="(value, key) in selectedContext.annotations"
                   :key="key"
-                  class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-data"
+                  class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
                   style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
                 >
                   <span
-                    class="truncate font-mono text-text-3"
+                    class="truncate text-text-3"
                     :title="key"
                   >
                     {{ key }}
                   </span>
-                  <span class="break-all font-mono text-text-2">{{ value }}</span>
+                  <span class="break-all text-text-2">{{ value }}</span>
                 </div>
               </div>
               <!-- Related findings -->
@@ -721,7 +717,7 @@ function goToParent(parentId: string) {
           </div>
           <p
             v-if="selectedType.description"
-            class="mt-4 font-mono text-body leading-relaxed text-text-2"
+            class="mt-4 text-body leading-relaxed text-text-2"
           >
             {{ selectedType.description }}
           </p>
@@ -735,16 +731,16 @@ function goToParent(parentId: string) {
             <div
               v-for="(value, key) in selectedType.annotations"
               :key="key"
-              class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-data"
+              class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
               style="grid-template-columns: minmax(180px, 30%) minmax(0, 1fr)"
             >
               <span
-                class="truncate font-mono text-text-3"
+                class="truncate text-text-3"
                 :title="key"
               >
                 {{ key }}
               </span>
-              <span class="break-all font-mono text-text-2">{{ value }}</span>
+              <span class="break-all text-text-2">{{ value }}</span>
             </div>
           </div>
         </div>

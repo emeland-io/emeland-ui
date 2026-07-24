@@ -148,16 +148,18 @@ function closeTypesDrawer() {
   <div class="relative flex h-full flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <h1 class="text-title font-medium text-text-1">Nodes</h1>
-      <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-        {{ filteredNodes.length }}
-        <span
-          v-if="filteredNodes.length !== store.nodes.length"
-          class="text-text-4"
-        >
-          of {{ store.nodes.length }}
+      <div class="flex min-w-44 items-center gap-3">
+        <h1 class="text-title font-medium text-text-1">Nodes</h1>
+        <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
+          {{ filteredNodes.length }}
+          <span
+            v-if="filteredNodes.length !== store.nodes.length"
+            class="text-text-4"
+          >
+            of {{ store.nodes.length }}
+          </span>
         </span>
-      </span>
+      </div>
       <button
         class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-label transition-colors"
         :class="
@@ -205,7 +207,7 @@ function closeTypesDrawer() {
       <!-- Toolbar -->
       <div class="flex flex-wrap items-center gap-2 border-b border-border-1 px-4 py-2">
         <div
-          class="flex items-center gap-2 rounded border border-border-1 bg-bg-1 px-2.5 py-1.5"
+          class="flex items-center gap-2 rounded bg-bg-2 px-2.5 py-1.5 transition-shadow focus-within:ring-1 focus-within:ring-border-2"
           style="min-width: 300px"
         >
           <IconSearch
@@ -217,24 +219,29 @@ function closeTypesDrawer() {
             v-model="search"
             type="text"
             placeholder="Search nodes, annotations..."
-            class="w-full bg-transparent font-mono text-label text-text-2 placeholder:text-text-4 outline-none"
+            class="w-full bg-transparent font-mono text-label text-text-2 placeholder:text-meta placeholder:text-text-4 outline-none"
           />
         </div>
-        <div class="h-4 w-px shrink-0 bg-bg-3" />
-        <span class="text-meta text-text-4">Type</span>
-        <button
-          v-for="type in allTypes"
-          :key="type"
-          class="rounded border px-2 py-1 font-mono text-meta transition-colors"
-          :class="
-            activeTypes.has(type)
-              ? 'border-accent/20 bg-accent/10 text-accent-text'
-              : 'border-transparent text-text-4 hover:bg-bg-2 hover:text-text-3'
-          "
-          @click="toggleType(type)"
-        >
-          {{ type }}
-        </button>
+        <div class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1">
+          <span
+            class="shrink-0 cursor-default select-none text-micro font-medium uppercase tracking-wider text-text-4"
+          >
+            Type
+          </span>
+          <button
+            v-for="type in allTypes"
+            :key="type"
+            class="rounded px-2 py-0.5 font-mono text-meta transition-colors"
+            :class="
+              activeTypes.has(type)
+                ? 'bg-accent/10 text-accent-text'
+                : 'bg-bg-0 text-text-3 hover:bg-bg-1 hover:text-text-1'
+            "
+            @click="toggleType(type)"
+          >
+            {{ type }}
+          </button>
+        </div>
         <button
           v-if="hasActiveFilters"
           class="ml-auto flex items-center gap-1 text-meta text-text-4 hover:text-text-2"
@@ -350,16 +357,16 @@ function closeTypesDrawer() {
                 <div
                   v-for="(value, key) in selectedNode.annotations"
                   :key="key"
-                  class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-data"
+                  class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
                   style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
                 >
                   <span
-                    class="truncate font-mono text-text-3"
+                    class="truncate text-text-3"
                     :title="key"
                   >
                     {{ key }}
                   </span>
-                  <span class="break-all font-mono text-text-2">{{ value }}</span>
+                  <span class="break-all text-text-2">{{ value }}</span>
                 </div>
               </div>
               <!-- Related findings -->
@@ -546,16 +553,16 @@ function closeTypesDrawer() {
             <div
               v-for="(value, key) in selectedType.annotations"
               :key="key"
-              class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-data"
+              class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
               style="grid-template-columns: minmax(180px, 30%) minmax(0, 1fr)"
             >
               <span
-                class="truncate font-mono text-text-3"
+                class="truncate text-text-3"
                 :title="key"
               >
                 {{ key }}
               </span>
-              <span class="break-all font-mono text-text-2">{{ value }}</span>
+              <span class="break-all text-text-2">{{ value }}</span>
             </div>
           </div>
         </div>

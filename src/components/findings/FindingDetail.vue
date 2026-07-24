@@ -36,7 +36,7 @@ const emit = defineEmits<{
       <div class="mt-2 flex items-center gap-2.5">
         <button
           v-if="finding.findingType"
-          class="group flex items-center gap-1 rounded bg-sensor/10 px-2 py-0.5 font-mono text-label text-sensor transition-colors hover:bg-sensor/20"
+          class="group flex items-center gap-1 rounded border border-warning/20 bg-warning/10 px-2 py-0.5 font-mono text-label text-warning transition-colors hover:bg-warning/20"
           title="Show finding type"
           @click="emit('openType', finding.findingType.findingTypeId)"
         >
@@ -44,7 +44,7 @@ const emit = defineEmits<{
         </button>
         <span
           v-else
-          class="rounded bg-sensor/10 px-2 py-0.5 font-mono text-label text-sensor"
+          class="rounded border border-warning/20 bg-warning/10 px-2 py-0.5 font-mono text-label text-warning"
         >
           {{ kind }}
         </span>
@@ -57,7 +57,7 @@ const emit = defineEmits<{
       <!-- Description -->
       <div
         v-if="finding.description"
-        class="rounded border border-border-1 bg-bg-1 px-4 py-3 font-mono text-body leading-relaxed text-text-2"
+        class="text-body leading-relaxed text-text-2"
       >
         {{ finding.description }}
       </div>
@@ -117,16 +117,16 @@ const emit = defineEmits<{
         <div
           v-for="(value, key) in finding.annotations"
           :key="key"
-          class="grid gap-4 border-b border-border-1 py-1.5 last:border-b-0 text-data"
+          class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
           style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
         >
           <span
-            class="truncate font-mono text-text-3"
+            class="truncate text-text-3"
             :title="key"
           >
             {{ key }}
           </span>
-          <span class="break-all font-mono text-text-2">{{ value }}</span>
+          <span class="break-all text-text-2">{{ value }}</span>
         </div>
       </div>
     </div>

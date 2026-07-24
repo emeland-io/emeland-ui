@@ -24,10 +24,10 @@ const rows = computed(() => wellKnownAnnotations(props.annotations))
   <div
     v-for="row in rows"
     :key="row.key"
-    class="grid gap-4 border-b border-border-1 py-1.5 text-data last:border-b-0"
+    class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
     :style="{ gridTemplateColumns: columns }"
   >
-    <span class="font-mono text-text-3">{{ row.label }}</span>
-    <span class="break-all font-mono text-text-2">{{ row.value }}</span>
+    <span class="text-text-3">{{ row.label }}</span>
+    <span class="break-all text-text-2">{{ row.value }}</span>
   </div>
 </template>

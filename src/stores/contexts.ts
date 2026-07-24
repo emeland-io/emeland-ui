@@ -23,6 +23,10 @@ export const useContextStore = defineStore('context', () => {
 
   const errs = useResourceErrors()
 
+  let loadInflight: Promise<void> | null = null
+  let detailsInflight: Promise<void> | null = null
+  let typesInflight: Promise<void> | null = null
+
   const typeMap = computed(() => new Map(contextTypes.value.map((ct) => [ct.contextTypeId, ct])))
   const contextMap = computed(() => new Map(contexts.value.map((c) => [c.contextId, c])))
 
@@ -56,17 +60,22 @@ export const useContextStore = defineStore('context', () => {
   }
 
   async function load() {
-    if (loaded.value || loading.value) return
-    loading.value = true
-    error.value = null
-    try {
-      contexts.value = await fetchContexts()
-      loaded.value = true
-    } catch (e) {
-      error.value = (e as Error).message
-    } finally {
-      loading.value = false
-    }
+    if (loaded.value) return
+    if (loadInflight) return loadInflight
+    loadInflight = (async () => {
+      loading.value = true
+      error.value = null
+      try {
+        contexts.value = await fetchContexts()
+        loaded.value = true
+      } catch (e) {
+        error.value = (e as Error).message
+      } finally {
+        loading.value = false
+        loadInflight = null
+      }
+    })()
+    return loadInflight
   }
 
   async function loadContextDetail(id: string): Promise<void> {
@@ -82,28 +91,45 @@ export const useContextStore = defineStore('context', () => {
 
   async function loadAllDetails(): Promise<void> {
     if (detailsHydrated.value) return
-    try {
-      const full = await Promise.all(
-        contexts.value.map((c) => fetchContextById(c.contextId).catch(() => c)),
-      )
-      contexts.value = full
-      detailsHydrated.value = true
-    } catch (e) {
-      error.value = (e as Error).message
-    }
+    if (detailsInflight) return detailsInflight
+    if (!loaded.value || contexts.value.length === 0) return
+    detailsInflight = (async () => {
+      try {
+        const full = await Promise.all(
+          contexts.value.map((c) => fetchContextById(c.contextId).catch(() => c)),
+        )
+        contexts.value = full
+        detailsHydrated.value = true
+      } catch (e) {
+        error.value = (e as Error).message
+      } finally {
+        detailsInflight = null
+      }
+    })()
+    return detailsInflight
   }
 
   async function loadContextTypes(): Promise<void> {
-    if (typesLoaded.value || typesLoading.value) return
-    typesLoading.value = true
-    try {
-      contextTypes.value = await fetchContextTypes()
-      typesLoaded.value = true
-    } catch (e) {
-      error.value = (e as Error).message
-    } finally {
-      typesLoading.value = false
-    }
+    if (typesLoaded.value) return
+    if (typesInflight) return typesInflight
+    typesInflight = (async () => {
+      typesLoading.value = true
+      try {
+        contextTypes.value = await fetchContextTypes()
+        typesLoaded.value = true
+      } catch (e) {
+        error.value = (e as Error).message
+      } finally {
+        typesLoading.value = false
+        typesInflight = null
+      }
+    })()
+    return typesInflight
+  }
+
+  async function ensureHydrated(): Promise<void> {
+    await load()
+    await Promise.all([loadAllDetails(), loadContextTypes()])
   }
 
   async function loadContextTypeDetail(id: string): Promise<void> {
@@ -134,6 +160,7 @@ export const useContextStore = defineStore('context', () => {
     isParentUnresolved,
     hasDetailError: errs.hasDetailError,
     ensureContextType,
+    ensureHydrated,
     load,
     loadContextDetail,
     loadAllDetails,

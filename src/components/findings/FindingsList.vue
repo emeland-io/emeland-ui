@@ -26,9 +26,11 @@ const emit = defineEmits<{
       @click="emit('select', finding.findingId)"
     >
       <div class="text-body font-medium text-text-1">{{ finding.displayName }}</div>
-      <div class="mt-1 truncate font-mono text-label text-text-3">{{ finding.description }}</div>
+      <div class="mt-1 truncate text-label text-text-3">{{ finding.description }}</div>
       <div class="mt-2 flex items-center gap-1.5">
-        <span class="rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-meta text-sensor">
+        <span
+          class="rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-meta text-warning"
+        >
           {{ kindFor(finding) }}
         </span>
       </div>

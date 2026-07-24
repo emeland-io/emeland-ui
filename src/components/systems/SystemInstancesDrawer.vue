@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, ref, defineAsyncComponent } from 'vue'
-import { IconListDetails, IconLoader2, IconArrowUpRight } from '@tabler/icons-vue'
+import { computed } from 'vue'
+import { IconStack2, IconArrowUpRight } from '@tabler/icons-vue'
 import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
-import { buildInstanceGraph } from '@/graph/instanceGraph'
-import type { GraphNodeClick } from '@/types/graph'
+import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
+import { useResourceNav } from '@/composables/useResourceNav'
 
 const props = defineProps<{
   open: boolean
@@ -17,45 +17,30 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
-  select: [id: string]
   'go-to-system': [id: string]
 }>()
 
-// only loaded when the graph view is first opened
-const FlowGraph = defineAsyncComponent(() => import('@/components/graph/FlowGraph.vue'))
-
 const store = useSystemStore()
 const contextStore = useContextStore()
-
-const view = ref<'list' | 'graph'>('list')
+const { goToResource } = useResourceNav()
 
 function contextName(contextId: string | undefined): string | undefined {
   if (!contextId) return undefined
   return contextStore.contextMap.get(contextId)?.displayName
 }
 
-const graphModel = computed(() =>
-  buildInstanceGraph({
-    systems: store.systems,
-    instancesOf: store.getInstancesForSystem,
-    contextName,
-  }),
-)
-
-function onGraphNodeClick({ id, kind }: GraphNodeClick) {
-  if (kind === 'instance') {
-    emit('select', id)
-    view.value = 'list'
-  } else if (kind === 'system') {
-    emit('go-to-system', id)
-  }
+function contextType(contextId: string | undefined): string | undefined {
+  if (!contextId) return undefined
+  const ctx = contextStore.contextMap.get(contextId)
+  if (!ctx) return undefined
+  const type = contextStore.getTypeName(ctx)
+  return type === 'Unknown' ? undefined : type
 }
 
-const groups = computed(() =>
-  store.systems
-    .map((s) => ({ system: s, instances: store.getInstancesForSystem(s.systemId) }))
-    .filter((g) => g.instances.length > 0),
-)
+function goToContext(id: string) {
+  emit('close')
+  goToResource('Context', id)
+}
 
 const drawerInstance = computed(() =>
   store.systemInstances.find((i) => i.systemInstanceId === props.selectedInstanceId),
@@ -65,191 +50,126 @@ const drawerInstance = computed(() =>
 <template>
   <SlideOverDrawer
     :open="open"
-    title="System Instances"
-    size="wide"
-    :count="store.instancesLoaded ? store.systemInstances.length : undefined"
+    :title="drawerInstance?.displayName ?? 'System instance'"
     @close="emit('close')"
   >
     <template #icon>
-      <IconListDetails
-        :size="16"
+      <IconStack2
+        :size="18"
         :stroke-width="1.5"
-        class="text-text-3"
+        class="text-accent"
       />
     </template>
-    <div class="flex flex-1 flex-col overflow-hidden">
-      <!-- view toggle -->
-      <div class="flex items-center gap-1 border-b border-border-1 px-4 py-1.5">
-        <span class="mr-1 text-meta text-text-4">View</span>
-        <button
-          class="rounded px-2 py-0.5 font-mono text-meta transition-colors"
-          :class="
-            view === 'list'
-              ? 'bg-accent/10 text-accent-text'
-              : 'text-text-4 hover:bg-bg-2 hover:text-text-3'
-          "
-          @click="view = 'list'"
-        >
-          List
-        </button>
-        <button
-          class="rounded px-2 py-0.5 font-mono text-meta transition-colors"
-          :class="
-            view === 'graph'
-              ? 'bg-accent/10 text-accent-text'
-              : 'text-text-4 hover:bg-bg-2 hover:text-text-3'
-          "
-          @click="view = 'graph'"
-        >
-          Graph
-        </button>
-      </div>
-      <div
-        v-if="store.instancesLoading"
-        class="flex flex-1 items-center justify-center"
-      >
-        <div class="flex items-center gap-2 text-text-3">
-          <IconLoader2
-            :size="16"
-            :stroke-width="1.5"
-            class="animate-spin"
-          />
-          <span class="text-body">Loading instances...</span>
-        </div>
-      </div>
-      <!-- Graph view -->
-      <FlowGraph
-        v-else-if="view === 'graph'"
-        :nodes="graphModel.nodes"
-        :edges="graphModel.edges"
-        :selected-id="selectedInstanceId"
-        class="min-h-0 flex-1"
-        @node-click="onGraphNodeClick"
-      />
-      <!-- List view -->
-      <div
-        v-else
-        class="flex min-h-0 flex-1 overflow-hidden"
-      >
-        <!-- Instance list  -->
-        <div class="w-72 shrink-0 overflow-y-auto border-r border-border-1">
-          <div
-            v-for="group in groups"
-            :key="group.system.systemId"
-          >
-            <!-- system group header -->
-            <div
-              class="sticky top-0 z-10 flex items-center gap-2 border-b border-border-1 bg-bg-0 px-4 py-1.5"
-            >
-              <span class="truncate text-meta font-semibold uppercase tracking-wide text-text-3">
-                {{ group.system.displayName }}
-              </span>
-              <span class="ml-auto shrink-0 font-mono text-micro text-text-4">
-                {{ group.instances.length }}
-              </span>
-            </div>
-            <!-- instances of this system -->
-            <div
-              v-for="inst in group.instances"
-              :key="inst.systemInstanceId"
-              class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-2.5 transition-colors"
-              :class="
-                inst.systemInstanceId === selectedInstanceId
-                  ? 'border-l-accent bg-accent/5'
-                  : 'border-l-transparent hover:bg-bg-1'
-              "
-              @click="emit('select', inst.systemInstanceId)"
-            >
-              <div class="flex items-center gap-2">
-                <span class="truncate text-body font-medium text-text-1">
-                  {{ inst.displayName }}
-                </span>
-                <span
-                  v-if="contextName(inst.context)"
-                  class="ml-auto shrink-0 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-micro text-accent"
-                >
-                  {{ contextName(inst.context) }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- Instance detail -->
+    <div
+      v-if="drawerInstance"
+      class="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-4"
+    >
+      <!-- identity -->
+      <div>
         <div
-          v-if="drawerInstance"
-          class="flex-1 overflow-y-auto px-6 py-5"
+          class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug"
+          style="grid-template-columns: minmax(160px, 30%) minmax(0, 1fr)"
         >
-          <div class="flex items-center gap-2">
-            <h3 class="text-title font-medium text-text-1">{{ drawerInstance.displayName }}</h3>
-          </div>
-          <div class="mt-2 flex items-center gap-2">
-            <span class="font-mono text-label text-text-4">
+          <span class="font-mono text-text-3">Instance ID</span>
+          <span class="flex min-w-0 items-center gap-1.5">
+            <span class="break-all font-mono text-text-2">
               {{ drawerInstance.systemInstanceId }}
             </span>
             <CopyButton
               :value="drawerInstance.systemInstanceId"
-              :size="13"
+              :size="12"
             />
-          </div>
-          <!-- owning system -->
-          <div
-            v-if="drawerInstance.system"
-            class="mt-6"
-          >
-            <SectionLabel>System</SectionLabel>
-            <button
-              class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
-              title="Go to system"
-              @click="emit('go-to-system', drawerInstance.system)"
-            >
-              <span
-                class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
-              >
-                System
-              </span>
-              <span
-                class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
-              >
-                {{
-                  store.systemMap.get(drawerInstance.system)?.displayName ?? drawerInstance.system
-                }}
-              </span>
-              <IconArrowUpRight
-                :size="16"
-                :stroke-width="2"
-                class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-              />
-            </button>
-          </div>
-          <!-- context -->
-          <div
-            v-if="contextName(drawerInstance.context)"
-            class="mt-6"
-          >
-            <SectionLabel>Context</SectionLabel>
-            <span class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent">
-              {{ contextName(drawerInstance.context) }}
-            </span>
-          </div>
-          <!-- annotations -->
-          <div
-            v-if="Object.keys(drawerInstance.annotations).length > 0"
-            class="mt-6"
-          >
-            <SectionLabel>Annotations</SectionLabel>
-            <AnnotationsTable
-              :annotations="drawerInstance.annotations"
-              columns="minmax(180px, 30%) minmax(0, 1fr)"
-            />
-          </div>
+          </span>
         </div>
-        <div
-          v-else
-          class="flex flex-1 items-center justify-center"
-        >
-          <span class="font-mono text-label text-text-4">Select a system instance</span>
-        </div>
+        <WellKnownAnnotationsTable
+          :annotations="drawerInstance.annotations"
+          columns="minmax(160px, 30%) minmax(0, 1fr)"
+        />
       </div>
+
+      <!-- owning system -->
+      <div v-if="drawerInstance.system">
+        <SectionLabel>System</SectionLabel>
+        <button
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          title="Go to system"
+          @click="emit('go-to-system', drawerInstance.system)"
+        >
+          <span
+            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+          >
+            System
+          </span>
+          <span
+            class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
+          >
+            {{ store.systemMap.get(drawerInstance.system)?.displayName ?? drawerInstance.system }}
+          </span>
+          <IconArrowUpRight
+            :size="16"
+            :stroke-width="2"
+            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
+          />
+          <div class="ml-auto flex shrink-0 items-center gap-1.5">
+            <span class="font-mono text-meta text-text-4">{{ drawerInstance.system }}</span>
+            <CopyButton
+              :value="drawerInstance.system"
+              :size="12"
+              @click.stop
+            />
+          </div>
+        </button>
+      </div>
+
+      <!-- context -->
+      <div v-if="drawerInstance.context">
+        <SectionLabel>Context</SectionLabel>
+        <button
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          title="Go to context"
+          @click="goToContext(drawerInstance.context)"
+        >
+          <span
+            v-if="contextType(drawerInstance.context)"
+            class="shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+          >
+            {{ contextType(drawerInstance.context) }}
+          </span>
+          <span
+            class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
+          >
+            {{ contextName(drawerInstance.context) ?? drawerInstance.context }}
+          </span>
+          <IconArrowUpRight
+            :size="16"
+            :stroke-width="2"
+            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
+          />
+          <div class="ml-auto flex shrink-0 items-center gap-1.5">
+            <span class="font-mono text-meta text-text-4">{{ drawerInstance.context }}</span>
+            <CopyButton
+              :value="drawerInstance.context"
+              :size="12"
+              @click.stop
+            />
+          </div>
+        </button>
+      </div>
+
+      <!-- annotations -->
+      <div v-if="Object.keys(drawerInstance.annotations).length > 0">
+        <SectionLabel>Annotations</SectionLabel>
+        <AnnotationsTable
+          :annotations="drawerInstance.annotations"
+          columns="minmax(180px, 30%) minmax(0, 1fr)"
+        />
+      </div>
+    </div>
+    <div
+      v-else
+      class="flex flex-1 items-center justify-center"
+    >
+      <span class="font-mono text-label text-text-4">No instance selected</span>
     </div>
   </SlideOverDrawer>
 </template>

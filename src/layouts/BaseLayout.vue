@@ -9,7 +9,11 @@ import AppTopbar from '@/components/AppTopbar.vue'
     <div class="flex flex-1 overflow-hidden">
       <AppSidebar />
       <main class="flex-1 overflow-auto bg-bg-0">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <keep-alive>
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
       </main>
     </div>
   </div>

@@ -123,7 +123,7 @@ onMounted(async () => {
   findingsStore.load()
   systemStore.load()
   systemStore.loadSystemInstances()
-  contextStore.load()
+  contextStore.ensureHydrated()
   apiStore.load()
   await store.load()
   await store.loadAllDetails()
@@ -135,7 +135,7 @@ onMounted(async () => {
   <div class="relative flex h-full flex-col">
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <div class="flex min-w-[11rem] items-center gap-3">
+      <div class="flex min-w-44 items-center gap-3">
         <h1 class="text-title font-medium text-text-1">Components</h1>
         <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
           {{ filteredComponents.length }}

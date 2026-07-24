@@ -5,10 +5,10 @@ import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import { useResourceNav } from '@/composables/useResourceNav'
-import { wellKnownAnnotations } from '@/utils/annotations'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
+import SystemInstancesBoard from '@/components/systems/SystemInstancesBoard.vue'
 import type { System, SystemInstance } from '@/types/system'
 
 const props = defineProps<{
@@ -29,6 +29,14 @@ const { goToResource, goToFinding } = useResourceNav()
 function contextName(contextId: string | undefined): string | undefined {
   if (!contextId) return undefined
   return contextStore.contextMap.get(contextId)?.displayName
+}
+
+function contextType(contextId: string | undefined): string | undefined {
+  if (!contextId) return undefined
+  const ctx = contextStore.contextMap.get(contextId)
+  if (!ctx) return undefined
+  const type = contextStore.getTypeName(ctx)
+  return type === 'Unknown' ? undefined : type
 }
 
 const contexts = computed(() => {
@@ -105,36 +113,45 @@ function versionDates(s: System | undefined): [string, string][] {
       <!-- description -->
       <p
         v-if="system.description"
-        class="font-mono text-body leading-relaxed text-text-2"
+        class="text-body leading-relaxed text-text-2"
       >
         {{ system.description }}
       </p>
-      <!-- Contexts (derived from instances) -->
-      <div v-if="contexts.length > 0">
-        <SectionLabel :count="contexts.length">Contexts</SectionLabel>
-        <div class="flex flex-wrap gap-1.5">
+      <!-- Related findings -->
+      <div v-if="relatedFindings.length > 0">
+        <SectionLabel :count="relatedFindings.length">Findings</SectionLabel>
+        <div class="overflow-hidden rounded border border-warning/30 bg-warning/5">
           <button
-            v-for="ctx in contexts"
-            :key="ctx.id"
-            class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent transition-opacity hover:opacity-80"
-            :title="`Go to context ${ctx.id}`"
-            @click="goToResource('Context', ctx.id)"
+            v-for="f in relatedFindings"
+            :key="f.findingId"
+            class="group flex w-full items-center gap-2.5 border-b border-warning/15 px-3 py-2 text-left transition-colors last:border-b-0 hover:bg-warning/8"
+            title="Go to finding"
+            @click="goToFinding(f.findingId)"
           >
-            {{ ctx.name }}
+            <span
+              class="shrink-0 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
+            >
+              {{ findingsStore.getKindForFinding(f) }}
+            </span>
+            <span
+              class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-text-1"
+            >
+              {{ f.displayName }}
+            </span>
+            <IconArrowUpRight
+              :size="15"
+              :stroke-width="2"
+              class="shrink-0 text-text-4 transition-colors group-hover:text-text-2"
+            />
+            <div class="ml-auto flex shrink-0 items-center gap-1.5">
+              <span class="font-mono text-meta text-text-4">{{ f.findingId }}</span>
+              <CopyButton
+                :value="f.findingId"
+                :size="12"
+                @click.stop
+              />
+            </div>
           </button>
-        </div>
-      </div>
-      <!-- version dates -->
-      <div v-if="versionDates(system).length > 0">
-        <SectionLabel>Version</SectionLabel>
-        <div
-          v-for="[label, value] in versionDates(system)"
-          :key="label"
-          class="grid gap-4 border-b border-border-1 py-1.5 text-data last:border-b-0"
-          style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
-        >
-          <span class="font-mono text-text-3">{{ label }}</span>
-          <span class="break-all font-mono text-text-2">{{ value }}</span>
         </div>
       </div>
       <!-- Parent -->
@@ -188,49 +205,53 @@ function versionDates(s: System | undefined): [string, string][] {
           <span class="font-mono text-meta text-text-4">{{ system.parent }}</span>
         </div>
       </div>
-      <!-- Instances -->
-      <div v-if="instances.length > 0">
-        <SectionLabel :count="instances.length">Instances</SectionLabel>
-        <div
-          v-for="inst in instances"
-          :key="inst.systemInstanceId"
-          class="group/row -mx-2 cursor-pointer rounded border-b border-border-1 px-2 py-2.5 transition-colors last:border-b-0 hover:bg-bg-1"
-          title="Open instance"
-          @click="emit('open-instance', inst.systemInstanceId)"
+      <!-- Contexts (derived from instances) -->
+      <div v-if="contexts.length > 0">
+        <SectionLabel :count="contexts.length">Contexts</SectionLabel>
+        <button
+          v-for="ctx in contexts"
+          :key="ctx.id"
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          title="Go to context"
+          @click="goToResource('Context', ctx.id)"
         >
-          <div class="flex items-center gap-2.5">
-            <span
-              class="truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-            >
-              {{ inst.displayName }}
-            </span>
-            <span
-              v-if="contextName(inst.context)"
-              class="shrink-0 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-micro text-accent"
-            >
-              {{ contextName(inst.context) }}
-            </span>
-            <span class="ml-auto flex shrink-0 items-center gap-1.5">
-              <span class="font-mono text-meta text-text-4">{{ inst.systemInstanceId }}</span>
-              <CopyButton
-                :value="inst.systemInstanceId"
-                :size="12"
-                @click.stop
-              />
-            </span>
-          </div>
-          <div
-            v-if="wellKnownAnnotations(inst.annotations).length > 0"
-            class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-meta text-text-4"
+          <span
+            v-if="contextType(ctx.id)"
+            class="shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
           >
-            <span
-              v-for="row in wellKnownAnnotations(inst.annotations)"
-              :key="row.key"
-            >
-              {{ row.label.toLowerCase() }}:
-              <span class="text-text-3">{{ row.value }}</span>
-            </span>
+            {{ contextType(ctx.id) }}
+          </span>
+          <span
+            class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
+          >
+            {{ ctx.name }}
+          </span>
+          <IconArrowUpRight
+            :size="16"
+            :stroke-width="2"
+            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
+          />
+          <div class="ml-auto flex shrink-0 items-center gap-1.5">
+            <span class="font-mono text-meta text-text-4">{{ ctx.id }}</span>
+            <CopyButton
+              :value="ctx.id"
+              :size="12"
+              @click.stop
+            />
           </div>
+        </button>
+      </div>
+      <!-- version dates -->
+      <div v-if="versionDates(system).length > 0">
+        <SectionLabel>Version</SectionLabel>
+        <div
+          v-for="[label, value] in versionDates(system)"
+          :key="label"
+          class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
+          style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
+        >
+          <span class="text-text-3">{{ label }}</span>
+          <span class="break-all text-text-2">{{ value }}</span>
         </div>
       </div>
       <!-- annotations -->
@@ -238,34 +259,12 @@ function versionDates(s: System | undefined): [string, string][] {
         <SectionLabel>Annotations</SectionLabel>
         <AnnotationsTable :annotations="system.annotations" />
       </div>
-      <!-- Related findings -->
-      <div v-if="relatedFindings.length > 0">
-        <SectionLabel>Findings</SectionLabel>
-        <button
-          v-for="f in relatedFindings"
-          :key="f.findingId"
-          class="group flex w-full items-center gap-2.5 border-b border-border-1 py-2 text-left last:border-b-0"
-          title="Go to finding"
-          @click="goToFinding(f.findingId)"
-        >
-          <span
-            class="shrink-0 rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-micro text-sensor"
-          >
-            {{ findingsStore.getKindForFinding(f) }}
-          </span>
-          <span
-            class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
-          >
-            {{ f.displayName }}
-          </span>
-          <IconArrowUpRight
-            :size="15"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-          />
-          <span class="ml-auto shrink-0 font-mono text-meta text-text-4">{{ f.findingId }}</span>
-        </button>
-      </div>
+      <!-- Instances -->
+      <SystemInstancesBoard
+        v-if="instances.length > 0"
+        :instances="instances"
+        @select="emit('open-instance', $event)"
+      />
     </div>
   </div>
   <div

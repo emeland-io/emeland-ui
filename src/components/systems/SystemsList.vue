@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { IconChevronRight } from '@tabler/icons-vue'
+import { IconChevronRight, IconAlertTriangle } from '@tabler/icons-vue'
 import { useSystemStore } from '@/stores/systems'
+import { useFindingsStore } from '@/stores/findings'
 import type { System } from '@/types/system'
 
 interface TreeRow {
@@ -23,9 +24,14 @@ const emit = defineEmits<{
 }>()
 
 const store = useSystemStore()
+const findingsStore = useFindingsStore()
 
 function instanceCount(id: string): number {
   return store.getInstancesForSystem(id).length
+}
+
+function findingCount(id: string): number {
+  return findingsStore.findingCountFor(id)
 }
 </script>
 
@@ -62,6 +68,17 @@ function instanceCount(id: string): number {
           class="font-mono text-meta text-text-4"
         >
           ↳ {{ store.getParentName(sys) }}
+        </span>
+        <span
+          v-if="findingCount(sys.systemId) > 0"
+          class="flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
+          :title="`${findingCount(sys.systemId)} finding(s)`"
+        >
+          <IconAlertTriangle
+            :size="10"
+            :stroke-width="2"
+          />
+          {{ findingCount(sys.systemId) }}
         </span>
         <span
           v-if="store.instancesLoaded && instanceCount(sys.systemId) > 0"
@@ -113,6 +130,17 @@ function instanceCount(id: string): number {
         :class="row.system.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent'"
       >
         {{ store.getKindForSystem(row.system) }}
+      </span>
+      <span
+        v-if="findingCount(row.system.systemId) > 0"
+        class="flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
+        :title="`${findingCount(row.system.systemId)} finding(s)`"
+      >
+        <IconAlertTriangle
+          :size="10"
+          :stroke-width="2"
+        />
+        {{ findingCount(row.system.systemId) }}
       </span>
       <span
         v-if="store.instancesLoaded && instanceCount(row.system.systemId) > 0"
