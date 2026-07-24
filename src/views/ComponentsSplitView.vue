@@ -24,7 +24,7 @@ import ComponentInstanceDrawer from '@/components/components/ComponentInstanceDr
 import { useSelectQuery } from '@/composables/useResourceNav'
 import { useResizable } from '@/composables/useResizable'
 
-// Heavy. Always visible in this layout, so it loads up front.
+// Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
 const ComponentGraphPane = defineAsyncComponent(
   () => import('@/components/components/ComponentGraphPane.vue'),
 )
@@ -95,6 +95,7 @@ function selectComponent(id: string) {
   selectedId.value = id
 }
 
+// Instance drawer, opened from an instance node in the graph
 const instanceDrawerOpen = ref(false)
 const selectedInstanceId = ref('')
 
@@ -108,11 +109,18 @@ const graphPane = ref<InstanceType<typeof ComponentGraphPane> | null>(null)
 const graphVisible = ref(true)
 const graphFullscreen = ref(false)
 const showInstances = ref(false)
+const showApis = ref(true)
 
 function toggleInstances() {
   showInstances.value = !showInstances.value
 }
 
+function toggleApis() {
+  showApis.value = !showApis.value
+}
+
+// Only for box-size changes (show/hide, full view). Changes to the node set are
+// refitted by FlowGraph itself. Needs a laid-out box, hence the extra frame.
 function refitGraph() {
   if (!graphVisible.value) return
   nextTick(() => requestAnimationFrame(() => graphPane.value?.fit()))
@@ -133,6 +141,7 @@ function toggleFullscreen() {
   refitGraph()
 }
 
+// Graph and detail share the right column; this splits them vertically.
 const {
   size: graphHeight,
   isResizing: isResizingGraph,
@@ -317,6 +326,20 @@ onMounted(async () => {
                   <div class="mx-0.5 h-4 w-px bg-bg-3" />
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Show APIs as nodes; when off, components link directly"
+                    @click.stop="toggleApis"
+                    @dblclick.stop
+                  >
+                    APIs
+                    <span
+                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
+                      :class="showApis ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'"
+                    >
+                      {{ showApis ? 'on' : 'off' }}
+                    </span>
+                  </button>
+                  <button
+                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
                     title="Show component instances as nodes"
                     @click.stop="toggleInstances"
                     @dblclick.stop
@@ -373,6 +396,7 @@ onMounted(async () => {
                 :components="filteredComponents"
                 :selected-id="selectedId"
                 :show-instances="showInstances"
+                :show-apis="showApis"
                 class="h-full"
                 @select="selectComponent"
                 @open-instance="openInstance"

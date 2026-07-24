@@ -1,5 +1,12 @@
 import dagre from '@dagrejs/dagre'
-import type { GraphModel, GraphNode, GraphEdge, GraphNodeKind, GraphSize } from '@/types/graph'
+import type {
+  GraphModel,
+  GraphNode,
+  GraphEdge,
+  GraphEdgeKind,
+  GraphNodeKind,
+  GraphSize,
+} from '@/types/graph'
 
 /**
  * Generic directed-graph layout via dagre
@@ -19,7 +26,15 @@ export interface LayoutDagInput {
   direction?: 'LR' | 'TB'
   nodeSep?: number
   rankSep?: number
-  stagger?: number
+  edgeSep?: number
+}
+
+const EDGE_WEIGHT: Record<GraphEdgeKind, number> = {
+  contains: 10,
+  communicates: 2,
+  provides: 2,
+  consumes: 1,
+  default: 1,
 }
 
 const SIZE: Record<GraphNodeKind, { width: number; height: number }> = {
@@ -34,10 +49,12 @@ export function layoutDag(input: LayoutDagInput): GraphModel {
   const g = new dagre.graphlib.Graph()
   g.setGraph({
     rankdir: input.direction ?? 'LR',
-    nodesep: input.nodeSep ?? 52,
-    ranksep: input.rankSep ?? 160,
+    nodesep: input.nodeSep ?? 72,
+    ranksep: input.rankSep ?? 130,
+    edgesep: input.edgeSep ?? 28,
     marginx: 16,
     marginy: 16,
+    acyclicer: 'greedy',
   })
   g.setDefaultEdgeLabel(() => ({}))
 
@@ -49,28 +66,19 @@ export function layoutDag(input: LayoutDagInput): GraphModel {
     g.setNode(n.id, { width, height })
   }
   for (const e of input.edges) {
-    if (g.hasNode(e.source) && g.hasNode(e.target)) g.setEdge(e.source, e.target)
+    if (!g.hasNode(e.source) || !g.hasNode(e.target)) continue
+    g.setEdge(e.source, e.target, { weight: EDGE_WEIGHT[e.kind ?? 'default'] })
   }
 
   dagre.layout(g)
 
-  const stagger = input.stagger ?? 0
-  const columnOffset = new Map<number, number>()
-  if (stagger > 0) {
-    const columns = [...new Set(input.nodes.map((n) => Math.round(g.node(n.id)?.x ?? 0)))].sort(
-      (a, b) => a - b,
-    )
-    columns.forEach((x, i) => columnOffset.set(x, (i % 2 === 0 ? -1 : 1) * (stagger / 2)))
-  }
-
   const nodes: GraphNode[] = input.nodes.map((n) => {
     const pos = g.node(n.id) // dagre gives the node centre
     const { width, height } = dims.get(n.id)!
-    const yOffset = stagger > 0 ? (columnOffset.get(Math.round(pos?.x ?? 0)) ?? 0) : 0
     return {
       id: n.id,
       kind: n.kind,
-      position: { x: (pos?.x ?? 0) - width / 2, y: (pos?.y ?? 0) + yOffset - height / 2 },
+      position: { x: (pos?.x ?? 0) - width / 2, y: (pos?.y ?? 0) - height / 2 },
       size: { width },
       selectable: n.selectable ?? true,
       data: n.data,

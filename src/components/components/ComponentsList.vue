@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { IconArrowUp, IconArrowDown } from '@tabler/icons-vue'
 import { useSystemStore } from '@/stores/systems'
+import { useComponentStore } from '@/stores/components'
 import type { Component } from '@/types/component'
 
 defineProps<{
@@ -13,9 +13,14 @@ const emit = defineEmits<{
 }>()
 
 const systemStore = useSystemStore()
+const store = useComponentStore()
 
 function systemName(id: string): string | undefined {
   return systemStore.systemMap.get(id)?.displayName
+}
+
+function instanceCount(id: string): number {
+  return store.getInstancesForComponent(id).length
 }
 </script>
 
@@ -46,30 +51,23 @@ function systemName(id: string): string | undefined {
         v{{ comp.version.version }}
       </span>
       <span
-        v-if="comp.provides.length || comp.consumes.length"
-        class="ml-auto flex shrink-0 items-center gap-1"
-        :title="`provides ${comp.provides.length}, consumes ${comp.consumes.length} API(s)`"
+        v-if="store.instancesLoaded && instanceCount(comp.componentId) > 0"
+        class="ml-auto flex shrink-0 items-center gap-1 font-mono text-micro text-text-3"
+        :title="`${instanceCount(comp.componentId)} instance(s)`"
       >
-        <span
-          v-if="comp.provides.length"
-          class="flex items-center gap-0.5 rounded-full bg-bg-2 px-1.5 py-0.5 font-mono text-micro text-text-3"
+        <svg
+          width="14"
+          height="9"
+          viewBox="0 0 14 9"
+          class="shrink-0"
+          aria-hidden="true"
         >
-          <IconArrowUp
-            :size="11"
-            :stroke-width="2"
+          <polygon
+            points="0,0 10,0 14,4 14,9 0,9"
+            fill="var(--color-text-4)"
           />
-          {{ comp.provides.length }}
-        </span>
-        <span
-          v-if="comp.consumes.length"
-          class="flex items-center gap-0.5 rounded-full bg-bg-2 px-1.5 py-0.5 font-mono text-micro text-text-3"
-        >
-          <IconArrowDown
-            :size="11"
-            :stroke-width="2"
-          />
-          {{ comp.consumes.length }}
-        </span>
+        </svg>
+        {{ instanceCount(comp.componentId) }}
       </span>
     </div>
   </div>

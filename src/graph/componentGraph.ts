@@ -10,6 +10,7 @@ export interface ComponentGraphInput {
   instanceCount?: (componentId: string) => number
   instancesOf?: (componentId: string) => ComponentInstance[]
   instanceContext?: (instance: ComponentInstance) => string | undefined
+  showApis?: boolean
 }
 
 export function buildComponentGraph({
@@ -20,6 +21,7 @@ export function buildComponentGraph({
   instanceCount,
   instancesOf,
   instanceContext,
+  showApis = true,
 }: ComponentGraphInput): GraphModel {
   const nodes: DagNodeSpec[] = []
   const edges: GraphEdge[] = []
@@ -62,6 +64,7 @@ export function buildComponentGraph({
         kind: 'contains',
       })
     }
+    if (!showApis) continue
     for (const apiId of c.provides) {
       ensureApiNode(apiId)
       edges.push({
@@ -82,5 +85,31 @@ export function buildComponentGraph({
     }
   }
 
-  return layoutDag({ nodes, edges, direction: 'LR', stagger: 56 })
+  if (!showApis) {
+    const providersOf = new Map<string, string[]>()
+    for (const c of components) {
+      for (const apiId of c.provides) {
+        providersOf.set(apiId, [...(providersOf.get(apiId) ?? []), c.componentId])
+      }
+    }
+    const seen = new Set<string>()
+    for (const c of components) {
+      for (const apiId of c.consumes) {
+        for (const providerId of providersOf.get(apiId) ?? []) {
+          if (providerId === c.componentId) continue
+          const key = `${providerId}->${c.componentId}`
+          if (seen.has(key)) continue
+          seen.add(key)
+          edges.push({
+            id: `via:${key}`,
+            source: `comp:${providerId}`,
+            target: `comp:${c.componentId}`,
+            kind: 'communicates',
+          })
+        }
+      }
+    }
+  }
+
+  return layoutDag({ nodes, edges, direction: 'LR' })
 }

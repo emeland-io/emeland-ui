@@ -14,8 +14,9 @@ const props = withDefaults(
     components: Component[]
     selectedId: string
     showInstances?: boolean
+    showApis?: boolean
   }>(),
-  { showInstances: false },
+  { showInstances: false, showApis: true },
 )
 
 const emit = defineEmits<{
@@ -37,6 +38,7 @@ const graphModel = computed(() =>
     instanceCount: (id) => store.getInstancesForComponent(id).length,
     instancesOf: props.showInstances ? (id) => store.getInstancesForComponent(id) : undefined,
     instanceContext: (inst) => contextForInstance(inst).name,
+    showApis: props.showApis,
   }),
 )
 
@@ -104,7 +106,10 @@ defineExpose({
           </svg>
           instance
         </div>
-        <div class="flex items-center gap-1.5">
+        <div
+          v-if="showApis"
+          class="flex items-center gap-1.5"
+        >
           <svg
             width="18"
             height="11"
@@ -149,9 +154,12 @@ defineExpose({
               fill="var(--color-text-3)"
             />
           </svg>
-          provides
+          {{ showApis ? 'provides' : 'depends on' }}
         </div>
-        <div class="flex items-center gap-1.5">
+        <div
+          v-if="showApis"
+          class="flex items-center gap-1.5"
+        >
           <svg
             width="20"
             height="8"

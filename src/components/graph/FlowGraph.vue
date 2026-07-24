@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, watch, nextTick, useId } from 'vue'
-import { IconAlertTriangle } from '@tabler/icons-vue'
+import { IconAlertTriangle, IconCircleOff } from '@tabler/icons-vue'
 import {
   VueFlow,
   useVueFlow,
@@ -39,9 +39,15 @@ const emit = defineEmits<{
 const flowId = `flow-${useId()}`
 const { fitView, zoomIn, zoomOut, onNodesInitialized } = useVueFlow(flowId)
 
-const fit = () => fitView({ padding: 0.2, duration: 300 })
+const isEmpty = computed(() => props.nodes.length === 0)
+
+const fit = () => {
+  if (isEmpty.value) return
+  return fitView({ padding: 0.2, duration: 300 })
+}
 
 function focusSelected() {
+  if (isEmpty.value) return
   if (!props.selectedId) return fit()
   return fitView({ nodes: [props.selectedId], padding: 0.6, duration: 300, maxZoom: 1.4 })
 }
@@ -77,13 +83,24 @@ const flowEdges = computed<Edge[]>(() =>
     type: 'smoothstep',
     class: [
       e.kind === 'consumes' ? 'edge-consumes' : e.kind === 'provides' ? 'edge-provides' : '',
-      e.kind === 'contains' && e.source === props.selectedId ? 'edge-owned' : '',
+      e.source === props.selectedId || e.target === props.selectedId ? 'edge-active' : '',
     ]
       .filter(Boolean)
       .join(' '),
+    zIndex: e.source === props.selectedId || e.target === props.selectedId ? 1 : 0,
     markerEnd: MarkerType.ArrowClosed,
   })),
 )
+
+const neighbourIds = computed(() => {
+  const ids = new Set<string>()
+  if (!props.selectedId) return ids
+  for (const e of props.edges) {
+    if (e.source === props.selectedId) ids.add(e.target)
+    else if (e.target === props.selectedId) ids.add(e.source)
+  }
+  return ids
+})
 
 function isOwnedBySelection(data: unknown): boolean {
   const parent = (data as InstanceNodeData).parent
@@ -97,6 +114,16 @@ function onNodeClick({ node }: NodeMouseEvent) {
 
 <template>
   <div class="emel-flow relative h-full w-full">
+    <div
+      v-if="isEmpty"
+      class="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 text-text-4"
+    >
+      <IconCircleOff
+        :size="20"
+        :stroke-width="1.5"
+      />
+      <span class="text-label">Nothing to show for the current filters</span>
+    </div>
     <VueFlow
       :id="flowId"
       :nodes="flowNodes"
@@ -184,7 +211,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
                 ? 'bg-accent/10 hover:bg-accent/20'
                 : 'bg-bg-2 hover:bg-bg-3'
           "
-          title="Open instance"
+          :title="(data as InstanceNodeData).label"
         >
           <div class="truncate text-body text-text-2">{{ (data as InstanceNodeData).label }}</div>
           <div
@@ -201,11 +228,11 @@ function onNodeClick({ node }: NodeMouseEvent) {
         />
       </template>
 
-      <!-- API node: a capsule, so interfaces read differently from the angular
-           component/instance blocks even at low zoom -->
-      <template #node-api="{ data }">
+      <template #node-api="{ id, data }">
         <div
-          class="flex h-full w-full items-center gap-2 rounded-full border border-border-2 bg-bg-1 px-4 shadow-sm"
+          class="flex h-full w-full items-center gap-2 rounded-full border bg-bg-1 px-4 shadow-sm transition-colors"
+          :class="neighbourIds.has(id) ? 'border-accent' : 'border-border-2'"
+          :title="(data as ApiNodeData).label"
         >
           <span class="min-w-0 flex-1 truncate text-body text-text-1">
             {{ (data as ApiNodeData).label }}
@@ -232,9 +259,12 @@ function onNodeClick({ node }: NodeMouseEvent) {
         <div
           class="node-cut w-full cursor-pointer transition-colors"
           :class="id === selectedId ? 'bg-accent' : 'bg-border-2 hover:bg-accent/60'"
-          title="Open component"
+          :title="(data as ComponentNodeData).label"
         >
-          <div class="node-cut-inner bg-bg-2 px-3 py-2">
+          <div
+            class="node-cut-inner px-3 py-2 transition-colors"
+            :class="id === selectedId ? 'bg-accent/10' : 'bg-bg-2'"
+          >
             <div class="flex items-center gap-2">
               <span class="truncate text-body font-medium text-text-1">
                 {{ (data as ComponentNodeData).label }}
@@ -291,10 +321,11 @@ function onNodeClick({ node }: NodeMouseEvent) {
 .emel-flow :deep(.vue-flow__edge.edge-consumes .vue-flow__edge-path) {
   stroke-dasharray: 5 4;
 }
-.emel-flow :deep(.vue-flow__edge.edge-owned .vue-flow__edge-path) {
+.emel-flow :deep(.vue-flow__edge.edge-active .vue-flow__edge-path) {
   stroke: var(--color-accent);
+  stroke-width: 2;
 }
-.emel-flow :deep(.vue-flow__edge.edge-owned .vue-flow__arrowhead) {
+.emel-flow :deep(.vue-flow__edge.edge-active .vue-flow__arrowhead) {
   fill: var(--color-accent);
 }
 .emel-flow :deep(.vue-flow__arrowhead) {
