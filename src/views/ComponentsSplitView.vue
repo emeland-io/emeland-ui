@@ -20,6 +20,7 @@ import ListDetail from '@/components/ListDetail.vue'
 import ComponentsToolbar from '@/components/components/ComponentsToolbar.vue'
 import ComponentsList from '@/components/components/ComponentsList.vue'
 import ComponentDetail from '@/components/components/ComponentDetail.vue'
+import ComponentInstanceDrawer from '@/components/components/ComponentInstanceDrawer.vue'
 import { useSelectQuery } from '@/composables/useResourceNav'
 import { useResizable } from '@/composables/useResizable'
 
@@ -94,10 +95,28 @@ function selectComponent(id: string) {
   selectedId.value = id
 }
 
+const instanceDrawerOpen = ref(false)
+const selectedInstanceId = ref('')
+
+function openInstance(id: string) {
+  selectedInstanceId.value = id
+  instanceDrawerOpen.value = true
+}
+
 // Graph controls
 const graphPane = ref<InstanceType<typeof ComponentGraphPane> | null>(null)
 const graphVisible = ref(true)
 const graphFullscreen = ref(false)
+const showInstances = ref(false)
+
+function toggleInstances() {
+  showInstances.value = !showInstances.value
+}
+
+function refitGraph() {
+  if (!graphVisible.value) return
+  nextTick(() => requestAnimationFrame(() => graphPane.value?.fit()))
+}
 
 function toggleGraph() {
   graphVisible.value = !graphVisible.value
@@ -105,13 +124,13 @@ function toggleGraph() {
     graphFullscreen.value = false
     return
   }
-  nextTick(() => graphPane.value?.fit())
+  refitGraph()
 }
 
 function toggleFullscreen() {
   graphFullscreen.value = !graphFullscreen.value
   if (graphFullscreen.value) graphVisible.value = true
-  nextTick(() => graphPane.value?.fit())
+  refitGraph()
 }
 
 const {
@@ -297,6 +316,23 @@ onMounted(async () => {
                   </button>
                   <div class="mx-0.5 h-4 w-px bg-bg-3" />
                   <button
+                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Show component instances as nodes"
+                    @click.stop="toggleInstances"
+                    @dblclick.stop
+                  >
+                    Instances
+                    <span
+                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
+                      :class="
+                        showInstances ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'
+                      "
+                    >
+                      {{ showInstances ? 'on' : 'off' }}
+                    </span>
+                  </button>
+                  <div class="mx-0.5 h-4 w-px bg-bg-3" />
+                  <button
                     class="rounded p-1 transition-colors hover:bg-bg-3"
                     :class="graphFullscreen ? 'text-accent' : 'text-text-3 hover:text-text-1'"
                     :title="graphFullscreen ? 'Exit full view' : 'Full view'"
@@ -336,8 +372,10 @@ onMounted(async () => {
                 ref="graphPane"
                 :components="filteredComponents"
                 :selected-id="selectedId"
+                :show-instances="showInstances"
                 class="h-full"
                 @select="selectComponent"
+                @open-instance="openInstance"
               />
             </div>
 
@@ -360,5 +398,11 @@ onMounted(async () => {
         </template>
       </ListDetail>
     </template>
+
+    <ComponentInstanceDrawer
+      :open="instanceDrawerOpen"
+      :selected-instance-id="selectedInstanceId"
+      @close="instanceDrawerOpen = false"
+    />
   </div>
 </template>

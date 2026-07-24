@@ -73,7 +73,7 @@ export function buildInstanceGraph({
         kind: 'instance',
         frameId: frameOf(inst),
         rowKey: system.systemId,
-        data: { label: inst.displayName },
+        data: { label: inst.displayName, parent: system.systemId },
       })
       edges.push({
         id: `${system.systemId}->${inst.systemInstanceId}`,

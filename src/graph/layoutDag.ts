@@ -24,7 +24,7 @@ export interface LayoutDagInput {
 
 const SIZE: Record<GraphNodeKind, { width: number; height: number }> = {
   component: { width: 200, height: 60 },
-  api: { width: 176, height: 50 },
+  api: { width: 208, height: 46 },
   system: { width: 208, height: 60 },
   instance: { width: 200, height: 60 },
   context: { width: 220, height: 80 },

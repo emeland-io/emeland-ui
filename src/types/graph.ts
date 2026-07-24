@@ -27,6 +27,8 @@ export interface SystemNodeData {
 }
 export interface InstanceNodeData {
   label: string
+  parent?: string
+  context?: string
 }
 export interface ContextNodeData {
   label: string

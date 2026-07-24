@@ -75,10 +75,20 @@ const flowEdges = computed<Edge[]>(() =>
     source: e.source,
     target: e.target,
     type: 'smoothstep',
-    class: e.kind === 'consumes' ? 'edge-consumes' : e.kind === 'provides' ? 'edge-provides' : '',
+    class: [
+      e.kind === 'consumes' ? 'edge-consumes' : e.kind === 'provides' ? 'edge-provides' : '',
+      e.kind === 'contains' && e.source === props.selectedId ? 'edge-owned' : '',
+    ]
+      .filter(Boolean)
+      .join(' '),
     markerEnd: MarkerType.ArrowClosed,
   })),
 )
+
+function isOwnedBySelection(data: unknown): boolean {
+  const parent = (data as InstanceNodeData).parent
+  return !!parent && parent === props.selectedId
+}
 
 function onNodeClick({ node }: NodeMouseEvent) {
   emit('node-click', { id: node.id, kind: node.type as GraphNodeKind })
@@ -164,17 +174,26 @@ function onNodeClick({ node }: NodeMouseEvent) {
         />
       </template>
 
-      <!-- Instance node -->
       <template #node-instance="{ id, data }">
         <div
-          class="w-full cursor-pointer rounded-md border bg-bg-1 px-3 py-2 shadow-sm transition-colors"
+          class="node-cut w-full cursor-pointer px-3 py-2 transition-colors"
           :class="
             id === selectedId
-              ? 'border-accent ring-1 ring-accent/40'
-              : 'border-border-1 hover:border-border-2'
+              ? 'bg-accent/25'
+              : isOwnedBySelection(data)
+                ? 'bg-accent/10 hover:bg-accent/20'
+                : 'bg-bg-2 hover:bg-bg-3'
           "
+          title="Open instance"
         >
-          <div class="truncate text-body text-text-1">{{ (data as InstanceNodeData).label }}</div>
+          <div class="truncate text-body text-text-2">{{ (data as InstanceNodeData).label }}</div>
+          <div
+            v-if="(data as InstanceNodeData).context"
+            class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-4"
+          >
+            <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">C</span>
+            <span class="truncate">{{ (data as InstanceNodeData).context }}</span>
+          </div>
         </div>
         <Handle
           type="target"
@@ -182,16 +201,21 @@ function onNodeClick({ node }: NodeMouseEvent) {
         />
       </template>
 
-      <!-- API node -->
+      <!-- API node: a capsule, so interfaces read differently from the angular
+           component/instance blocks even at low zoom -->
       <template #node-api="{ data }">
-        <div class="w-52 rounded-md border border-border-2 bg-bg-1 px-3 py-2 shadow-sm">
-          <div class="truncate text-body text-text-1">{{ (data as ApiNodeData).label }}</div>
-          <div
+        <div
+          class="flex h-full w-full items-center gap-2 rounded-full border border-border-2 bg-bg-1 px-4 shadow-sm"
+        >
+          <span class="min-w-0 flex-1 truncate text-body text-text-1">
+            {{ (data as ApiNodeData).label }}
+          </span>
+          <span
             v-if="(data as ApiNodeData).version"
-            class="mt-1 font-mono text-micro text-text-4"
+            class="shrink-0 font-mono text-micro text-text-4"
           >
             v{{ (data as ApiNodeData).version }}
-          </div>
+          </span>
         </div>
         <Handle
           type="target"
@@ -206,31 +230,30 @@ function onNodeClick({ node }: NodeMouseEvent) {
       <!-- Component node -->
       <template #node-component="{ id, data }">
         <div
-          class="w-52 cursor-pointer rounded-md border bg-bg-2 px-3 py-2 shadow-sm transition-colors"
-          :class="
-            id === selectedId
-              ? 'border-accent ring-1 ring-accent/40'
-              : 'border-border-2 hover:border-accent'
-          "
+          class="node-cut w-full cursor-pointer transition-colors"
+          :class="id === selectedId ? 'bg-accent' : 'bg-border-2 hover:bg-accent/60'"
           title="Open component"
         >
-          <div class="flex items-center gap-2">
-            <span class="truncate text-body font-medium text-text-1">
-              {{ (data as ComponentNodeData).label }}
-            </span>
-            <span
-              v-if="(data as ComponentNodeData).instanceCount"
-              class="ml-auto shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-micro text-text-3"
-              :title="`${(data as ComponentNodeData).instanceCount} instance(s)`"
+          <div class="node-cut-inner bg-bg-2 px-3 py-2">
+            <div class="flex items-center gap-2">
+              <span class="truncate text-body font-medium text-text-1">
+                {{ (data as ComponentNodeData).label }}
+              </span>
+              <span
+                v-if="(data as ComponentNodeData).instanceCount"
+                class="ml-auto shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-micro text-text-3"
+                :title="`${(data as ComponentNodeData).instanceCount} instance(s)`"
+              >
+                {{ (data as ComponentNodeData).instanceCount }}
+              </span>
+            </div>
+            <div
+              v-if="(data as ComponentNodeData).system"
+              class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-4"
             >
-              {{ (data as ComponentNodeData).instanceCount }}
-            </span>
-          </div>
-          <div
-            v-if="(data as ComponentNodeData).system"
-            class="mt-0.5 truncate font-mono text-micro text-text-4"
-          >
-            {{ (data as ComponentNodeData).system }}
+              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
+              <span class="truncate">{{ (data as ComponentNodeData).system }}</span>
+            </div>
           </div>
         </div>
         <Handle
@@ -247,12 +270,32 @@ function onNodeClick({ node }: NodeMouseEvent) {
 </template>
 
 <style scoped>
+.node-cut {
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+}
+
+.node-cut-inner {
+  clip-path: polygon(
+    2px 2px,
+    calc(100% - 15px) 2px,
+    calc(100% - 2px) 15px,
+    calc(100% - 2px) calc(100% - 2px),
+    2px calc(100% - 2px)
+  );
+}
+
 .emel-flow :deep(.vue-flow__edge-path) {
   stroke: var(--color-text-3, rgba(120, 140, 130, 0.8));
   stroke-width: 1.5;
 }
 .emel-flow :deep(.vue-flow__edge.edge-consumes .vue-flow__edge-path) {
   stroke-dasharray: 5 4;
+}
+.emel-flow :deep(.vue-flow__edge.edge-owned .vue-flow__edge-path) {
+  stroke: var(--color-accent);
+}
+.emel-flow :deep(.vue-flow__edge.edge-owned .vue-flow__arrowhead) {
+  fill: var(--color-accent);
 }
 .emel-flow :deep(.vue-flow__arrowhead) {
   fill: var(--color-text-3, rgba(120, 140, 130, 0.8));
