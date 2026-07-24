@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useApiStore } from '@/stores/apis'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
@@ -34,11 +34,21 @@ const graphModel = computed(() =>
 function onNodeClick({ id, kind }: GraphNodeClick) {
   if (kind === 'component') emit('select', id.slice('comp:'.length))
 }
+
+const graph = ref<InstanceType<typeof FlowGraph> | null>(null)
+
+defineExpose({
+  fit: () => graph.value?.fit(),
+  focusSelected: () => graph.value?.focusSelected(),
+  zoomIn: () => graph.value?.zoomIn(),
+  zoomOut: () => graph.value?.zoomOut(),
+})
 </script>
 
 <template>
   <div class="relative flex min-h-0 flex-1 flex-col">
     <FlowGraph
+      ref="graph"
       :nodes="graphModel.nodes"
       :edges="graphModel.edges"
       :selected-id="`comp:${selectedId}`"

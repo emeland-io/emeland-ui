@@ -1,6 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
-import { IconCircleOff, IconLoader2 } from '@tabler/icons-vue'
+import { ref, computed, watch, nextTick, onMounted, defineAsyncComponent } from 'vue'
+import {
+  IconCircleOff,
+  IconLoader2,
+  IconFocusCentered,
+  IconZoomScan,
+  IconZoomIn,
+  IconZoomOut,
+  IconArrowsMaximize,
+  IconArrowsMinimize,
+  IconBinaryTree,
+} from '@tabler/icons-vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
@@ -13,6 +23,7 @@ import ComponentDetail from '@/components/components/ComponentDetail.vue'
 import { useSelectQuery } from '@/composables/useResourceNav'
 import { useResizable } from '@/composables/useResizable'
 
+// Heavy. Always visible in this layout, so it loads up front.
 const ComponentGraphPane = defineAsyncComponent(
   () => import('@/components/components/ComponentGraphPane.vue'),
 )
@@ -81,6 +92,26 @@ const selectedComponent = computed(() =>
 
 function selectComponent(id: string) {
   selectedId.value = id
+}
+
+// Graph controls
+const graphPane = ref<InstanceType<typeof ComponentGraphPane> | null>(null)
+const graphVisible = ref(true)
+const graphFullscreen = ref(false)
+
+function toggleGraph() {
+  graphVisible.value = !graphVisible.value
+  if (!graphVisible.value) {
+    graphFullscreen.value = false
+    return
+  }
+  nextTick(() => graphPane.value?.fit())
+}
+
+function toggleFullscreen() {
+  graphFullscreen.value = !graphFullscreen.value
+  if (graphFullscreen.value) graphVisible.value = true
+  nextTick(() => graphPane.value?.fit())
 }
 
 const {
@@ -210,12 +241,99 @@ onMounted(async () => {
             class="flex min-w-0 flex-1 flex-col overflow-hidden"
             :class="isResizingGraph ? 'select-none' : ''"
           >
+            <!-- Graph toolbar -->
+            <div
+              class="grid shrink-0 cursor-pointer select-none grid-cols-[1fr_auto_1fr] items-center border-b border-border-1 bg-bg-1 px-2 py-1"
+              :title="graphVisible ? 'Double-click to hide graph' : 'Double-click to show graph'"
+              @dblclick="toggleGraph"
+            >
+              <span class="text-micro font-medium uppercase tracking-wider text-text-4">Graph</span>
+              <div class="flex items-center gap-1">
+                <template v-if="graphVisible">
+                  <button
+                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
+                    title="Focus selection"
+                    :disabled="!selectedId"
+                    @click.stop="graphPane?.focusSelected()"
+                    @dblclick.stop
+                  >
+                    <IconFocusCentered
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                  </button>
+                  <button
+                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Fit to view"
+                    @click.stop="graphPane?.fit()"
+                    @dblclick.stop
+                  >
+                    <IconZoomScan
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                  </button>
+                  <button
+                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Zoom out"
+                    @click.stop="graphPane?.zoomOut()"
+                    @dblclick.stop
+                  >
+                    <IconZoomOut
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                  </button>
+                  <button
+                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Zoom in"
+                    @click.stop="graphPane?.zoomIn()"
+                    @dblclick.stop
+                  >
+                    <IconZoomIn
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                  </button>
+                  <div class="mx-0.5 h-4 w-px bg-bg-3" />
+                  <button
+                    class="rounded p-1 transition-colors hover:bg-bg-3"
+                    :class="graphFullscreen ? 'text-accent' : 'text-text-3 hover:text-text-1'"
+                    :title="graphFullscreen ? 'Exit full view' : 'Full view'"
+                    @click.stop="toggleFullscreen"
+                    @dblclick.stop
+                  >
+                    <component
+                      :is="graphFullscreen ? IconArrowsMinimize : IconArrowsMaximize"
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                  </button>
+                </template>
+                <button
+                  class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                  @click.stop="toggleGraph"
+                  @dblclick.stop
+                >
+                  <IconBinaryTree
+                    :size="14"
+                    :stroke-width="1.75"
+                  />
+                  {{ graphVisible ? 'Hide graph' : 'Show graph' }}
+                </button>
+              </div>
+              <span />
+            </div>
+
             <!-- Graph -->
             <div
-              class="shrink-0 overflow-hidden border-b border-border-1"
-              :style="{ height: graphHeight + 'px' }"
+              v-show="graphVisible"
+              class="overflow-hidden"
+              :class="graphFullscreen ? 'min-h-0 flex-1' : 'shrink-0'"
+              :style="graphFullscreen ? undefined : { height: graphHeight + 'px' }"
             >
               <ComponentGraphPane
+                ref="graphPane"
                 :components="filteredComponents"
                 :selected-id="selectedId"
                 class="h-full"
@@ -225,13 +343,17 @@ onMounted(async () => {
 
             <!-- Resize handle -->
             <div
+              v-if="graphVisible && !graphFullscreen"
               class="h-0.5 shrink-0 cursor-row-resize transition-colors hover:bg-accent/40"
               :class="isResizingGraph ? 'bg-accent/60' : 'bg-bg-3'"
               @mousedown.prevent="onGraphResizeStart"
             />
 
             <!-- Detail -->
-            <div class="flex min-h-0 flex-1 overflow-hidden">
+            <div
+              v-if="!graphFullscreen"
+              class="flex min-h-0 flex-1 overflow-hidden border-t border-border-1"
+            >
               <ComponentDetail :component="selectedComponent" />
             </div>
           </div>

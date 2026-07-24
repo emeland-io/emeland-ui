@@ -37,9 +37,16 @@ const emit = defineEmits<{
 }>()
 
 const flowId = `flow-${useId()}`
-const { fitView, onNodesInitialized } = useVueFlow(flowId)
+const { fitView, zoomIn, zoomOut, onNodesInitialized } = useVueFlow(flowId)
 
 const fit = () => fitView({ padding: 0.2, duration: 300 })
+
+function focusSelected() {
+  if (!props.selectedId) return fit()
+  return fitView({ nodes: [props.selectedId], padding: 0.6, duration: 300, maxZoom: 1.4 })
+}
+
+defineExpose({ fit, focusSelected, zoomIn, zoomOut })
 
 onNodesInitialized(fit)
 watch(
