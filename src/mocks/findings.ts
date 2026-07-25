@@ -144,4 +144,44 @@ export const findings: Finding[] = [
     ],
     annotations: { 'eximpl.emeland.io/detected-at': '2026-05-28T10:05:00Z' },
   },
+  {
+    findingId: '15a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b60',
+    displayName: 'Consumer lag exceeded on Event Bus',
+    description:
+      'App Backend consumes the Event Bus faster than it processes; lag has been above the threshold for 30 minutes.',
+    findingType: {
+      findingTypeId: 'd4e5f6a7-b8c9-4d1e-2f3a-4b5c6d7e8f9a',
+      displayName: 'ConsumerLagExceeded',
+    },
+    resources: [
+      {
+        resourceId: 'cb2c3d4e-5f6a-4b7c-9d1e-2f3a4b5c6d7e',
+        displayName: 'App Backend',
+        resourceType: 'Component',
+      },
+      {
+        resourceId: 'ac3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f',
+        displayName: 'Event Bus',
+        resourceType: 'API',
+      },
+    ],
+    annotations: { 'eximpl.emeland.io/detected-at': '2026-05-28T08:15:00Z' },
+  },
+  {
+    findingId: '16a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b61',
+    displayName: 'Version mismatch with component template',
+    description: 'Kong Gateway runs v3.6.1 while the component template pins v3.7.0.',
+    findingType: {
+      findingTypeId: 'e5f6a7b8-c9d1-4e2f-3a4b-5c6d7e8f9a1b',
+      displayName: 'VersionMismatch',
+    },
+    resources: [
+      {
+        resourceId: 'cc3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f',
+        displayName: 'Kong Gateway',
+        resourceType: 'Component',
+      },
+    ],
+    annotations: { 'eximpl.emeland.io/detected-at': '2026-05-28T06:42:00Z' },
+  },
 ]

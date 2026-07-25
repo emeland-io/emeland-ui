@@ -175,99 +175,109 @@ function versionDates(c: Component | undefined): [string, string][] {
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Related findings -->
-      <div
-        v-if="relatedFindings.length > 0"
-        class="max-w-5xl"
-      >
-        <SectionLabel>Findings</SectionLabel>
-        <button
-          v-for="f in relatedFindings"
-          :key="f.findingId"
-          class="group flex w-full items-center gap-2.5 border-b border-border-1 py-2 text-left last:border-b-0"
-          title="Go to finding"
-          @click="goToFinding(f.findingId)"
-        >
-          <span
-            class="shrink-0 rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-micro text-sensor"
+        <div>
+          <SectionLabel>System</SectionLabel>
+          <p
+            v-if="!component.system"
+            class="text-data leading-snug text-text-4"
           >
-            {{ findingsStore.getKindForFinding(f) }}
-          </span>
-          <span
-            class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
+            No system.
+          </p>
+          <button
+            v-else-if="!systemUnresolved"
+            class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+            title="Go to system"
+            @click="goToResource('System', component.system)"
           >
-            {{ f.displayName }}
-          </span>
-          <IconArrowUpRight
-            :size="15"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-          />
-          <span class="ml-auto shrink-0 font-mono text-meta text-text-4">
-            {{ f.findingId }}
-          </span>
-        </button>
-      </div>
-      <div
-        v-if="component.system"
-        class="max-w-5xl"
-      >
-        <SectionLabel>System</SectionLabel>
-        <button
-          v-if="!systemUnresolved"
-          class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
-          title="Go to system"
-          @click="goToResource('System', component.system)"
-        >
-          <span class="group/row flex w-full items-center gap-3">
-            <span
-              class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
-            >
-              System
+            <span class="group/row flex w-full items-center gap-3">
+              <span
+                class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+              >
+                System
+              </span>
+              <span
+                class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
+              >
+                {{ systemName }}
+              </span>
+              <IconArrowUpRight
+                :size="16"
+                :stroke-width="2"
+                class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
+              />
             </span>
-            <span
-              class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-            >
-              {{ systemName }}
+            <span class="flex items-center gap-1.5">
+              <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
+              <CopyButton
+                :value="component.system"
+                :size="12"
+                @click.stop
+              />
             </span>
-            <IconArrowUpRight
-              :size="16"
-              :stroke-width="2"
-              class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-            />
-          </span>
-          <span class="flex items-center gap-1.5">
+          </button>
+          <div
+            v-else
+            class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
+          >
+            <div class="flex items-center gap-3">
+              <span
+                class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
+              >
+                System
+              </span>
+              <span class="min-w-0 truncate text-body text-error">Unresolved system</span>
+            </div>
             <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
-            <CopyButton
-              :value="component.system"
-              :size="12"
-              @click.stop
-            />
-          </span>
-        </button>
-        <div
-          v-else
-          class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
-        >
-          <div class="flex items-center gap-3">
-            <span
-              class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
-            >
-              System
-            </span>
-            <span class="min-w-0 truncate text-body text-error">Unresolved system</span>
           </div>
-          <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
+        </div>
+        <!-- findings -->
+        <div>
+          <SectionLabel :count="relatedFindings.length">Findings</SectionLabel>
+          <p
+            v-if="relatedFindings.length === 0"
+            class="text-data leading-snug text-text-4"
+          >
+            No findings.
+          </p>
+          <button
+            v-for="f in relatedFindings"
+            :key="f.findingId"
+            class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+            title="Go to finding"
+            @click="goToFinding(f.findingId)"
+          >
+            <span class="group/row flex w-full items-center gap-2.5">
+              <span
+                class="shrink-0 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
+              >
+                {{ findingsStore.getKindForFinding(f) }}
+              </span>
+              <span
+                class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
+              >
+                {{ f.displayName }}
+              </span>
+              <IconArrowUpRight
+                :size="15"
+                :stroke-width="2"
+                class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
+              />
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="font-mono text-meta text-text-4">{{ f.findingId }}</span>
+              <CopyButton
+                :value="f.findingId"
+                :size="12"
+                @click.stop
+              />
+            </span>
+          </button>
         </div>
       </div>
 
       <!-- Annotations -->
-      <div
-        v-if="Object.keys(component.annotations).length > 0"
-        class="max-w-5xl"
-      >
+      <div v-if="Object.keys(component.annotations).length > 0">
         <SectionLabel>Annotations</SectionLabel>
         <AnnotationsTable :annotations="component.annotations" />
       </div>

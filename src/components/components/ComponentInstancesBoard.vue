@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, toRef } from 'vue'
-import { IconStack2, IconLayoutGrid, IconList, IconSearch } from '@tabler/icons-vue'
+import { IconLayoutGrid, IconList, IconSearch } from '@tabler/icons-vue'
 import { useComponentInstanceList } from '@/composables/useComponentInstanceList'
 import ViewModeSwitch from '@/components/ViewModeSwitch.vue'
 import type { ComponentInstance } from '@/types/component'
@@ -54,11 +54,6 @@ const columns = computed(() => {
   <div class="rounded-lg border border-border-1 bg-bg-1 p-4">
     <!-- header -->
     <div class="mb-3 flex items-center gap-2">
-      <IconStack2
-        :size="15"
-        :stroke-width="2"
-        class="shrink-0 text-accent"
-      />
       <span class="text-body font-medium text-text-1">Instances</span>
       <span class="text-meta text-text-4">
         {{ filtered.length }} across {{ columns.length }}
