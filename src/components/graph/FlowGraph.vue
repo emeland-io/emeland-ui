@@ -26,11 +26,15 @@ import type {
   ComponentNodeData,
 } from '@/types/graph'
 
-const props = defineProps<{
-  nodes: GraphNode[]
-  edges: GraphEdge[]
-  selectedId?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    nodes: GraphNode[]
+    edges: GraphEdge[]
+    selectedId?: string
+    showControls?: boolean
+  }>(),
+  { selectedId: '', showControls: true },
+)
 
 const emit = defineEmits<{
   'node-click': [payload: { id: string; kind: GraphNodeKind }]
@@ -136,11 +140,13 @@ function onNodeClick({ node }: NodeMouseEvent) {
       @node-click="onNodeClick"
     >
       <Background
-        :gap="20"
+        variant="lines"
+        :gap="88"
         :size="1"
-        pattern-color="rgba(128, 128, 128, 0.18)"
+        pattern-color="rgba(128, 128, 128, 0.10)"
       />
       <Controls
+        v-if="showControls"
         :show-interactive="false"
         position="bottom-left"
       />
@@ -300,6 +306,15 @@ function onNodeClick({ node }: NodeMouseEvent) {
 </template>
 
 <style scoped>
+.emel-flow :deep(.vue-flow__background pattern path),
+.emel-flow :deep(.vue-flow__background pattern line) {
+  stroke: color-mix(in srgb, var(--color-border-1) 35%, transparent);
+}
+
+.emel-flow :deep(.vue-flow__background pattern circle) {
+  fill: color-mix(in srgb, var(--color-border-1) 35%, transparent);
+}
+
 .node-cut {
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
 }
@@ -318,33 +333,41 @@ function onNodeClick({ node }: NodeMouseEvent) {
   stroke: var(--color-text-3, rgba(120, 140, 130, 0.8));
   stroke-width: 1.5;
 }
+
 .emel-flow :deep(.vue-flow__edge.edge-consumes .vue-flow__edge-path) {
   stroke-dasharray: 5 4;
 }
+
 .emel-flow :deep(.vue-flow__edge.edge-active .vue-flow__edge-path) {
   stroke: var(--color-accent);
   stroke-width: 2;
 }
+
 .emel-flow :deep(.vue-flow__edge.edge-active .vue-flow__arrowhead) {
   fill: var(--color-accent);
 }
+
 .emel-flow :deep(.vue-flow__arrowhead) {
   fill: var(--color-text-3, rgba(120, 140, 130, 0.8));
 }
+
 .emel-flow :deep(.vue-flow__handle) {
   width: 6px;
   height: 6px;
   border: none;
   background: var(--color-border-2, rgba(120, 140, 130, 0.7));
 }
+
 .emel-flow :deep(.vue-flow__controls) {
   box-shadow: none;
 }
+
 .emel-flow :deep(.vue-flow__controls-button) {
   border: 1px solid var(--color-border-2, rgba(120, 140, 130, 0.4));
   background: var(--color-bg-1, #1a1a1a);
   fill: var(--color-text-3, #999);
 }
+
 .emel-flow :deep(.vue-flow__controls-button:hover) {
   background: var(--color-bg-2, #222);
 }
