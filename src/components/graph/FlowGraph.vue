@@ -209,23 +209,25 @@ function onNodeClick({ node }: NodeMouseEvent) {
 
       <template #node-instance="{ id, data }">
         <div
-          class="node-cut w-full cursor-pointer px-3 py-2 transition-colors"
+          class="node-cut node-inst w-full cursor-pointer"
           :class="
             id === selectedId
-              ? 'bg-accent/25'
+              ? 'node-inst-selected'
               : isOwnedBySelection(data)
-                ? 'bg-accent/10 hover:bg-accent/20'
-                : 'bg-bg-2 hover:bg-bg-3'
+                ? 'node-inst-owned'
+                : ''
           "
           :title="(data as InstanceNodeData).label"
         >
-          <div class="truncate text-body text-text-2">{{ (data as InstanceNodeData).label }}</div>
-          <div
-            v-if="(data as InstanceNodeData).context"
-            class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-4"
-          >
-            <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">C</span>
-            <span class="truncate">{{ (data as InstanceNodeData).context }}</span>
+          <div class="node-cut-inner px-3 py-2">
+            <div class="truncate text-body text-text-2">{{ (data as InstanceNodeData).label }}</div>
+            <div
+              v-if="(data as InstanceNodeData).context"
+              class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-3"
+            >
+              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">C</span>
+              <span class="truncate">{{ (data as InstanceNodeData).context }}</span>
+            </div>
           </div>
         </div>
         <Handle
@@ -236,8 +238,8 @@ function onNodeClick({ node }: NodeMouseEvent) {
 
       <template #node-api="{ id, data }">
         <div
-          class="flex h-full w-full items-center gap-2 rounded-full border bg-bg-1 px-4 shadow-sm transition-colors"
-          :class="neighbourIds.has(id) ? 'border-accent' : 'border-border-2'"
+          class="flex h-full w-full items-center gap-2 rounded-full border bg-bg-1 px-4 transition-colors"
+          :class="neighbourIds.has(id) ? 'border-accent' : 'border-text-4'"
           :title="(data as ApiNodeData).label"
         >
           <span class="min-w-0 flex-1 truncate text-body text-text-1">
@@ -263,21 +265,18 @@ function onNodeClick({ node }: NodeMouseEvent) {
       <!-- Component node -->
       <template #node-component="{ id, data }">
         <div
-          class="node-cut w-full cursor-pointer transition-colors"
-          :class="id === selectedId ? 'bg-accent' : 'bg-border-2 hover:bg-accent/60'"
+          class="node-cut node-comp w-full cursor-pointer px-3 py-2"
+          :class="id === selectedId ? 'node-comp-selected' : ''"
           :title="(data as ComponentNodeData).label"
         >
-          <div
-            class="node-cut-inner px-3 py-2 transition-colors"
-            :class="id === selectedId ? 'bg-accent/10' : 'bg-bg-2'"
-          >
+          <div>
             <div class="flex items-center gap-2">
               <span class="truncate text-body font-medium text-text-1">
                 {{ (data as ComponentNodeData).label }}
               </span>
               <span
                 v-if="(data as ComponentNodeData).instanceCount"
-                class="ml-auto shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-micro text-text-3"
+                class="ml-auto shrink-0 rounded-full bg-bg-0 px-1.5 py-0.5 font-mono text-micro tabular-nums text-text-3"
                 :title="`${(data as ComponentNodeData).instanceCount} instance(s)`"
               >
                 {{ (data as ComponentNodeData).instanceCount }}
@@ -285,9 +284,9 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </div>
             <div
               v-if="(data as ComponentNodeData).system"
-              class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-4"
+              class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-2"
             >
-              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
+              <span class="shrink-0 rounded-sm bg-bg-0 px-1 text-text-3">S</span>
               <span class="truncate">{{ (data as ComponentNodeData).system }}</span>
             </div>
           </div>
@@ -308,11 +307,11 @@ function onNodeClick({ node }: NodeMouseEvent) {
 <style scoped>
 .emel-flow :deep(.vue-flow__background pattern path),
 .emel-flow :deep(.vue-flow__background pattern line) {
-  stroke: color-mix(in srgb, var(--color-border-1) 35%, transparent);
+  stroke: color-mix(in srgb, var(--color-border-1) 45%, transparent);
 }
 
 .emel-flow :deep(.vue-flow__background pattern circle) {
-  fill: color-mix(in srgb, var(--color-border-1) 35%, transparent);
+  fill: color-mix(in srgb, var(--color-border-1) 45%, transparent);
 }
 
 .node-cut {
@@ -327,6 +326,59 @@ function onNodeClick({ node }: NodeMouseEvent) {
     calc(100% - 2px) calc(100% - 2px),
     2px calc(100% - 2px)
   );
+}
+
+.node-comp,
+.node-inst,
+.node-inst > .node-cut-inner {
+  transition: background-color 150ms;
+}
+
+.node-comp {
+  --node-comp-fill: var(--color-text-4);
+  background: var(--node-comp-fill);
+}
+
+[data-theme='light'] .node-comp {
+  --node-comp-fill: color-mix(in srgb, var(--color-text-4) 72%, #fff);
+}
+
+.node-comp:hover {
+  background: color-mix(in srgb, var(--node-comp-fill) 80%, var(--color-accent));
+}
+
+.node-comp-selected,
+.node-comp-selected:hover {
+  background: color-mix(in srgb, var(--node-comp-fill) 45%, var(--color-accent));
+}
+
+.node-inst {
+  background: var(--color-text-4);
+}
+
+.node-inst > .node-cut-inner {
+  background: var(--color-bg-1);
+}
+
+.node-inst:hover > .node-cut-inner {
+  background: color-mix(in srgb, var(--color-bg-1) 90%, var(--color-accent));
+}
+
+.node-inst-owned {
+  background: var(--color-accent);
+}
+
+.node-inst-owned > .node-cut-inner {
+  background: color-mix(in srgb, var(--color-bg-1) 86%, var(--color-accent));
+}
+
+.node-inst-selected {
+  background: var(--color-accent);
+}
+
+.node-inst-selected > .node-cut-inner,
+.node-inst-selected:hover > .node-cut-inner {
+  background: color-mix(in srgb, var(--color-bg-1) 68%, var(--color-accent));
 }
 
 .emel-flow :deep(.vue-flow__edge-path) {
