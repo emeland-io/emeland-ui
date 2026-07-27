@@ -4,11 +4,11 @@ import { useModelStore } from '@/stores/model'
 
 const store = useModelStore()
 
-const STATUS_DOT: Record<string, string> = {
-  online: 'bg-accent',
-  offline: 'bg-error',
-  unknown: 'bg-text-4',
-}
+// const STATUS_DOT: Record<string, string> = {
+//   online: 'bg-accent',
+//   offline: 'bg-error',
+//   unknown: 'bg-text-4',
+// }
 
 onMounted(() => store.load())
 </script>
@@ -29,11 +29,11 @@ onMounted(() => store.load())
         {{ store.model.version }}
       </span>
     </span>
-    <span
+    <!-- <span
       v-if="store.model.status"
       class="h-1.5 w-1.5 shrink-0 rounded-full"
       :class="STATUS_DOT[store.model.status]"
       :title="store.model.status"
-    />
+    /> -->
   </RouterLink>
 </template>
