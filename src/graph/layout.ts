@@ -9,6 +9,7 @@ interface NodeSpec {
 
 export interface LayoutAnchor extends NodeSpec {
   rowKey: string
+  depth?: number
 }
 
 export interface LayoutMember extends NodeSpec {
@@ -36,6 +37,8 @@ export interface FramedColumnsOptions {
   header?: number
   pad?: number
   anchorX?: number
+  anchorIndent?: number
+  anchorWidth?: number
   frameX0?: number
   frameWidth?: number
   memberWidth?: number
@@ -48,6 +51,8 @@ const DEFAULTS: Required<FramedColumnsOptions> = {
   header: 34,
   pad: 14,
   anchorX: 0,
+  anchorIndent: 232,
+  anchorWidth: 208,
   frameX0: 300,
   frameWidth: 244,
   memberWidth: 216,
@@ -71,11 +76,11 @@ export function layoutFramedColumns(
       bandOrder.push(key)
     }
   }
+  for (const a of input.anchors ?? []) pushBand(a.rowKey)
   for (const m of input.members) {
     pushBand(m.rowKey)
     bandMembers.get(m.rowKey)!.push(m)
   }
-  for (const a of input.anchors ?? []) pushBand(a.rowKey) // anchors with no members still get a row
 
   const memberRow = new Map<string, number>()
   const bandCentre = new Map<string, number>()
@@ -98,16 +103,24 @@ export function layoutFramedColumns(
     nodes.push({
       id: a.id,
       kind: a.kind,
-      position: { x: o.anchorX, y: rowY(bandCentre.get(a.rowKey) ?? 0) },
+      position: {
+        x: o.anchorX + (a.depth ?? 0) * o.anchorIndent,
+        y: rowY(bandCentre.get(a.rowKey) ?? 0),
+      },
+      size: { width: o.anchorWidth },
       selectable: a.selectable ?? false,
       data: a.data,
     } as GraphNode)
   }
 
+  const maxDepth = Math.max(0, ...(input.anchors ?? []).map((a) => a.depth ?? 0))
+  const anchorsRight = o.anchorX + maxDepth * o.anchorIndent + o.anchorWidth
+  const frameStart = Math.max(o.frameX0, anchorsRight + o.columnGap)
+
   const frameX = new Map<string, number>()
   const orderedFrames = [...input.frames].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
   orderedFrames.forEach((f, i) => {
-    const x = o.frameX0 + i * (o.frameWidth + o.columnGap)
+    const x = frameStart + i * (o.frameWidth + o.columnGap)
     frameX.set(f.id, x)
     nodes.push({
       id: f.id,

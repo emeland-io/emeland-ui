@@ -43,6 +43,7 @@ const SIZE: Record<GraphNodeKind, { width: number; height: number }> = {
   system: { width: 208, height: 60 },
   instance: { width: 200, height: 60 },
   context: { width: 220, height: 80 },
+  'context-node': { width: 208, height: 60 },
 }
 
 export function layoutDag(input: LayoutDagInput): GraphModel {

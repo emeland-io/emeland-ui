@@ -22,6 +22,7 @@ import type {
   SystemNodeData,
   InstanceNodeData,
   ContextNodeData,
+  ContextItemNodeData,
   ApiNodeData,
   ComponentNodeData,
 } from '@/types/graph'
@@ -32,8 +33,9 @@ const props = withDefaults(
     edges: GraphEdge[]
     selectedId?: string
     showControls?: boolean
+    matchIds?: Set<string>
   }>(),
-  { selectedId: '', showControls: true },
+  { selectedId: '', showControls: true, matchIds: () => new Set<string>() },
 )
 
 const emit = defineEmits<{
@@ -56,7 +58,14 @@ function focusSelected() {
   return fitView({ nodes: [props.selectedId], padding: 0.6, duration: 300, maxZoom: 1.4 })
 }
 
-defineExpose({ fit, focusSelected, zoomIn, zoomOut })
+function focusMatches() {
+  if (isEmpty.value || props.matchIds.size === 0) return
+  const ids = props.nodes.map((n) => n.id).filter((id) => props.matchIds.has(id))
+  if (ids.length === 0) return
+  return fitView({ nodes: ids, padding: 0.9, duration: 400, maxZoom: 1.1 })
+}
+
+defineExpose({ fit, focusSelected, focusMatches, zoomIn, zoomOut })
 
 onNodesInitialized(fit)
 watch(
@@ -70,6 +79,7 @@ const flowNodes = computed<Node[]>(() =>
     type: n.kind,
     position: n.position,
     parentNode: n.parentId,
+    class: props.matchIds.has(n.id) ? 'node-match' : '',
     draggable: false,
     selectable: n.selectable ?? true,
     style: n.size
@@ -84,6 +94,8 @@ const flowEdges = computed<Edge[]>(() =>
     id: e.id,
     source: e.source,
     target: e.target,
+    sourceHandle: e.sourceHandle,
+    targetHandle: e.targetHandle,
     type: 'smoothstep',
     class: [
       e.kind === 'consumes' ? 'edge-consumes' : e.kind === 'provides' ? 'edge-provides' : '',
@@ -162,35 +174,70 @@ function onNodeClick({ node }: NodeMouseEvent) {
         </div>
       </template>
 
-      <!-- System node -->
-      <template #node-system="{ data }">
+      <!-- Context node -->
+      <template #node-context-node="{ id, data }">
         <div
-          class="w-56 cursor-pointer rounded-md border border-border-2 bg-bg-2 px-3 py-2 shadow-sm transition-colors hover:border-accent"
-          title="Open system"
+          class="node-cut node-comp w-full cursor-pointer px-3 py-2"
+          :class="id === selectedId ? 'node-comp-selected' : ''"
+          :title="(data as ContextItemNodeData).label"
         >
-          <div class="truncate text-body font-medium text-text-1">
-            {{ (data as SystemNodeData).label }}
-          </div>
-          <div class="mt-1 flex items-center gap-1.5">
-            <span
-              class="rounded px-1.5 py-0.5 font-mono text-micro"
-              :class="
-                (data as SystemNodeData).abstract
-                  ? 'bg-bg-2 text-text-3'
-                  : 'bg-accent/10 text-accent'
-              "
-            >
-              {{ (data as SystemNodeData).abstract ? 'Abstract' : 'Concrete' }}
+          <div class="flex items-center gap-2">
+            <span class="truncate text-body font-medium text-text-1">
+              {{ (data as ContextItemNodeData).label }}
             </span>
             <span
-              v-if="(data as SystemNodeData).version"
-              class="font-mono text-micro text-text-4"
+              v-if="(data as ContextItemNodeData).findings"
+              class="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
+              :title="`${(data as ContextItemNodeData).findings} finding(s)`"
             >
-              v{{ (data as SystemNodeData).version }}
+              <IconAlertTriangle
+                :size="10"
+                :stroke-width="2"
+              />
+              {{ (data as ContextItemNodeData).findings }}
+            </span>
+          </div>
+          <div class="mt-0.5 flex items-center gap-1.5 font-mono text-micro text-text-2">
+            <span
+              v-if="(data as ContextItemNodeData).type"
+              class="shrink-0 rounded-sm bg-bg-0 px-1 text-text-3"
+            >
+              C
+            </span>
+            <span class="truncate">{{ (data as ContextItemNodeData).type }}</span>
+            <span
+              v-if="(data as ContextItemNodeData).instances"
+              class="ml-auto shrink-0 tabular-nums"
+              :title="`${(data as ContextItemNodeData).instances} instance(s)`"
+            >
+              {{ (data as ContextItemNodeData).instances }} inst
+            </span>
+          </div>
+        </div>
+        <Handle
+          type="target"
+          :position="Position.Left"
+        />
+        <Handle
+          type="source"
+          :position="Position.Right"
+        />
+      </template>
+
+      <!-- System node -->
+      <template #node-system="{ id, data }">
+        <div
+          class="node-cut node-comp w-full cursor-pointer px-3 py-2"
+          :class="id === selectedId ? 'node-comp-selected' : ''"
+          :title="(data as SystemNodeData).label"
+        >
+          <div class="flex items-center gap-2">
+            <span class="truncate text-body font-medium text-text-1">
+              {{ (data as SystemNodeData).label }}
             </span>
             <span
               v-if="(data as SystemNodeData).findings"
-              class="flex items-center gap-1 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
+              class="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
               :title="`${(data as SystemNodeData).findings} finding(s)`"
             >
               <IconAlertTriangle
@@ -200,7 +247,25 @@ function onNodeClick({ node }: NodeMouseEvent) {
               {{ (data as SystemNodeData).findings }}
             </span>
           </div>
+          <div class="mt-0.5 flex items-center gap-1.5 font-mono text-micro text-text-2">
+            <span class="shrink-0 rounded-sm bg-bg-0 px-1 text-text-3">
+              {{ (data as SystemNodeData).abstract ? 'A' : 'C' }}
+            </span>
+            <span class="truncate">
+              {{ (data as SystemNodeData).abstract ? 'Abstract' : 'Concrete' }}
+            </span>
+            <span
+              v-if="(data as SystemNodeData).version"
+              class="shrink-0"
+            >
+              v{{ (data as SystemNodeData).version }}
+            </span>
+          </div>
         </div>
+        <Handle
+          type="target"
+          :position="Position.Left"
+        />
         <Handle
           type="source"
           :position="Position.Right"
@@ -305,11 +370,17 @@ function onNodeClick({ node }: NodeMouseEvent) {
 </template>
 
 <style scoped>
+.emel-flow :deep(.vue-flow__node.node-match) {
+  box-shadow:
+    0 0 0 4px var(--color-bg-0),
+    0 0 0 7px var(--color-match);
+  border-radius: 4px;
+}
+
 .emel-flow :deep(.vue-flow__background pattern path),
 .emel-flow :deep(.vue-flow__background pattern line) {
   stroke: color-mix(in srgb, var(--color-border-1) 45%, transparent);
 }
-
 .emel-flow :deep(.vue-flow__background pattern circle) {
   fill: color-mix(in srgb, var(--color-border-1) 45%, transparent);
 }
@@ -342,11 +413,9 @@ function onNodeClick({ node }: NodeMouseEvent) {
 [data-theme='light'] .node-comp {
   --node-comp-fill: color-mix(in srgb, var(--color-text-4) 72%, #fff);
 }
-
 .node-comp:hover {
   background: color-mix(in srgb, var(--node-comp-fill) 80%, var(--color-accent));
 }
-
 .node-comp-selected,
 .node-comp-selected:hover {
   background: color-mix(in srgb, var(--node-comp-fill) 45%, var(--color-accent));
@@ -355,27 +424,21 @@ function onNodeClick({ node }: NodeMouseEvent) {
 .node-inst {
   background: var(--color-text-4);
 }
-
 .node-inst > .node-cut-inner {
   background: var(--color-bg-1);
 }
-
 .node-inst:hover > .node-cut-inner {
   background: color-mix(in srgb, var(--color-bg-1) 90%, var(--color-accent));
 }
-
 .node-inst-owned {
   background: var(--color-accent);
 }
-
 .node-inst-owned > .node-cut-inner {
   background: color-mix(in srgb, var(--color-bg-1) 86%, var(--color-accent));
 }
-
 .node-inst-selected {
   background: var(--color-accent);
 }
-
 .node-inst-selected > .node-cut-inner,
 .node-inst-selected:hover > .node-cut-inner {
   background: color-mix(in srgb, var(--color-bg-1) 68%, var(--color-accent));
@@ -385,41 +448,33 @@ function onNodeClick({ node }: NodeMouseEvent) {
   stroke: var(--color-text-3, rgba(120, 140, 130, 0.8));
   stroke-width: 1.5;
 }
-
 .emel-flow :deep(.vue-flow__edge.edge-consumes .vue-flow__edge-path) {
   stroke-dasharray: 5 4;
 }
-
 .emel-flow :deep(.vue-flow__edge.edge-active .vue-flow__edge-path) {
   stroke: var(--color-accent);
   stroke-width: 2;
 }
-
 .emel-flow :deep(.vue-flow__edge.edge-active .vue-flow__arrowhead) {
   fill: var(--color-accent);
 }
-
 .emel-flow :deep(.vue-flow__arrowhead) {
   fill: var(--color-text-3, rgba(120, 140, 130, 0.8));
 }
-
 .emel-flow :deep(.vue-flow__handle) {
   width: 6px;
   height: 6px;
   border: none;
   background: var(--color-border-2, rgba(120, 140, 130, 0.7));
 }
-
 .emel-flow :deep(.vue-flow__controls) {
   box-shadow: none;
 }
-
 .emel-flow :deep(.vue-flow__controls-button) {
   border: 1px solid var(--color-border-2, rgba(120, 140, 130, 0.4));
   background: var(--color-bg-1, #1a1a1a);
   fill: var(--color-text-3, #999);
 }
-
 .emel-flow :deep(.vue-flow__controls-button:hover) {
   background: var(--color-bg-2, #222);
 }

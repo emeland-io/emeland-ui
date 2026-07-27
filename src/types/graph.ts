@@ -1,4 +1,4 @@
-export type GraphNodeKind = 'system' | 'instance' | 'context' | 'api' | 'component'
+export type GraphNodeKind = 'system' | 'instance' | 'context' | 'context-node' | 'api' | 'component'
 export type GraphEdgeKind = 'contains' | 'communicates' | 'provides' | 'consumes' | 'default'
 
 export interface GraphPosition {
@@ -32,6 +32,12 @@ export interface InstanceNodeData {
 }
 export interface ContextNodeData {
   label: string
+}
+export interface ContextItemNodeData {
+  label: string
+  type?: string
+  instances?: number
+  findings?: number
 }
 export interface ApiNodeData {
   label: string
@@ -76,6 +82,8 @@ export interface GraphEdge {
   source: string
   target: string
   kind?: GraphEdgeKind
+  sourceHandle?: string
+  targetHandle?: string
 }
 
 export interface GraphModel {

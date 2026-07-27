@@ -15,8 +15,10 @@ const props = withDefaults(
     selectedId: string
     showInstances?: boolean
     showApis?: boolean
+    showControls?: boolean
+    matchIds?: Set<string>
   }>(),
-  { showInstances: false, showApis: true },
+  { showInstances: false, showApis: true, showControls: true, matchIds: () => new Set<string>() },
 )
 
 const emit = defineEmits<{
@@ -52,6 +54,7 @@ const graph = ref<InstanceType<typeof FlowGraph> | null>(null)
 defineExpose({
   fit: () => graph.value?.fit(),
   focusSelected: () => graph.value?.focusSelected(),
+  focusMatches: () => graph.value?.focusMatches(),
   zoomIn: () => graph.value?.zoomIn(),
   zoomOut: () => graph.value?.zoomOut(),
 })
@@ -61,6 +64,8 @@ defineExpose({
   <div class="relative flex min-h-0 flex-1 flex-col">
     <FlowGraph
       ref="graph"
+      :show-controls="showControls"
+      :match-ids="matchIds"
       :nodes="graphModel.nodes"
       :edges="graphModel.edges"
       :selected-id="`comp:${selectedId}`"

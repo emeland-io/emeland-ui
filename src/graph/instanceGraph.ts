@@ -22,32 +22,63 @@ export function buildInstanceGraph({
   contextName,
   findingCountOf,
 }: InstanceGraphInput): GraphModel {
-  // Robust against a not-yet-loaded list: a missing systems array yields an
-  // empty graph rather than throwing.
   const allSystems = systems ?? []
   const withInstances = allSystems
     .map((system) => ({ system, instances: instancesOf(system.systemId) }))
     .filter((g) => g.instances.length > 0)
-  const hasInstances = new Set(withInstances.map((g) => g.system.systemId))
 
   const ctxLabel = (inst: SystemInstance) =>
     inst.context ? (contextName(inst.context) ?? inst.context) : 'No context'
   const frameOf = (inst: SystemInstance) => inst.context ?? NO_CONTEXT
 
-  const anchors: LayoutAnchor[] = allSystems
-    .filter((system) => hasInstances.has(system.systemId) || system.abstract)
-    .map((system) => ({
-      id: system.systemId,
-      kind: 'system',
-      rowKey: system.systemId,
-      selectable: false,
-      data: {
-        label: system.displayName,
-        abstract: system.abstract,
-        version: system.version?.version || undefined,
-        findings: findingCountOf?.(system.systemId) || undefined,
-      },
-    }))
+  const byId = new Map(allSystems.map((s) => [s.systemId, s]))
+  const isParent = new Set(
+    allSystems.filter((s) => s.parent && byId.has(s.parent)).map((s) => s.parent as string),
+  )
+
+  const depthOf = (system: System): number => {
+    let depth = 0
+    let current = system.parent
+    const seen = new Set<string>([system.systemId])
+    while (current && byId.has(current) && !seen.has(current)) {
+      seen.add(current)
+      depth++
+      current = byId.get(current)?.parent
+    }
+    if (depth === 0 && !isParent.has(system.systemId)) return 1
+    return depth
+  }
+
+  const childrenOf = new Map<string, System[]>()
+  const roots: System[] = []
+  for (const system of allSystems) {
+    if (system.parent && byId.has(system.parent)) {
+      childrenOf.set(system.parent, [...(childrenOf.get(system.parent) ?? []), system])
+    } else {
+      roots.push(system)
+    }
+  }
+  const ordered: System[] = []
+  const visit = (system: System) => {
+    if (ordered.includes(system)) return
+    ordered.push(system)
+    for (const child of childrenOf.get(system.systemId) ?? []) visit(child)
+  }
+  for (const r of roots) visit(r)
+
+  const anchors: LayoutAnchor[] = ordered.map((system) => ({
+    id: system.systemId,
+    kind: 'system',
+    rowKey: system.systemId,
+    depth: depthOf(system),
+    selectable: false,
+    data: {
+      label: system.displayName,
+      abstract: system.abstract,
+      version: system.version?.version || undefined,
+      findings: findingCountOf?.(system.systemId) || undefined,
+    },
+  }))
 
   const frameLabels = new Map<string, string>()
   for (const { instances } of withInstances) {
@@ -62,6 +93,17 @@ export function buildInstanceGraph({
 
   const members: LayoutMember[] = []
   const edges: GraphEdge[] = []
+
+  const present = new Set(allSystems.map((s) => s.systemId))
+  for (const system of allSystems) {
+    if (!system.parent || !present.has(system.parent)) continue
+    edges.push({
+      id: `sub:${system.parent}:${system.systemId}`,
+      source: system.parent,
+      target: system.systemId,
+      kind: 'contains',
+    })
+  }
   for (const { system, instances } of withInstances) {
     const ordered = [...instances].sort(
       (a, b) =>
