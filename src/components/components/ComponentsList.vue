@@ -36,11 +36,11 @@ function findingCount(id: string): number {
     v-for="comp in components"
     :key="comp.componentId"
     class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
-    :class="
+    :class="[
       comp.componentId === selectedId
         ? 'border-l-accent bg-accent/5'
-        : 'border-l-transparent hover:bg-bg-1'
-    "
+        : 'border-l-transparent hover:bg-bg-1',
+    ]"
     @click="emit('select', comp.componentId)"
   >
     <div
