@@ -293,6 +293,13 @@ function onNodeClick({ node }: NodeMouseEvent) {
               <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">C</span>
               <span class="truncate">{{ (data as InstanceNodeData).context }}</span>
             </div>
+            <div
+              v-else-if="(data as InstanceNodeData).system"
+              class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-3"
+            >
+              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
+              <span class="truncate">{{ (data as InstanceNodeData).system }}</span>
+            </div>
           </div>
         </div>
         <Handle
@@ -373,6 +380,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
 .badge-warning {
   background: color-mix(in srgb, var(--color-bg-0) 88%, var(--color-warning));
 }
+
 .emel-flow :deep(.vue-flow__node.node-match) {
   box-shadow:
     0 0 0 4px var(--color-bg-0),

@@ -29,6 +29,7 @@ export interface InstanceNodeData {
   label: string
   parent?: string
   context?: string
+  system?: string
 }
 export interface ContextNodeData {
   label: string

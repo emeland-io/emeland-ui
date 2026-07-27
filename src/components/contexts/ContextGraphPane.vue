@@ -123,6 +123,13 @@ defineExpose({
         v-if="showInstances"
         class="flex items-center gap-1.5"
       >
+        <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
+        system
+      </div>
+      <div
+        v-if="showInstances"
+        class="flex items-center gap-1.5"
+      >
         <svg
           width="18"
           height="11"

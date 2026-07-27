@@ -114,7 +114,11 @@ export function buildContextInstanceGraph({
         kind: 'instance',
         frameId,
         rowKey: context.contextId,
-        data: { label: inst.displayName, parent: context.contextId },
+        data: {
+          label: inst.displayName,
+          parent: context.contextId,
+          system: inst.system ? systemName(inst.system) : undefined,
+        },
       })
       edges.push({
         id: `${context.contextId}->${inst.systemInstanceId}`,
