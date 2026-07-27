@@ -1,6 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
-import { IconCircleOff, IconLoader2, IconList, IconBinaryTree } from '@tabler/icons-vue'
+import { ref, computed, watch, nextTick, onMounted, defineAsyncComponent } from 'vue'
+import {
+  IconCircleOff,
+  IconLoader2,
+  IconFocusCentered,
+  IconZoomScan,
+  IconZoomIn,
+  IconZoomOut,
+  IconArrowsMaximize,
+  IconArrowsMinimize,
+  IconBinaryTree,
+} from '@tabler/icons-vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
@@ -10,10 +20,11 @@ import ListDetail from '@/components/ListDetail.vue'
 import ComponentsToolbar from '@/components/components/ComponentsToolbar.vue'
 import ComponentsList from '@/components/components/ComponentsList.vue'
 import ComponentDetail from '@/components/components/ComponentDetail.vue'
-import ViewModeSwitch from '@/components/ViewModeSwitch.vue'
+import ComponentInstanceDrawer from '@/components/components/ComponentInstanceDrawer.vue'
 import { useSelectQuery } from '@/composables/useResourceNav'
+import { useResizable } from '@/composables/useResizable'
 
-// Heavy (VueFlow + dagre) - only loaded when the graph view is first opened
+// Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
 const ComponentGraphPane = defineAsyncComponent(
   () => import('@/components/components/ComponentGraphPane.vue'),
 )
@@ -31,28 +42,31 @@ function systemName(id: string): string {
   return systemStore.systemMap.get(id)?.displayName ?? id
 }
 
+const chipFilteredComponents = computed(() =>
+  store.components.filter(
+    (c) => activeSystems.value.size === 0 || activeSystems.value.has(c.system),
+  ),
+)
+
 const filteredComponents = computed(() =>
-  store.components.filter((c) => {
+  chipFilteredComponents.value.filter((c) => {
     const q = search.value.toLowerCase()
-    if (q) {
-      const inName = c.displayName.toLowerCase().includes(q)
-      const inDesc = (c.description ?? '').toLowerCase().includes(q)
-      const inId = c.componentId.toLowerCase().includes(q)
-      const inVersion = (c.version?.version ?? '').toLowerCase().includes(q)
-      const inSystem = systemName(c.system).toLowerCase().includes(q)
-      const inAnnotations = Object.entries(c.annotations).some(
+    if (!q) return true
+    return (
+      c.displayName.toLowerCase().includes(q) ||
+      (c.description ?? '').toLowerCase().includes(q) ||
+      c.componentId.toLowerCase().includes(q) ||
+      (c.version?.version ?? '').toLowerCase().includes(q) ||
+      systemName(c.system).toLowerCase().includes(q) ||
+      Object.entries(c.annotations).some(
         ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
       )
-      if (!inName && !inDesc && !inId && !inVersion && !inSystem && !inAnnotations) return false
-    }
-    if (activeSystems.value.size > 0 && !activeSystems.value.has(c.system)) return false
-    return true
+    )
   }),
 )
 
 const hasActiveFilters = computed(() => !!search.value || activeSystems.value.size > 0)
 
-// Systems that own at least one component, resolved to a name and sorted.
 const filterSystems = computed(() => {
   const seen = new Map<string, string>()
   for (const c of store.components) {
@@ -76,6 +90,21 @@ function clearFilters() {
   activeSystems.value = new Set()
 }
 
+const matchIds = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  if (q.length < 2) return new Set<string>()
+  return new Set(
+    store.components
+      .filter(
+        (x) =>
+          x.displayName.toLowerCase().includes(q) ||
+          x.componentId.toLowerCase().includes(q) ||
+          (x.description ?? '').toLowerCase().includes(q),
+      )
+      .map((x) => x.componentId),
+  )
+})
+
 const selectedId = ref('')
 const selectedComponent = computed(() =>
   store.components.find((c) => c.componentId === selectedId.value),
@@ -85,16 +114,76 @@ function selectComponent(id: string) {
   selectedId.value = id
 }
 
-const view = ref<'list' | 'graph'>('list')
+const instanceDrawerOpen = ref(false)
+const selectedInstanceId = ref('')
 
-const viewModes = [
-  { value: 'list', label: 'List', icon: IconList },
-  { value: 'graph', label: 'Graph', icon: IconBinaryTree },
-]
+function openInstance(id: string) {
+  selectedInstanceId.value = id
+  instanceDrawerOpen.value = true
+}
 
-function onGraphSelect(id: string) {
-  selectComponent(id)
-  view.value = 'list'
+// Graph controls
+const graphPane = ref<InstanceType<typeof ComponentGraphPane> | null>(null)
+const graphVisible = ref(true)
+const graphFullscreen = ref(false)
+const showInstances = ref(false)
+const showApis = ref(true)
+
+function toggleInstances() {
+  showInstances.value = !showInstances.value
+}
+
+function toggleApis() {
+  showApis.value = !showApis.value
+}
+
+function refitGraph() {
+  if (!graphVisible.value) return
+  nextTick(() => requestAnimationFrame(() => graphPane.value?.fit()))
+}
+
+function toggleGraph() {
+  graphVisible.value = !graphVisible.value
+  if (!graphVisible.value) {
+    graphFullscreen.value = false
+    return
+  }
+  if (graphHeight.value < SNAP_CLOSE) graphHeight.value = DEFAULT_HEIGHT
+  refitGraph()
+}
+
+function toggleFullscreen() {
+  graphFullscreen.value = !graphFullscreen.value
+  if (graphFullscreen.value) graphVisible.value = true
+  refitGraph()
+}
+
+const SNAP_CLOSE = 100
+const DEFAULT_HEIGHT = 320
+
+const {
+  size: graphHeight,
+  isResizing: isResizingGraph,
+  onResizeStart: onGraphResizeStart,
+} = useResizable({ initial: DEFAULT_HEIGHT, min: 48, max: 700, axis: 'y' })
+
+watch(graphHeight, (h) => {
+  if (!isResizingGraph.value) return
+  graphVisible.value = h >= SNAP_CLOSE
+})
+
+watch(matchIds, (ids) => {
+  if (ids.size === 0) return
+  nextTick(() => graphPane.value?.focusMatches())
+})
+
+watch(isResizingGraph, (resizing) => {
+  if (!resizing) refitGraph()
+})
+
+function onGraphHandleDown(e: MouseEvent) {
+  if (!graphVisible.value) graphHeight.value = SNAP_CLOSE
+  onGraphResizeStart(e)
 }
 
 useSelectQuery(
@@ -147,11 +236,8 @@ onMounted(async () => {
           </span>
         </span>
       </div>
-      <ViewModeSwitch
-        v-model="view"
-        :options="viewModes"
-      />
     </div>
+
     <!-- Loading -->
     <div
       v-if="store.loading"
@@ -166,6 +252,7 @@ onMounted(async () => {
         <span class="text-body">Loading components...</span>
       </div>
     </div>
+
     <!-- Error -->
     <div
       v-else-if="store.error && store.components.length === 0"
@@ -173,6 +260,7 @@ onMounted(async () => {
     >
       <p class="text-body text-error">{{ store.error }}</p>
     </div>
+
     <template v-else>
       <ComponentsToolbar
         v-model:search="search"
@@ -182,6 +270,7 @@ onMounted(async () => {
         @toggle-system="toggleSystem"
         @clear="clearFilters"
       />
+
       <!-- Empty state -->
       <div
         v-if="filteredComponents.length === 0"
@@ -201,26 +290,206 @@ onMounted(async () => {
           </p>
         </div>
       </div>
-      <!-- Communication graph -->
-      <ComponentGraphPane
-        v-else-if="view === 'graph'"
-        :components="filteredComponents"
-        :selected-id="selectedId"
-        class="min-h-0 flex-1"
-        @select="onGraphSelect"
-      />
+
+      <!-- list | (graph over detail) -->
       <ListDetail v-else>
         <template #list>
-          <ComponentsList
-            :components="filteredComponents"
-            :selected-id="selectedId"
-            @select="selectComponent"
-          />
+          <div class="flex h-full flex-col">
+            <div
+              class="flex h-9 shrink-0 items-center justify-between border-b border-border-1 bg-bg-1 px-2"
+            >
+              <span class="text-micro font-medium uppercase tracking-wider text-text-4">List</span>
+              <span class="font-mono text-micro tabular-nums text-text-4">
+                {{ filteredComponents.length }}
+              </span>
+            </div>
+            <div class="min-h-0 flex-1 overflow-y-auto">
+              <ComponentsList
+                :components="filteredComponents"
+                :selected-id="selectedId"
+                @select="selectComponent"
+              />
+            </div>
+          </div>
         </template>
+
         <template #detail>
-          <ComponentDetail :component="selectedComponent" />
+          <div
+            class="flex min-w-0 flex-1 flex-col overflow-hidden"
+            :class="isResizingGraph ? 'select-none' : ''"
+          >
+            <!-- Graph toolbar -->
+            <div
+              class="grid h-9 shrink-0 cursor-pointer select-none grid-cols-[1fr_auto_1fr] items-center border-b border-border-1 bg-bg-1 px-2"
+              :title="graphVisible ? 'Double-click to hide graph' : 'Double-click to show graph'"
+              @dblclick="toggleGraph"
+            >
+              <span class="text-micro font-medium uppercase tracking-wider text-text-4">Graph</span>
+              <div class="flex items-center gap-1">
+                <template v-if="graphVisible">
+                  <button
+                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
+                    title="Focus selection"
+                    :disabled="!selectedId"
+                    @click.stop="graphPane?.focusSelected()"
+                    @dblclick.stop
+                  >
+                    <IconFocusCentered
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                  </button>
+                  <button
+                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Fit to view"
+                    @click.stop="graphPane?.fit()"
+                    @dblclick.stop
+                  >
+                    <IconZoomScan
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                  </button>
+                  <button
+                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Zoom out"
+                    @click.stop="graphPane?.zoomOut()"
+                    @dblclick.stop
+                  >
+                    <IconZoomOut
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                  </button>
+                  <button
+                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Zoom in"
+                    @click.stop="graphPane?.zoomIn()"
+                    @dblclick.stop
+                  >
+                    <IconZoomIn
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                  </button>
+                  <div class="mx-0.5 h-4 w-px bg-bg-3" />
+                  <button
+                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Show APIs as nodes; when off, components link directly"
+                    @click.stop="toggleApis"
+                    @dblclick.stop
+                  >
+                    APIs
+                    <span
+                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
+                      :class="showApis ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'"
+                    >
+                      {{ showApis ? 'on' : 'off' }}
+                    </span>
+                  </button>
+                  <button
+                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Show component instances as nodes"
+                    @click.stop="toggleInstances"
+                    @dblclick.stop
+                  >
+                    Instances
+                    <span
+                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
+                      :class="
+                        showInstances ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'
+                      "
+                    >
+                      {{ showInstances ? 'on' : 'off' }}
+                    </span>
+                  </button>
+                  <div class="mx-0.5 h-4 w-px bg-bg-3" />
+                  <button
+                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta transition-colors hover:bg-bg-3"
+                    :class="graphFullscreen ? 'text-accent' : 'text-text-3 hover:text-text-1'"
+                    @click.stop="toggleFullscreen"
+                    @dblclick.stop
+                  >
+                    <component
+                      :is="graphFullscreen ? IconArrowsMinimize : IconArrowsMaximize"
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                    {{ graphFullscreen ? 'Exit full view' : 'Full view' }}
+                  </button>
+                </template>
+                <button
+                  class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                  @click.stop="toggleGraph"
+                  @dblclick.stop
+                >
+                  <IconBinaryTree
+                    :size="14"
+                    :stroke-width="1.75"
+                  />
+                  {{ graphVisible ? 'Hide graph' : 'Show graph' }}
+                </button>
+              </div>
+              <span />
+            </div>
+
+            <!-- Graph -->
+            <div
+              v-show="graphVisible"
+              class="relative overflow-hidden"
+              :class="graphFullscreen ? 'min-h-0 flex-1' : 'shrink-0'"
+              :style="graphFullscreen ? undefined : { height: graphHeight + 'px' }"
+            >
+              <button
+                v-if="graphFullscreen"
+                class="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded border border-border-1 bg-bg-1/90 px-2 py-1 text-meta text-text-3 transition-colors hover:bg-bg-2 hover:text-text-1"
+                title="Back to the split layout"
+                @click="toggleFullscreen"
+              >
+                <IconArrowsMinimize
+                  :size="14"
+                  :stroke-width="1.75"
+                />
+                Exit full view
+              </button>
+              <ComponentGraphPane
+                ref="graphPane"
+                :match-ids="new Set([...matchIds].map((id) => `comp:${id}`))"
+                :components="chipFilteredComponents"
+                :selected-id="selectedId"
+                :show-instances="showInstances"
+                :show-apis="showApis"
+                :show-controls="false"
+                class="h-full"
+                @select="selectComponent"
+                @open-instance="openInstance"
+              />
+            </div>
+
+            <div
+              v-if="!graphFullscreen"
+              class="h-0.5 shrink-0 cursor-row-resize transition-colors hover:bg-accent/40"
+              :class="isResizingGraph ? 'bg-accent/60' : 'bg-bg-3'"
+              :title="graphVisible ? 'Drag to resize' : 'Drag to open the graph'"
+              @mousedown.prevent="onGraphHandleDown"
+            />
+
+            <!-- Detail -->
+            <div
+              v-if="!graphFullscreen"
+              class="flex min-h-0 flex-1 overflow-hidden border-t border-border-1"
+            >
+              <ComponentDetail :component="selectedComponent" />
+            </div>
+          </div>
         </template>
       </ListDetail>
     </template>
+
+    <ComponentInstanceDrawer
+      :open="instanceDrawerOpen"
+      :selected-instance-id="selectedInstanceId"
+      @close="instanceDrawerOpen = false"
+    />
   </div>
 </template>
