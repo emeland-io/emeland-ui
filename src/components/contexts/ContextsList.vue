@@ -61,7 +61,9 @@ function typeName(context: Context): string | undefined {
       v-for="level in row.depth"
       :key="level"
       class="pointer-events-none absolute inset-y-0 w-px transition-colors"
-      :class="activeRail && row.ancestors[level - 1] === activeRail ? 'bg-border-2' : 'bg-border-1'"
+      :class="
+        activeRail && row.ancestors[level - 1] === activeRail ? 'bg-border-2' : 'bg-border-1/50'
+      "
       :style="{ left: `${16 + (level - 1) * 26 + 7}px` }"
       aria-hidden="true"
     />

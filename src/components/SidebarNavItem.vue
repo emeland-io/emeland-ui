@@ -21,7 +21,7 @@ defineProps<{
     <span class="flex-1 group-[.active-nav]:text-accent-text">{{ item.label }}</span>
     <span
       v-if="typeof item.badge === 'number'"
-      class="rounded-full bg-accent/10 px-1.5 font-mono text-meta text-accent"
+      class="rounded-full bg-warning/10 px-1.5 font-mono text-meta text-warning ring-1 ring-warning/25"
     >
       {{ item.badge }}
     </span>
@@ -31,7 +31,7 @@ defineProps<{
 <style scoped>
 .active-nav {
   border-left-color: var(--color-accent);
-  background-color: rgba(29, 158, 117, 0.08);
+  background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
   color: var(--color-accent-text);
 }
 </style>

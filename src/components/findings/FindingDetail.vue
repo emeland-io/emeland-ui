@@ -58,8 +58,10 @@ const emit = defineEmits<{
     </div>
 
     <div class="flex flex-col gap-5 px-6 py-5">
-      <div class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3">
-        <div class="flex flex-col gap-5">
+      <div
+        class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3 @3xl:[&>*:nth-child(2)]:border-l @3xl:[&>*:nth-child(2)]:border-border-1/50 @3xl:[&>*:nth-child(2)]:pl-8 @3xl:[&>*:nth-child(3)]:border-l @3xl:[&>*:nth-child(3)]:border-border-1/50 @3xl:[&>*:nth-child(3)]:pl-8"
+      >
+        <div class="flex flex-col gap-6">
           <div>
             <SectionLabel>Description</SectionLabel>
             <p
@@ -76,7 +78,7 @@ const emit = defineEmits<{
             </p>
           </div>
         </div>
-        <div class="flex flex-col gap-5">
+        <div class="flex flex-col gap-6">
           <div>
             <SectionLabel :count="finding.resources.length">Resources</SectionLabel>
             <p
@@ -130,7 +132,7 @@ const emit = defineEmits<{
             </component>
           </div>
         </div>
-        <div class="flex flex-col gap-5">
+        <div class="flex flex-col gap-6">
           <!-- Annotations -->
           <div v-if="Object.keys(finding.annotations).length > 0">
             <SectionLabel>Annotations</SectionLabel>

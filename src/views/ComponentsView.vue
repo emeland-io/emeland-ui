@@ -294,13 +294,8 @@ onMounted(async () => {
       <ListDetail v-else>
         <template #list>
           <div class="flex h-full flex-col">
-            <div
-              class="flex h-9 shrink-0 items-center justify-between border-b border-border-1 bg-bg-1 px-2"
-            >
+            <div class="flex h-9 shrink-0 items-center border-b border-border-1 bg-bg-1 px-2">
               <span class="text-micro font-medium uppercase tracking-wider text-text-4">List</span>
-              <span class="font-mono text-micro tabular-nums text-text-4">
-                {{ filteredComponents.length }}
-              </span>
             </div>
             <div class="min-h-0 flex-1 overflow-y-auto">
               <ComponentsList

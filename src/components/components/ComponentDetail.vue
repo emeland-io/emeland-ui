@@ -116,8 +116,10 @@ function versionDates(c: Component | undefined): [string, string][] {
           </div>
         </div>
       </div>
-      <div class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3">
-        <div class="flex flex-col gap-5">
+      <div
+        class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3 @3xl:[&>*:nth-child(2)]:border-l @3xl:[&>*:nth-child(2)]:border-border-1/50 @3xl:[&>*:nth-child(2)]:pl-8 @3xl:[&>*:nth-child(3)]:border-l @3xl:[&>*:nth-child(3)]:border-border-1/50 @3xl:[&>*:nth-child(3)]:pl-8"
+      >
+        <div class="flex flex-col gap-6">
           <div>
             <!-- description -->
             <p
@@ -183,7 +185,7 @@ function versionDates(c: Component | undefined): [string, string][] {
             </div>
           </div>
         </div>
-        <div class="flex flex-col gap-5">
+        <div class="flex flex-col gap-6">
           <div>
             <div>
               <SectionLabel :count="provides.length">Provides APIs</SectionLabel>
@@ -252,7 +254,7 @@ function versionDates(c: Component | undefined): [string, string][] {
             </button>
           </div>
         </div>
-        <div class="flex flex-col gap-5 @3xl:row-span-2">
+        <div class="flex flex-col gap-6 @3xl:row-span-2">
           <div>
             <!-- Consumes -->
             <div>

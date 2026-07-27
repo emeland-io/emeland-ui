@@ -43,21 +43,21 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
     >
       <!-- Header -->
       <div class="flex items-center justify-between border-b border-border-1 px-5 py-3">
-        <div class="flex items-center gap-2">
-          <div class="min-w-0">
+        <div class="min-w-0">
+          <div class="flex min-w-0 items-baseline gap-2">
             <h2 class="truncate text-title font-medium text-text-1">{{ title }}</h2>
             <span
-              v-if="subtitle"
-              class="mt-1.5 inline-block rounded bg-bg-2 px-2 py-0.5 font-mono text-meta text-text-3"
+              v-if="count !== undefined"
+              class="shrink-0 rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3"
             >
-              {{ subtitle }}
+              {{ count }}
             </span>
           </div>
           <span
-            v-if="count !== undefined"
-            class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro text-text-3"
+            v-if="subtitle"
+            class="mt-1.5 inline-block rounded bg-bg-2 px-2 py-0.5 font-mono text-meta text-text-3"
           >
-            {{ count }}
+            {{ subtitle }}
           </span>
         </div>
         <button

@@ -229,7 +229,7 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
     <!-- Clear -->
     <button
       v-if="hasActiveFilters"
-      class="ml-auto flex items-center gap-1 text-meta text-text-4 hover:text-text-2"
+      class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
       @click="emit('clear')"
     >
       <IconX

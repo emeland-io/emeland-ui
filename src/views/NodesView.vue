@@ -157,7 +157,7 @@ function closeTypesDrawer() {
         </span>
       </div>
       <button
-        class="ml-auto flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
+        class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
         :class="
           typesDrawerOpen
             ? 'bg-accent/10 text-accent-text'
@@ -247,9 +247,13 @@ function closeTypesDrawer() {
         </div>
         <button
           v-if="hasActiveFilters"
-          class="ml-auto flex items-center gap-1 text-meta text-text-4 hover:text-text-2"
+          class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
           @click="clearFilters"
         >
+          <IconX
+            :size="11"
+            :stroke-width="2"
+          />
           Clear
         </button>
       </div>
@@ -275,13 +279,9 @@ function closeTypesDrawer() {
         <!-- List -->
         <template #list>
           <div class="flex h-full flex-col">
-            <div
-              class="flex h-9 shrink-0 items-center justify-between border-b border-border-1 bg-bg-1 px-2"
-            >
+            <!-- list bar, so the column starts on the same line as the detail -->
+            <div class="flex h-9 shrink-0 items-center border-b border-border-1 bg-bg-1 px-2">
               <span class="text-micro font-medium uppercase tracking-wider text-text-4">List</span>
-              <span class="font-mono text-micro tabular-nums text-text-4">
-                {{ filteredNodes.length }}
-              </span>
             </div>
             <div class="min-h-0 flex-1 overflow-y-auto">
               <div
@@ -364,8 +364,10 @@ function closeTypesDrawer() {
                   </div>
                 </div>
               </div>
-              <div class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3">
-                <div class="flex flex-col gap-5">
+              <div
+                class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3 @3xl:[&>*:nth-child(2)]:border-l @3xl:[&>*:nth-child(2)]:border-border-1/50 @3xl:[&>*:nth-child(2)]:pl-8 @3xl:[&>*:nth-child(3)]:border-l @3xl:[&>*:nth-child(3)]:border-border-1/50 @3xl:[&>*:nth-child(3)]:pl-8"
+              >
+                <div class="flex flex-col gap-6">
                   <div>
                     <SectionLabel>Node type</SectionLabel>
                     <div class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0">
@@ -419,7 +421,7 @@ function closeTypesDrawer() {
                     </div>
                   </div>
                 </div>
-                <div class="flex flex-col gap-5">
+                <div class="flex flex-col gap-6">
                   <div>
                     <SectionLabel :count="relatedFindings.length">Findings</SectionLabel>
                     <p
@@ -463,9 +465,9 @@ function closeTypesDrawer() {
                     </button>
                   </div>
                 </div>
-                <div class="flex flex-col gap-5">
+                <div class="flex flex-col gap-6">
                   <div>
-                    <!-- Annotations: stacked, so key and value each get the full column -->
+                    <!-- Annotations -->
                     <SectionLabel :count="Object.keys(selectedNode.annotations).length">
                       Annotations
                     </SectionLabel>
