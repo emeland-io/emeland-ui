@@ -273,7 +273,6 @@ function toggleGraph() {
 function toggleFullscreen() {
   graphFullscreen.value = !graphFullscreen.value
   if (graphFullscreen.value) graphVisible.value = true
-  refitGraph()
 }
 
 const SNAP_CLOSE = 100
@@ -613,6 +612,12 @@ onMounted(async () => {
       :open="instancesDrawerOpen"
       :selected-instance-id="selectedInstanceId"
       @close="instancesDrawerOpen = false"
+      @go-to-system="
+        (id) => {
+          instancesDrawerOpen = false
+          selectSystem(id)
+        }
+      "
     />
   </div>
 </template>

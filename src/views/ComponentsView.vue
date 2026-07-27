@@ -155,7 +155,6 @@ function toggleGraph() {
 function toggleFullscreen() {
   graphFullscreen.value = !graphFullscreen.value
   if (graphFullscreen.value) graphVisible.value = true
-  refitGraph()
 }
 
 const SNAP_CLOSE = 100
