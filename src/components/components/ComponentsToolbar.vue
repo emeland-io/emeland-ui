@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconSearch } from '@tabler/icons-vue'
+import { IconSearch, IconX } from '@tabler/icons-vue'
 
 const props = defineProps<{
   search: string
@@ -38,6 +38,17 @@ const searchModel = computed({
         placeholder="Search components, IDs, annotations..."
         class="w-full bg-transparent font-mono text-label text-text-2 outline-none placeholder:text-meta placeholder:text-text-4"
       />
+      <button
+        v-if="search"
+        class="shrink-0 rounded p-0.5 text-text-4 transition-colors hover:bg-bg-3 hover:text-text-2"
+        title="Clear search"
+        @click="emit('update:search', '')"
+      >
+        <IconX
+          :size="12"
+          :stroke-width="2"
+        />
+      </button>
     </div>
     <div
       v-if="systems.length > 0"

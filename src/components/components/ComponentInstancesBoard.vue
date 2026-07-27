@@ -94,31 +94,34 @@ const columns = computed(() => {
         :key="col.key"
         class="rounded-lg border border-dashed border-border-2 p-2"
       >
-        <div class="mb-1.5 flex items-center gap-2 px-1">
+        <div class="mb-1.5 flex items-baseline gap-2 border-b border-border-1 px-1 pb-1.5">
           <span
             class="min-w-0 flex-1 truncate font-mono text-micro font-semibold uppercase tracking-wide"
             :class="col.unresolved ? 'text-error' : 'text-text-4'"
           >
             {{ col.label }}
           </span>
-          <span class="shrink-0 font-mono text-micro text-text-4">{{ col.items.length }}</span>
+          <span class="shrink-0 font-mono text-micro tabular-nums text-text-4">
+            {{ col.items.length }}
+          </span>
         </div>
 
         <button
           v-for="inst in col.items"
           :key="inst.componentInstanceId"
-          class="instance-cut group mt-1 flex w-full flex-col gap-0.5 bg-bg-2 px-2 py-1.5 text-left transition-colors first:mt-0 hover:bg-bg-3 focus-visible:bg-accent/10 focus-visible:outline-none"
+          class="instance-cut group mt-1 flex w-full items-baseline gap-2 bg-bg-2 px-2 py-1.5 text-left transition-colors first:mt-0 hover:bg-bg-3 focus-visible:bg-accent/10 focus-visible:outline-none"
           @click="emit('select', inst.componentInstanceId)"
         >
           <span
-            class="min-w-0 truncate text-data leading-snug text-text-2 transition-colors group-hover:text-text-1"
+            class="min-w-0 flex-1 truncate text-data leading-snug text-text-2 transition-colors group-hover:text-text-1"
             :title="inst.displayName"
           >
             {{ inst.displayName }}
           </span>
           <span
             v-if="systemInstanceName(inst.systemInstance)"
-            class="flex min-w-0 items-center gap-1 font-mono text-micro text-text-4"
+            class="flex max-w-[45%] shrink-0 items-baseline gap-1 font-mono text-micro text-text-4"
+            :title="systemInstanceName(inst.systemInstance)"
           >
             <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">I</span>
             <span class="truncate">{{ systemInstanceName(inst.systemInstance) }}</span>
