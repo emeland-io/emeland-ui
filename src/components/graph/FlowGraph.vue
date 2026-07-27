@@ -187,7 +187,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </span>
             <span
               v-if="(data as ContextItemNodeData).findings"
-              class="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
+              class="ml-auto flex shrink-0 items-center gap-1 rounded-full badge-warning px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
               :title="`${(data as ContextItemNodeData).findings} finding(s)`"
             >
               <IconAlertTriangle
@@ -237,7 +237,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </span>
             <span
               v-if="(data as SystemNodeData).findings"
-              class="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
+              class="ml-auto flex shrink-0 items-center gap-1 rounded-full badge-warning px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
               :title="`${(data as SystemNodeData).findings} finding(s)`"
             >
               <IconAlertTriangle
@@ -370,6 +370,9 @@ function onNodeClick({ node }: NodeMouseEvent) {
 </template>
 
 <style scoped>
+.badge-warning {
+  background: color-mix(in srgb, var(--color-bg-0) 88%, var(--color-warning));
+}
 .emel-flow :deep(.vue-flow__node.node-match) {
   box-shadow:
     0 0 0 4px var(--color-bg-0),
