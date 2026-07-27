@@ -117,177 +117,194 @@ function versionDates(c: Component | undefined): [string, string][] {
         </div>
       </div>
       <div class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3">
-        <div>
-          <!-- description -->
-          <p
-            v-if="component.description"
-            class="text-body leading-relaxed text-text-2"
-          >
-            {{ component.description }}
-          </p>
-        </div>
-        <div>
+        <div class="flex flex-col gap-5">
           <div>
-            <SectionLabel :count="provides.length">Provides APIs</SectionLabel>
+            <!-- description -->
             <p
-              v-if="provides.length === 0"
+              v-if="component.description"
+              class="text-body leading-relaxed text-text-2"
+            >
+              {{ component.description }}
+            </p>
+          </div>
+          <div>
+            <SectionLabel>System</SectionLabel>
+            <p
+              v-if="!component.system"
               class="text-data leading-snug text-text-4"
             >
-              Provides no interfaces.
+              No system.
             </p>
+            <button
+              v-else-if="!systemUnresolved"
+              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+              title="Go to system"
+              @click="goToResource('System', component.system)"
+            >
+              <span class="group/row flex w-full items-center gap-3">
+                <span
+                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+                >
+                  System
+                </span>
+                <span
+                  class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
+                >
+                  {{ systemName }}
+                </span>
+                <IconArrowUpRight
+                  :size="16"
+                  :stroke-width="2"
+                  class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
+                />
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
+                <CopyButton
+                  :value="component.system"
+                  :size="12"
+                  @click.stop
+                />
+              </span>
+            </button>
             <div
               v-else
-              class="flex flex-wrap gap-1.5"
+              class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
             >
-              <span
-                v-for="api in provides"
-                :key="api.id"
-                class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent"
-                :title="api.id"
-              >
-                {{ api.name }}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div>
-          <!-- Consumes -->
-          <div>
-            <SectionLabel :count="consumes.length">Consumes APIs</SectionLabel>
-            <p
-              v-if="consumes.length === 0"
-              class="text-data leading-snug text-text-4"
-            >
-              Consumes no interfaces.
-            </p>
-            <div
-              v-else
-              class="flex flex-wrap gap-1.5"
-            >
-              <span
-                v-for="api in consumes"
-                :key="api.id"
-                class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3"
-                :title="api.id"
-              >
-                {{ api.name }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <SectionLabel>System</SectionLabel>
-          <p
-            v-if="!component.system"
-            class="text-data leading-snug text-text-4"
-          >
-            No system.
-          </p>
-          <button
-            v-else-if="!systemUnresolved"
-            class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
-            title="Go to system"
-            @click="goToResource('System', component.system)"
-          >
-            <span class="group/row flex w-full items-center gap-3">
-              <span
-                class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
-              >
-                System
-              </span>
-              <span
-                class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-              >
-                {{ systemName }}
-              </span>
-              <IconArrowUpRight
-                :size="16"
-                :stroke-width="2"
-                class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-              />
-            </span>
-            <span class="flex items-center gap-1.5">
+              <div class="flex items-center gap-3">
+                <span
+                  class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
+                >
+                  System
+                </span>
+                <span class="min-w-0 truncate text-body text-error">Unresolved system</span>
+              </div>
               <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
-              <CopyButton
-                :value="component.system"
-                :size="12"
-                @click.stop
-              />
-            </span>
-          </button>
-          <div
-            v-else
-            class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
-          >
-            <div class="flex items-center gap-3">
-              <span
-                class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
-              >
-                System
-              </span>
-              <span class="min-w-0 truncate text-body text-error">Unresolved system</span>
             </div>
-            <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
           </div>
         </div>
-        <!-- findings -->
-        <div>
-          <SectionLabel :count="relatedFindings.length">Findings</SectionLabel>
-          <p
-            v-if="relatedFindings.length === 0"
-            class="text-data leading-snug text-text-4"
-          >
-            No findings.
-          </p>
-          <button
-            v-for="f in relatedFindings"
-            :key="f.findingId"
-            class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
-            title="Go to finding"
-            @click="goToFinding(f.findingId)"
-          >
-            <span class="group/row flex w-full items-center gap-2.5">
-              <span
-                class="shrink-0 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
+        <div class="flex flex-col gap-5">
+          <div>
+            <div>
+              <SectionLabel :count="provides.length">Provides APIs</SectionLabel>
+              <p
+                v-if="provides.length === 0"
+                class="text-data leading-snug text-text-4"
               >
-                {{ findingsStore.getKindForFinding(f) }}
-              </span>
-              <span
-                class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
+                Provides no interfaces.
+              </p>
+              <div
+                v-else
+                class="flex flex-wrap gap-1.5"
               >
-                {{ f.displayName }}
+                <span
+                  v-for="api in provides"
+                  :key="api.id"
+                  class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent"
+                  :title="api.id"
+                >
+                  {{ api.name }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <!-- Related findings -->
+          <div>
+            <SectionLabel :count="relatedFindings.length">Findings</SectionLabel>
+            <p
+              v-if="relatedFindings.length === 0"
+              class="text-data leading-snug text-text-4"
+            >
+              No findings.
+            </p>
+            <button
+              v-for="f in relatedFindings"
+              :key="f.findingId"
+              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+              title="Go to finding"
+              @click="goToFinding(f.findingId)"
+            >
+              <span class="group/row flex w-full items-center gap-2.5">
+                <span
+                  class="shrink-0 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
+                >
+                  {{ findingsStore.getKindForFinding(f) }}
+                </span>
+                <span
+                  class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
+                >
+                  {{ f.displayName }}
+                </span>
+                <IconArrowUpRight
+                  :size="15"
+                  :stroke-width="2"
+                  class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
+                />
               </span>
-              <IconArrowUpRight
-                :size="15"
-                :stroke-width="2"
-                class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-              />
-            </span>
-            <span class="flex items-center gap-1.5">
-              <span class="font-mono text-meta text-text-4">{{ f.findingId }}</span>
-              <CopyButton
-                :value="f.findingId"
-                :size="12"
-                @click.stop
-              />
-            </span>
-          </button>
+              <span class="flex items-center gap-1.5">
+                <span class="font-mono text-meta text-text-4">{{ f.findingId }}</span>
+                <CopyButton
+                  :value="f.findingId"
+                  :size="12"
+                  @click.stop
+                />
+              </span>
+            </button>
+          </div>
+        </div>
+        <div class="flex flex-col gap-5 @3xl:row-span-2">
+          <div>
+            <!-- Consumes -->
+            <div>
+              <SectionLabel :count="consumes.length">Consumes APIs</SectionLabel>
+              <p
+                v-if="consumes.length === 0"
+                class="text-data leading-snug text-text-4"
+              >
+                Consumes no interfaces.
+              </p>
+              <div
+                v-else
+                class="flex flex-wrap gap-1.5"
+              >
+                <span
+                  v-for="api in consumes"
+                  :key="api.id"
+                  class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3"
+                  :title="api.id"
+                >
+                  {{ api.name }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="@3xl:col-start-3">
+            <!-- Annotations -->
+            <SectionLabel :count="Object.keys(component.annotations).length">
+              Annotations
+            </SectionLabel>
+            <p
+              v-if="Object.keys(component.annotations).length === 0"
+              class="text-data leading-snug text-text-4"
+            >
+              No annotations.
+            </p>
+            <AnnotationsTable
+              v-else
+              :annotations="component.annotations"
+              layout="stacked"
+            />
+          </div>
+        </div>
+        <div class="@3xl:col-span-2">
+          <!-- Instances -->
+          <ComponentInstancesBoard
+            v-if="instances.length > 0"
+            :instances="instances"
+            @select="openInstance"
+          />
         </div>
       </div>
-
-      <!-- Annotations -->
-      <div v-if="Object.keys(component.annotations).length > 0">
-        <SectionLabel>Annotations</SectionLabel>
-        <AnnotationsTable :annotations="component.annotations" />
-      </div>
-
-      <!-- Instances -->
-      <ComponentInstancesBoard
-        v-if="instances.length > 0"
-        :instances="instances"
-        @select="openInstance"
-      />
     </div>
 
     <ComponentInstanceDrawer

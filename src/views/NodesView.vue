@@ -1,17 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import {
-  IconSearch,
-  IconCircleOff,
-  IconLoader2,
-  IconCategory,
-  IconArrowUpRight,
-} from '@tabler/icons-vue'
+import { IconSearch, IconX, IconCircleOff, IconLoader2, IconArrowUpRight } from '@tabler/icons-vue'
 import { useNodesStore } from '@/stores/nodes'
 import { useFindingsStore } from '@/stores/findings'
 import ListDetail from '@/components/ListDetail.vue'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
+import SectionLabel from '@/components/SectionLabel.vue'
+import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 import { categoryColorForNode, categoryColorForName } from '@/constants/nodeCategory'
 
@@ -161,19 +157,15 @@ function closeTypesDrawer() {
         </span>
       </div>
       <button
-        class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-label transition-colors"
+        class="ml-auto flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
         :class="
           typesDrawerOpen
-            ? 'border-accent/20 bg-accent/10 text-accent-text'
-            : 'border-border-1 text-text-3 hover:bg-bg-2 hover:text-text-2'
+            ? 'bg-accent/10 text-accent-text'
+            : 'text-text-3 hover:bg-bg-3 hover:text-text-1'
         "
         @click="openTypesDrawer"
       >
-        <IconCategory
-          :size="13"
-          :stroke-width="1.5"
-        />
-        Node Types
+        Node types
         <span
           v-if="store.typesLoaded"
           class="font-mono text-micro text-text-4"
@@ -221,6 +213,17 @@ function closeTypesDrawer() {
             placeholder="Search nodes, annotations..."
             class="w-full bg-transparent font-mono text-label text-text-2 placeholder:text-meta placeholder:text-text-4 outline-none"
           />
+          <button
+            v-if="search"
+            class="shrink-0 rounded p-0.5 text-text-4 transition-colors hover:bg-bg-3 hover:text-text-2"
+            title="Clear search"
+            @click="search = ''"
+          >
+            <IconX
+              :size="12"
+              :stroke-width="2"
+            />
+          </button>
         </div>
         <div class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1">
           <span
@@ -271,31 +274,43 @@ function closeTypesDrawer() {
       <ListDetail v-else>
         <!-- List -->
         <template #list>
-          <div
-            v-for="node in filteredNodes"
-            :key="node.nodeId"
-            class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
-            :class="
-              node.nodeId === selectedId
-                ? 'border-l-accent bg-accent/5'
-                : 'border-l-transparent hover:bg-bg-1'
-            "
-            @click="selectNode(node.nodeId)"
-          >
-            <div class="text-body font-medium text-text-1">{{ node.displayName }}</div>
-            <div class="mt-2 flex items-center gap-1.5">
-              <span
-                class="rounded px-1.5 py-0.5 font-mono text-meta"
-                :class="categoryColorForNode(node)"
-              >
-                {{ store.getTypeName(node) }}
+          <div class="flex h-full flex-col">
+            <div
+              class="flex h-9 shrink-0 items-center justify-between border-b border-border-1 bg-bg-1 px-2"
+            >
+              <span class="text-micro font-medium uppercase tracking-wider text-text-4">List</span>
+              <span class="font-mono text-micro tabular-nums text-text-4">
+                {{ filteredNodes.length }}
               </span>
-              <span
-                v-if="nodeVersion(node.annotations)"
-                class="font-mono text-meta text-text-id"
+            </div>
+            <div class="min-h-0 flex-1 overflow-y-auto">
+              <div
+                v-for="node in filteredNodes"
+                :key="node.nodeId"
+                class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
+                :class="
+                  node.nodeId === selectedId
+                    ? 'border-l-accent bg-accent/5'
+                    : 'border-l-transparent hover:bg-bg-1'
+                "
+                @click="selectNode(node.nodeId)"
               >
-                {{ nodeVersion(node.annotations) }}
-              </span>
+                <div class="text-body font-medium text-text-1">{{ node.displayName }}</div>
+                <div class="mt-2 flex items-center gap-1.5">
+                  <span
+                    class="rounded px-1.5 py-0.5 font-mono text-meta"
+                    :class="categoryColorForNode(node)"
+                  >
+                    {{ store.getTypeName(node) }}
+                  </span>
+                  <span
+                    v-if="nodeVersion(node.annotations)"
+                    class="font-mono text-meta text-text-id"
+                  >
+                    {{ nodeVersion(node.annotations) }}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </template>
@@ -304,7 +319,7 @@ function closeTypesDrawer() {
         <template #detail>
           <div
             v-if="selectedNode"
-            class="flex-1 overflow-y-auto"
+            class="@container flex-1 overflow-y-auto"
           >
             <div class="border-b border-border-1 px-6 py-4">
               <div class="flex items-start justify-between gap-4">
@@ -349,111 +364,121 @@ function closeTypesDrawer() {
                   </div>
                 </div>
               </div>
-              <!-- annotations -->
-              <div v-if="Object.keys(selectedNode.annotations).length > 0">
-                <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
-                  Annotations
-                </div>
-                <div
-                  v-for="(value, key) in selectedNode.annotations"
-                  :key="key"
-                  class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
-                  style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
-                >
-                  <span
-                    class="truncate text-text-3"
-                    :title="key"
-                  >
-                    {{ key }}
-                  </span>
-                  <span class="break-all text-text-2">{{ value }}</span>
-                </div>
-              </div>
-              <!-- Related findings -->
-              <div v-if="relatedFindings.length > 0">
-                <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
-                  Findings
-                </div>
-                <button
-                  v-for="f in relatedFindings"
-                  :key="f.findingId"
-                  class="group flex w-full items-center gap-2.5 border-b border-border-1 py-2 text-left last:border-b-0"
-                  :title="`Go to finding`"
-                  @click="goToFinding(f.findingId)"
-                >
-                  <span
-                    class="shrink-0 rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-micro text-sensor"
-                  >
-                    {{ findingsStore.getKindForFinding(f) }}
-                  </span>
-                  <span
-                    class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
-                  >
-                    {{ f.displayName }}
-                  </span>
-                  <IconArrowUpRight
-                    :size="15"
-                    :stroke-width="2"
-                    class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-                  />
-                  <span class="ml-auto shrink-0 font-mono text-meta text-text-id">
-                    {{ f.findingId }}
-                  </span>
-                </button>
-              </div>
-              <!-- Node type -->
-              <div>
-                <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
-                  Node type
-                </div>
-                <div class="flex items-center gap-3 border-b border-border-1 py-2 last:border-b-0">
-                  <span
-                    class="flex w-28 shrink-0 items-center justify-center gap-1 rounded px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase"
-                    :class="
-                      selectedNodeTypeUnknown
-                        ? 'bg-error/10 text-error'
-                        : 'bg-accent/10 text-accent'
-                    "
-                  >
-                    <IconAlertTriangle
-                      v-if="selectedNodeTypeUnknown"
-                      :size="12"
-                      :stroke-width="2"
-                    />
-                    NodeType
-                  </span>
-                  <!-- name (description as secondary line if present) -->
-                  <div class="min-w-0 flex-1">
-                    <div
-                      class="truncate text-body"
-                      :class="selectedNodeTypeUnknown ? 'text-error' : 'text-text-2'"
-                    >
-                      {{ selectedNode.nodeType?.displayName || 'Unknown' }}
-                    </div>
-                    <div
-                      v-if="selectedNodeTypeUnknown"
-                      class="mt-0.5 truncate font-mono text-meta text-error/80"
-                    >
-                      References a node type that does not exist.
-                    </div>
-                    <div
-                      v-else-if="store.getTypeForNode(selectedNode)?.description"
-                      class="mt-0.5 truncate font-mono text-meta text-text-id"
-                    >
-                      {{ store.getTypeForNode(selectedNode)?.description }}
+              <div class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3">
+                <div class="flex flex-col gap-5">
+                  <div>
+                    <SectionLabel>Node type</SectionLabel>
+                    <div class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0">
+                      <span class="flex w-full items-center gap-3">
+                        <span
+                          class="flex w-28 shrink-0 items-center justify-center gap-1 rounded px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase"
+                          :class="
+                            selectedNodeTypeUnknown
+                              ? 'bg-error/10 text-error'
+                              : 'bg-accent/10 text-accent'
+                          "
+                        >
+                          <IconAlertTriangle
+                            v-if="selectedNodeTypeUnknown"
+                            :size="12"
+                            :stroke-width="2"
+                          />
+                          NodeType
+                        </span>
+                        <span
+                          class="min-w-0 truncate text-body"
+                          :class="selectedNodeTypeUnknown ? 'text-error' : 'text-text-2'"
+                        >
+                          {{ selectedNode.nodeType?.displayName || 'Unknown' }}
+                        </span>
+                      </span>
+                      <span
+                        v-if="selectedNodeTypeUnknown"
+                        class="text-meta text-error/80"
+                      >
+                        References a node type that does not exist.
+                      </span>
+                      <span
+                        v-else-if="store.getTypeForNode(selectedNode)?.description"
+                        class="truncate text-meta text-text-3"
+                      >
+                        {{ store.getTypeForNode(selectedNode)?.description }}
+                      </span>
+                      <span
+                        v-if="selectedNode.nodeType?.nodeTypeId"
+                        class="flex items-center gap-1.5"
+                      >
+                        <span class="font-mono text-meta text-text-4">
+                          {{ selectedNode.nodeType.nodeTypeId }}
+                        </span>
+                        <CopyButton
+                          :value="selectedNode.nodeType.nodeTypeId"
+                          :size="12"
+                        />
+                      </span>
                     </div>
                   </div>
-                  <!-- id + copy (only when a type id exists) -->
-                  <div
-                    v-if="selectedNode.nodeType?.nodeTypeId"
-                    class="flex items-center gap-1.5 shrink-0"
-                  >
-                    <span class="font-mono text-meta text-text-id">
-                      {{ selectedNode.nodeType.nodeTypeId }}
-                    </span>
-                    <CopyButton
-                      :value="selectedNode.nodeType.nodeTypeId"
-                      :size="12"
+                </div>
+                <div class="flex flex-col gap-5">
+                  <div>
+                    <SectionLabel :count="relatedFindings.length">Findings</SectionLabel>
+                    <p
+                      v-if="relatedFindings.length === 0"
+                      class="text-data leading-snug text-text-4"
+                    >
+                      No findings.
+                    </p>
+                    <button
+                      v-for="f in relatedFindings"
+                      :key="f.findingId"
+                      class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+                      title="Go to finding"
+                      @click="goToFinding(f.findingId)"
+                    >
+                      <span class="group/row flex w-full items-center gap-2.5">
+                        <span
+                          class="shrink-0 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
+                        >
+                          {{ findingsStore.getKindForFinding(f) }}
+                        </span>
+                        <span
+                          class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
+                        >
+                          {{ f.displayName }}
+                        </span>
+                        <IconArrowUpRight
+                          :size="15"
+                          :stroke-width="2"
+                          class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
+                        />
+                      </span>
+                      <span class="flex items-center gap-1.5">
+                        <span class="font-mono text-meta text-text-4">{{ f.findingId }}</span>
+                        <CopyButton
+                          :value="f.findingId"
+                          :size="12"
+                          @click.stop
+                        />
+                      </span>
+                    </button>
+                  </div>
+                </div>
+                <div class="flex flex-col gap-5">
+                  <div>
+                    <!-- Annotations: stacked, so key and value each get the full column -->
+                    <SectionLabel :count="Object.keys(selectedNode.annotations).length">
+                      Annotations
+                    </SectionLabel>
+                    <p
+                      v-if="Object.keys(selectedNode.annotations).length === 0"
+                      class="text-data leading-snug text-text-4"
+                    >
+                      No annotations.
+                    </p>
+                    <AnnotationsTable
+                      v-else
+                      :annotations="selectedNode.annotations"
+                      layout="stacked"
                     />
                   </div>
                 </div>
@@ -473,16 +498,10 @@ function closeTypesDrawer() {
     <SlideOverDrawer
       :open="typesDrawerOpen"
       title="Node Types"
+      subtitle="NodeType"
       :count="store.typesLoaded ? store.nodeTypes.length : undefined"
       @close="closeTypesDrawer"
     >
-      <template #icon>
-        <IconCategory
-          :size="16"
-          :stroke-width="1.5"
-          class="text-text-3"
-        />
-      </template>
       <!-- Loading -->
       <div
         v-if="store.typesLoading"
