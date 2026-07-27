@@ -5,6 +5,7 @@ import { IconX } from '@tabler/icons-vue'
 defineProps<{
   open: boolean
   title: string
+  subtitle?: string
   count?: number
   size?: 'default' | 'wide'
 }>()
@@ -43,8 +44,15 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       <!-- Header -->
       <div class="flex items-center justify-between border-b border-border-1 px-5 py-3">
         <div class="flex items-center gap-2">
-          <slot name="icon" />
-          <h2 class="text-title font-medium text-text-1">{{ title }}</h2>
+          <div class="min-w-0">
+            <h2 class="truncate text-title font-medium text-text-1">{{ title }}</h2>
+            <span
+              v-if="subtitle"
+              class="mt-1.5 inline-block rounded bg-bg-2 px-2 py-0.5 font-mono text-meta text-text-3"
+            >
+              {{ subtitle }}
+            </span>
+          </div>
           <span
             v-if="count !== undefined"
             class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro text-text-3"

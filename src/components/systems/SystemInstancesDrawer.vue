@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconStack2, IconArrowUpRight } from '@tabler/icons-vue'
+import { IconArrowUpRight } from '@tabler/icons-vue'
 import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
@@ -51,15 +51,9 @@ const drawerInstance = computed(() =>
   <SlideOverDrawer
     :open="open"
     :title="drawerInstance?.displayName ?? 'System instance'"
+    subtitle="SystemInstance"
     @close="emit('close')"
   >
-    <template #icon>
-      <IconStack2
-        :size="18"
-        :stroke-width="1.5"
-        class="text-accent"
-      />
-    </template>
     <div
       v-if="drawerInstance"
       class="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-4"
