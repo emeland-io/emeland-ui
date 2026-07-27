@@ -30,14 +30,12 @@ function logout() {
 <template>
   <header class="flex h-10 items-center gap-3 border-b border-border-1 bg-bg-1 px-4">
     <div class="flex w-37 shrink-0 items-center text-data font-medium">
-      <span class="text-accent">EmE</span>
-      <span class="text-text-1">Land</span>
+      <span class="text-text-1">EmELand</span>
     </div>
 
     <ModelBadge />
 
     <div class="flex-1" />
-
     <!-- Theme switcher (segmented) -->
     <div class="flex items-center gap-0.5 rounded-md border border-border-1 bg-bg-0 p-0.5">
       <button

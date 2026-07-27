@@ -1,21 +1,24 @@
 import { ref, watchEffect } from 'vue'
 
-export type ThemeMode = 'system' | 'light' | 'dark'
+export type ThemeMode = 'system' | 'light' | 'dark' | 'demo-old'
+
+export const THEME_MODES: Exclude<ThemeMode, 'system'>[] = ['light', 'dark', 'demo-old']
 
 const STORAGE_KEY = 'emeland-theme'
 
 function readStored(): ThemeMode {
   const v = localStorage.getItem(STORAGE_KEY)
-  return v === 'light' || v === 'dark' || v === 'system' ? v : 'system'
+  return v === 'system' || (v && (THEME_MODES as string[]).includes(v))
+    ? (v as ThemeMode)
+    : 'system'
 }
 
 const theme = ref<ThemeMode>(readStored())
 
-// Resolves 'system' to the actual light/dark from the OS preference
-function resolved(): 'dark' | 'light' {
-  if (theme.value === 'system') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  }
+function resolved(): string {
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  if (theme.value === 'system') return prefersDark ? 'dark' : 'light'
+  if (theme.value === 'demo-old') return prefersDark ? 'demo-old-dark' : 'demo-old-light'
   return theme.value
 }
 
