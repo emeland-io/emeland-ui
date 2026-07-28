@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useApiStore } from '@/stores/apis'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
+import { useFindingsStore } from '@/stores/findings'
 import { useInstanceContext } from '@/composables/useInstanceContext'
 import { buildComponentGraph } from '@/graph/componentGraph'
 import type { GraphNodeClick } from '@/types/graph'
@@ -29,6 +30,7 @@ const emit = defineEmits<{
 const store = useComponentStore()
 const apiStore = useApiStore()
 const systemStore = useSystemStore()
+const findingsStore = useFindingsStore()
 const { contextForInstance } = useInstanceContext()
 
 const graphModel = computed(() =>
@@ -37,7 +39,7 @@ const graphModel = computed(() =>
     apiName: (id) => apiStore.getApiName(id),
     apiVersion: (id) => apiStore.apiMap.get(id)?.version?.version || undefined,
     systemName: (id) => systemStore.systemMap.get(id)?.displayName,
-    instanceCount: (id) => store.getInstancesForComponent(id).length,
+    findingCountOf: findingsStore.findingCountFor,
     instancesOf: props.showInstances ? (id) => store.getInstancesForComponent(id) : undefined,
     instanceContext: (inst) => contextForInstance(inst).name,
     showApis: props.showApis,

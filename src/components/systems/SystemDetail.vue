@@ -253,7 +253,12 @@ function versionDates(s: System | undefined): [string, string][] {
           <div>
             <!-- Related findings -->
             <div>
-              <SectionLabel :count="relatedFindings.length">Findings</SectionLabel>
+              <SectionLabel
+                :count="relatedFindings.length"
+                tone="warning"
+              >
+                Findings
+              </SectionLabel>
               <p
                 v-if="relatedFindings.length === 0"
                 class="text-data leading-snug text-text-4"

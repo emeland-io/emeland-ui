@@ -52,6 +52,7 @@ const fit = () => {
   return fitView({ padding: 0.2, duration: 300 })
 }
 
+// Zoom to the current selection; falls back to fitting everything.
 function focusSelected() {
   if (isEmpty.value) return
   if (!props.selectedId) return fit()
@@ -347,11 +348,15 @@ function onNodeClick({ node }: NodeMouseEvent) {
                 {{ (data as ComponentNodeData).label }}
               </span>
               <span
-                v-if="(data as ComponentNodeData).instanceCount"
-                class="ml-auto shrink-0 rounded-full bg-bg-0 px-1.5 py-0.5 font-mono text-micro tabular-nums text-text-3"
-                :title="`${(data as ComponentNodeData).instanceCount} instance(s)`"
+                v-if="(data as ComponentNodeData).findings"
+                class="badge-warning ml-auto flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
+                :title="`${(data as ComponentNodeData).findings} finding(s)`"
               >
-                {{ (data as ComponentNodeData).instanceCount }}
+                <IconAlertTriangle
+                  :size="10"
+                  :stroke-width="2"
+                />
+                {{ (data as ComponentNodeData).findings }}
               </span>
             </div>
             <div

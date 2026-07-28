@@ -75,11 +75,14 @@ function versionDates(c: Component | undefined): [string, string][] {
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">
           <h2 class="text-title font-medium text-text-1">{{ component.displayName }}</h2>
-          <div
-            v-if="component.version?.version"
-            class="mt-2 flex items-center gap-2"
-          >
-            <span class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3">
+          <div class="mt-2 flex items-center gap-2">
+            <span class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent-text">
+              Component
+            </span>
+            <span
+              v-if="component.version?.version"
+              class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3"
+            >
               v{{ component.version.version }}
             </span>
           </div>
@@ -212,7 +215,12 @@ function versionDates(c: Component | undefined): [string, string][] {
           </div>
           <!-- Related findings -->
           <div>
-            <SectionLabel :count="relatedFindings.length">Findings</SectionLabel>
+            <SectionLabel
+              :count="relatedFindings.length"
+              tone="warning"
+            >
+              Findings
+            </SectionLabel>
             <p
               v-if="relatedFindings.length === 0"
               class="text-data leading-snug text-text-4"

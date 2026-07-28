@@ -7,7 +7,7 @@ export interface ComponentGraphInput {
   apiName: (id: string) => string | undefined
   apiVersion?: (id: string) => string | undefined
   systemName?: (id: string) => string | undefined
-  instanceCount?: (componentId: string) => number
+  findingCountOf?: (componentId: string) => number
   instancesOf?: (componentId: string) => ComponentInstance[]
   instanceContext?: (instance: ComponentInstance) => string | undefined
   showApis?: boolean
@@ -18,7 +18,7 @@ export function buildComponentGraph({
   apiName,
   apiVersion,
   systemName,
-  instanceCount,
+  findingCountOf,
   instancesOf,
   instanceContext,
   showApis = true,
@@ -44,7 +44,7 @@ export function buildComponentGraph({
       data: {
         label: c.displayName,
         system: systemName?.(c.system),
-        instanceCount: instanceCount?.(c.componentId),
+        findings: findingCountOf?.(c.componentId) || undefined,
       },
     })
     for (const inst of instancesOf?.(c.componentId) ?? []) {

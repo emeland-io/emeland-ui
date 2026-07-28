@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { IconSearch, IconX, IconCircleOff, IconLoader2, IconArrowUpRight } from '@tabler/icons-vue'
+import {
+  IconSearch,
+  IconX,
+  IconCircleOff,
+  IconLoader2,
+  IconArrowUpRight,
+  IconAlertTriangle,
+} from '@tabler/icons-vue'
 import { useNodesStore } from '@/stores/nodes'
 import { useFindingsStore } from '@/stores/findings'
 import ListDetail from '@/components/ListDetail.vue'
@@ -157,7 +164,7 @@ function closeTypesDrawer() {
         </span>
       </div>
       <button
-        class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
+        class="ml-auto flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
         :class="
           typesDrawerOpen
             ? 'bg-accent/10 text-accent-text'
@@ -295,8 +302,13 @@ function closeTypesDrawer() {
                 "
                 @click="selectNode(node.nodeId)"
               >
-                <div class="text-body font-medium text-text-1">{{ node.displayName }}</div>
-                <div class="mt-2 flex items-center gap-1.5">
+                <div
+                  class="truncate text-body font-medium text-text-1"
+                  :title="node.displayName"
+                >
+                  {{ node.displayName }}
+                </div>
+                <div class="mt-2 flex flex-wrap items-center gap-1.5">
                   <span
                     class="rounded px-1.5 py-0.5 font-mono text-meta"
                     :class="categoryColorForNode(node)"
@@ -308,6 +320,17 @@ function closeTypesDrawer() {
                     class="font-mono text-meta text-text-id"
                   >
                     {{ nodeVersion(node.annotations) }}
+                  </span>
+                  <span
+                    v-if="findingsStore.findingCountFor(node.nodeId) > 0"
+                    class="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
+                    :title="`${findingsStore.findingCountFor(node.nodeId)} finding(s)`"
+                  >
+                    <IconAlertTriangle
+                      :size="10"
+                      :stroke-width="2"
+                    />
+                    {{ findingsStore.findingCountFor(node.nodeId) }}
                   </span>
                 </div>
               </div>
@@ -332,7 +355,7 @@ function closeTypesDrawer() {
                   />
                 </div>
               </div>
-              <div class="mt-2">
+              <div class="mt-2 flex items-center gap-2">
                 <button
                   v-if="selectedNode.nodeType?.nodeTypeId"
                   class="group inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-label transition-opacity hover:opacity-80"
@@ -348,6 +371,12 @@ function closeTypesDrawer() {
                   :class="categoryColorForNode(selectedNode)"
                 >
                   {{ store.getTypeName(selectedNode) }}
+                </span>
+                <span
+                  v-if="nodeVersion(selectedNode.annotations)"
+                  class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3"
+                >
+                  {{ nodeVersion(selectedNode.annotations) }}
                 </span>
               </div>
             </div>
@@ -423,7 +452,12 @@ function closeTypesDrawer() {
                 </div>
                 <div class="flex flex-col gap-6">
                   <div>
-                    <SectionLabel :count="relatedFindings.length">Findings</SectionLabel>
+                    <SectionLabel
+                      :count="relatedFindings.length"
+                      tone="warning"
+                    >
+                      Findings
+                    </SectionLabel>
                     <p
                       v-if="relatedFindings.length === 0"
                       class="text-data leading-snug text-text-4"

@@ -47,7 +47,7 @@ export interface ApiNodeData {
 export interface ComponentNodeData {
   label: string
   system?: string
-  instanceCount?: number
+  findings?: number
 }
 
 export interface SystemGraphNode extends BaseGraphNode {
