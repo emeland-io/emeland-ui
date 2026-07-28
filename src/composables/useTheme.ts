@@ -1,8 +1,8 @@
 import { ref, watchEffect } from 'vue'
 
-export type ThemeMode = 'system' | 'light' | 'dark' | 'demo-old'
+export type ThemeMode = 'system' | 'light' | 'dark'
 
-export const THEME_MODES: Exclude<ThemeMode, 'system'>[] = ['light', 'dark', 'demo-old']
+export const THEME_MODES: Exclude<ThemeMode, 'system'>[] = ['light', 'dark']
 
 const STORAGE_KEY = 'emeland-theme'
 
@@ -18,7 +18,6 @@ const theme = ref<ThemeMode>(readStored())
 function resolved(): string {
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
   if (theme.value === 'system') return prefersDark ? 'dark' : 'light'
-  if (theme.value === 'demo-old') return prefersDark ? 'demo-old-dark' : 'demo-old-light'
   return theme.value
 }
 
