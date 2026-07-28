@@ -29,7 +29,12 @@ const emit = defineEmits<{
       <div class="mt-1 truncate text-label text-text-3">{{ finding.description }}</div>
       <div class="mt-2 flex items-center gap-1.5">
         <span
-          class="rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-meta text-warning"
+          class="rounded border px-1.5 py-0.5 font-mono text-meta"
+          :class="
+            kindFor(finding) === 'Unknown'
+              ? 'border-border-2 bg-bg-2 text-text-3'
+              : 'border-warning/20 bg-warning/10 text-warning'
+          "
         >
           {{ kindFor(finding) }}
         </span>
