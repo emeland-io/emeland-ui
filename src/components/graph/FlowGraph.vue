@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, watch, nextTick, useId } from 'vue'
-import { IconAlertTriangle } from '@tabler/icons-vue'
+import { IconAlertTriangle, IconCircleOff } from '@tabler/icons-vue'
 import {
   VueFlow,
   useVueFlow,
@@ -22,24 +22,51 @@ import type {
   SystemNodeData,
   InstanceNodeData,
   ContextNodeData,
+  ContextItemNodeData,
   ApiNodeData,
   ComponentNodeData,
 } from '@/types/graph'
 
-const props = defineProps<{
-  nodes: GraphNode[]
-  edges: GraphEdge[]
-  selectedId?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    nodes: GraphNode[]
+    edges: GraphEdge[]
+    selectedId?: string
+    showControls?: boolean
+    matchIds?: Set<string>
+  }>(),
+  { selectedId: '', showControls: true, matchIds: () => new Set<string>() },
+)
 
 const emit = defineEmits<{
   'node-click': [payload: { id: string; kind: GraphNodeKind }]
 }>()
 
 const flowId = `flow-${useId()}`
-const { fitView, onNodesInitialized } = useVueFlow(flowId)
+const { fitView, zoomIn, zoomOut, onNodesInitialized } = useVueFlow(flowId)
 
-const fit = () => fitView({ padding: 0.2, duration: 300 })
+const isEmpty = computed(() => props.nodes.length === 0)
+
+const fit = () => {
+  if (isEmpty.value) return
+  return fitView({ padding: 0.2, duration: 300 })
+}
+
+// Zoom to the current selection; falls back to fitting everything.
+function focusSelected() {
+  if (isEmpty.value) return
+  if (!props.selectedId) return fit()
+  return fitView({ nodes: [props.selectedId], padding: 0.6, duration: 300, maxZoom: 1.4 })
+}
+
+function focusMatches() {
+  if (isEmpty.value || props.matchIds.size === 0) return
+  const ids = props.nodes.map((n) => n.id).filter((id) => props.matchIds.has(id))
+  if (ids.length === 0) return
+  return fitView({ nodes: ids, padding: 0.9, duration: 400, maxZoom: 1.1 })
+}
+
+defineExpose({ fit, focusSelected, focusMatches, zoomIn, zoomOut })
 
 onNodesInitialized(fit)
 watch(
@@ -53,6 +80,7 @@ const flowNodes = computed<Node[]>(() =>
     type: n.kind,
     position: n.position,
     parentNode: n.parentId,
+    class: props.matchIds.has(n.id) ? 'node-match' : '',
     draggable: false,
     selectable: n.selectable ?? true,
     style: n.size
@@ -67,11 +95,34 @@ const flowEdges = computed<Edge[]>(() =>
     id: e.id,
     source: e.source,
     target: e.target,
+    sourceHandle: e.sourceHandle,
+    targetHandle: e.targetHandle,
     type: 'smoothstep',
-    class: e.kind === 'consumes' ? 'edge-consumes' : e.kind === 'provides' ? 'edge-provides' : '',
+    class: [
+      e.kind === 'consumes' ? 'edge-consumes' : e.kind === 'provides' ? 'edge-provides' : '',
+      e.source === props.selectedId || e.target === props.selectedId ? 'edge-active' : '',
+    ]
+      .filter(Boolean)
+      .join(' '),
+    zIndex: e.source === props.selectedId || e.target === props.selectedId ? 1 : 0,
     markerEnd: MarkerType.ArrowClosed,
   })),
 )
+
+const neighbourIds = computed(() => {
+  const ids = new Set<string>()
+  if (!props.selectedId) return ids
+  for (const e of props.edges) {
+    if (e.source === props.selectedId) ids.add(e.target)
+    else if (e.target === props.selectedId) ids.add(e.source)
+  }
+  return ids
+})
+
+function isOwnedBySelection(data: unknown): boolean {
+  const parent = (data as InstanceNodeData).parent
+  return !!parent && parent === props.selectedId
+}
 
 function onNodeClick({ node }: NodeMouseEvent) {
   emit('node-click', { id: node.id, kind: node.type as GraphNodeKind })
@@ -80,6 +131,16 @@ function onNodeClick({ node }: NodeMouseEvent) {
 
 <template>
   <div class="emel-flow relative h-full w-full">
+    <div
+      v-if="isEmpty"
+      class="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 text-text-4"
+    >
+      <IconCircleOff
+        :size="20"
+        :stroke-width="1.5"
+      />
+      <span class="text-label">Nothing to show for the current filters</span>
+    </div>
     <VueFlow
       :id="flowId"
       :nodes="flowNodes"
@@ -92,11 +153,13 @@ function onNodeClick({ node }: NodeMouseEvent) {
       @node-click="onNodeClick"
     >
       <Background
-        :gap="20"
+        variant="lines"
+        :gap="88"
         :size="1"
-        pattern-color="rgba(128, 128, 128, 0.18)"
+        pattern-color="rgba(128, 128, 128, 0.10)"
       />
       <Controls
+        v-if="showControls"
         :show-interactive="false"
         position="bottom-left"
       />
@@ -112,35 +175,70 @@ function onNodeClick({ node }: NodeMouseEvent) {
         </div>
       </template>
 
-      <!-- System node -->
-      <template #node-system="{ data }">
+      <!-- Context node -->
+      <template #node-context-node="{ id, data }">
         <div
-          class="w-56 cursor-pointer rounded-md border border-border-2 bg-bg-2 px-3 py-2 shadow-sm transition-colors hover:border-accent"
-          title="Open system"
+          class="node-cut node-comp w-full cursor-pointer px-3 py-2"
+          :class="id === selectedId ? 'node-comp-selected' : ''"
+          :title="(data as ContextItemNodeData).label"
         >
-          <div class="truncate text-body font-medium text-text-1">
-            {{ (data as SystemNodeData).label }}
-          </div>
-          <div class="mt-1 flex items-center gap-1.5">
-            <span
-              class="rounded px-1.5 py-0.5 font-mono text-micro"
-              :class="
-                (data as SystemNodeData).abstract
-                  ? 'bg-bg-2 text-text-3'
-                  : 'bg-accent/10 text-accent'
-              "
-            >
-              {{ (data as SystemNodeData).abstract ? 'Abstract' : 'Concrete' }}
+          <div class="flex items-center gap-2">
+            <span class="truncate text-body font-medium text-text-1">
+              {{ (data as ContextItemNodeData).label }}
             </span>
             <span
-              v-if="(data as SystemNodeData).version"
-              class="font-mono text-micro text-text-4"
+              v-if="(data as ContextItemNodeData).findings"
+              class="ml-auto flex shrink-0 items-center gap-1 rounded-full badge-warning px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
+              :title="`${(data as ContextItemNodeData).findings} finding(s)`"
             >
-              v{{ (data as SystemNodeData).version }}
+              <IconAlertTriangle
+                :size="10"
+                :stroke-width="2"
+              />
+              {{ (data as ContextItemNodeData).findings }}
+            </span>
+          </div>
+          <div class="mt-0.5 flex items-center gap-1.5 font-mono text-micro text-text-2">
+            <span
+              v-if="(data as ContextItemNodeData).type"
+              class="shrink-0 rounded-sm bg-bg-0 px-1 text-text-3"
+            >
+              C
+            </span>
+            <span class="truncate">{{ (data as ContextItemNodeData).type }}</span>
+            <span
+              v-if="(data as ContextItemNodeData).instances"
+              class="ml-auto shrink-0 tabular-nums"
+              :title="`${(data as ContextItemNodeData).instances} instance(s)`"
+            >
+              {{ (data as ContextItemNodeData).instances }} inst
+            </span>
+          </div>
+        </div>
+        <Handle
+          type="target"
+          :position="Position.Left"
+        />
+        <Handle
+          type="source"
+          :position="Position.Right"
+        />
+      </template>
+
+      <!-- System node -->
+      <template #node-system="{ id, data }">
+        <div
+          class="node-cut node-comp w-full cursor-pointer px-3 py-2"
+          :class="id === selectedId ? 'node-comp-selected' : ''"
+          :title="(data as SystemNodeData).label"
+        >
+          <div class="flex items-center gap-2">
+            <span class="truncate text-body font-medium text-text-1">
+              {{ (data as SystemNodeData).label }}
             </span>
             <span
               v-if="(data as SystemNodeData).findings"
-              class="flex items-center gap-1 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
+              class="ml-auto flex shrink-0 items-center gap-1 rounded-full badge-warning px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
               :title="`${(data as SystemNodeData).findings} finding(s)`"
             >
               <IconAlertTriangle
@@ -150,24 +248,60 @@ function onNodeClick({ node }: NodeMouseEvent) {
               {{ (data as SystemNodeData).findings }}
             </span>
           </div>
+          <div class="mt-0.5 flex items-center gap-1.5 font-mono text-micro text-text-2">
+            <span class="shrink-0 rounded-sm bg-bg-0 px-1 text-text-3">
+              {{ (data as SystemNodeData).abstract ? 'A' : 'C' }}
+            </span>
+            <span class="truncate">
+              {{ (data as SystemNodeData).abstract ? 'Abstract' : 'Concrete' }}
+            </span>
+            <span
+              v-if="(data as SystemNodeData).version"
+              class="shrink-0"
+            >
+              v{{ (data as SystemNodeData).version }}
+            </span>
+          </div>
         </div>
+        <Handle
+          type="target"
+          :position="Position.Left"
+        />
         <Handle
           type="source"
           :position="Position.Right"
         />
       </template>
 
-      <!-- Instance node -->
       <template #node-instance="{ id, data }">
         <div
-          class="w-full cursor-pointer rounded-md border bg-bg-1 px-3 py-2 shadow-sm transition-colors"
+          class="node-cut node-inst w-full cursor-pointer"
           :class="
             id === selectedId
-              ? 'border-accent ring-1 ring-accent/40'
-              : 'border-border-1 hover:border-border-2'
+              ? 'node-inst-selected'
+              : isOwnedBySelection(data)
+                ? 'node-inst-owned'
+                : ''
           "
+          :title="(data as InstanceNodeData).label"
         >
-          <div class="truncate text-body text-text-1">{{ (data as InstanceNodeData).label }}</div>
+          <div class="node-cut-inner px-3 py-2">
+            <div class="truncate text-body text-text-2">{{ (data as InstanceNodeData).label }}</div>
+            <div
+              v-if="(data as InstanceNodeData).context"
+              class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-3"
+            >
+              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">C</span>
+              <span class="truncate">{{ (data as InstanceNodeData).context }}</span>
+            </div>
+            <div
+              v-else-if="(data as InstanceNodeData).system"
+              class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-3"
+            >
+              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
+              <span class="truncate">{{ (data as InstanceNodeData).system }}</span>
+            </div>
+          </div>
         </div>
         <Handle
           type="target"
@@ -175,16 +309,21 @@ function onNodeClick({ node }: NodeMouseEvent) {
         />
       </template>
 
-      <!-- API node -->
-      <template #node-api="{ data }">
-        <div class="w-52 rounded-md border border-border-2 bg-bg-1 px-3 py-2 shadow-sm">
-          <div class="truncate text-body text-text-1">{{ (data as ApiNodeData).label }}</div>
-          <div
+      <template #node-api="{ id, data }">
+        <div
+          class="flex h-full w-full items-center gap-2 rounded-full border bg-bg-1 px-4 transition-colors"
+          :class="neighbourIds.has(id) ? 'border-accent' : 'border-text-4'"
+          :title="(data as ApiNodeData).label"
+        >
+          <span class="min-w-0 flex-1 truncate text-body text-text-1">
+            {{ (data as ApiNodeData).label }}
+          </span>
+          <span
             v-if="(data as ApiNodeData).version"
-            class="mt-1 font-mono text-micro text-text-4"
+            class="shrink-0 font-mono text-micro text-text-4"
           >
             v{{ (data as ApiNodeData).version }}
-          </div>
+          </span>
         </div>
         <Handle
           type="target"
@@ -199,31 +338,34 @@ function onNodeClick({ node }: NodeMouseEvent) {
       <!-- Component node -->
       <template #node-component="{ id, data }">
         <div
-          class="w-52 cursor-pointer rounded-md border bg-bg-2 px-3 py-2 shadow-sm transition-colors"
-          :class="
-            id === selectedId
-              ? 'border-accent ring-1 ring-accent/40'
-              : 'border-border-2 hover:border-accent'
-          "
-          title="Open component"
+          class="node-cut node-comp w-full cursor-pointer px-3 py-2"
+          :class="id === selectedId ? 'node-comp-selected' : ''"
+          :title="(data as ComponentNodeData).label"
         >
-          <div class="flex items-center gap-2">
-            <span class="truncate text-body font-medium text-text-1">
-              {{ (data as ComponentNodeData).label }}
-            </span>
-            <span
-              v-if="(data as ComponentNodeData).instanceCount"
-              class="ml-auto shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-micro text-text-3"
-              :title="`${(data as ComponentNodeData).instanceCount} instance(s)`"
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="truncate text-body font-medium text-text-1">
+                {{ (data as ComponentNodeData).label }}
+              </span>
+              <span
+                v-if="(data as ComponentNodeData).findings"
+                class="badge-warning ml-auto flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
+                :title="`${(data as ComponentNodeData).findings} finding(s)`"
+              >
+                <IconAlertTriangle
+                  :size="10"
+                  :stroke-width="2"
+                />
+                {{ (data as ComponentNodeData).findings }}
+              </span>
+            </div>
+            <div
+              v-if="(data as ComponentNodeData).system"
+              class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-2"
             >
-              {{ (data as ComponentNodeData).instanceCount }}
-            </span>
-          </div>
-          <div
-            v-if="(data as ComponentNodeData).system"
-            class="mt-0.5 truncate font-mono text-micro text-text-4"
-          >
-            {{ (data as ComponentNodeData).system }}
+              <span class="shrink-0 rounded-sm bg-bg-0 px-1 text-text-3">S</span>
+              <span class="truncate">{{ (data as ComponentNodeData).system }}</span>
+            </div>
           </div>
         </div>
         <Handle
@@ -240,12 +382,97 @@ function onNodeClick({ node }: NodeMouseEvent) {
 </template>
 
 <style scoped>
+.badge-warning {
+  background: color-mix(in srgb, var(--color-bg-0) 88%, var(--color-warning));
+}
+
+.emel-flow :deep(.vue-flow__node.node-match) {
+  box-shadow:
+    0 0 0 4px var(--color-bg-0),
+    0 0 0 7px var(--color-match);
+  border-radius: 4px;
+}
+
+.emel-flow :deep(.vue-flow__background pattern path),
+.emel-flow :deep(.vue-flow__background pattern line) {
+  stroke: color-mix(in srgb, var(--color-border-1) 45%, transparent);
+}
+.emel-flow :deep(.vue-flow__background pattern circle) {
+  fill: color-mix(in srgb, var(--color-border-1) 45%, transparent);
+}
+
+.node-cut {
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+}
+
+.node-cut-inner {
+  clip-path: polygon(
+    2px 2px,
+    calc(100% - 15px) 2px,
+    calc(100% - 2px) 15px,
+    calc(100% - 2px) calc(100% - 2px),
+    2px calc(100% - 2px)
+  );
+}
+
+.node-comp,
+.node-inst,
+.node-inst > .node-cut-inner {
+  transition: background-color 150ms;
+}
+
+.node-comp {
+  --node-comp-fill: var(--color-text-4);
+  background: var(--node-comp-fill);
+}
+
+[data-theme='light'] .node-comp {
+  --node-comp-fill: color-mix(in srgb, var(--color-text-4) 72%, #fff);
+}
+.node-comp:hover {
+  background: color-mix(in srgb, var(--node-comp-fill) 80%, var(--color-accent));
+}
+.node-comp-selected,
+.node-comp-selected:hover {
+  background: color-mix(in srgb, var(--node-comp-fill) 45%, var(--color-accent));
+}
+
+.node-inst {
+  background: var(--color-text-4);
+}
+.node-inst > .node-cut-inner {
+  background: var(--color-bg-1);
+}
+.node-inst:hover > .node-cut-inner {
+  background: color-mix(in srgb, var(--color-bg-1) 90%, var(--color-accent));
+}
+.node-inst-owned {
+  background: var(--color-accent);
+}
+.node-inst-owned > .node-cut-inner {
+  background: color-mix(in srgb, var(--color-bg-1) 86%, var(--color-accent));
+}
+.node-inst-selected {
+  background: var(--color-accent);
+}
+.node-inst-selected > .node-cut-inner,
+.node-inst-selected:hover > .node-cut-inner {
+  background: color-mix(in srgb, var(--color-bg-1) 68%, var(--color-accent));
+}
+
 .emel-flow :deep(.vue-flow__edge-path) {
   stroke: var(--color-text-3, rgba(120, 140, 130, 0.8));
   stroke-width: 1.5;
 }
 .emel-flow :deep(.vue-flow__edge.edge-consumes .vue-flow__edge-path) {
   stroke-dasharray: 5 4;
+}
+.emel-flow :deep(.vue-flow__edge.edge-active .vue-flow__edge-path) {
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+.emel-flow :deep(.vue-flow__edge.edge-active .vue-flow__arrowhead) {
+  fill: var(--color-accent);
 }
 .emel-flow :deep(.vue-flow__arrowhead) {
   fill: var(--color-text-3, rgba(120, 140, 130, 0.8));

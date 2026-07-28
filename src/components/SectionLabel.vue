@@ -5,8 +5,13 @@
  *
  *   <SectionLabel>Annotations</SectionLabel>
  *   <SectionLabel :count="items.length">Instances</SectionLabel>
+ *   <SectionLabel :count="findings.length" tone="warning">Findings</SectionLabel>
+ *
  */
-defineProps<{ count?: number }>()
+withDefaults(defineProps<{ count?: number; tone?: 'neutral' | 'warning' }>(), {
+  count: undefined,
+  tone: 'neutral',
+})
 </script>
 
 <template>
@@ -16,7 +21,12 @@ defineProps<{ count?: number }>()
     <slot />
     <span
       v-if="count !== undefined"
-      class="shrink-0 rounded-full bg-bg-3 px-1.5 py-0.5 font-mono text-micro text-text-3"
+      class="shrink-0 rounded-full px-1.5 py-0.5 font-mono text-micro tabular-nums"
+      :class="
+        tone === 'warning' && count > 0
+          ? 'border border-warning/20 bg-warning/10 text-warning'
+          : 'bg-bg-3 text-text-3'
+      "
     >
       {{ count }}
     </span>

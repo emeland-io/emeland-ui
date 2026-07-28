@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconStack2, IconArrowUpRight, IconArrowUp, IconArrowDown } from '@tabler/icons-vue'
+import { IconArrowUpRight, IconArrowUp, IconArrowDown } from '@tabler/icons-vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
@@ -71,16 +71,9 @@ function navigate(type: 'Component' | 'System' | 'Context', id: string) {
   <SlideOverDrawer
     :open="open"
     :title="instance?.displayName ?? 'Instance'"
+    subtitle="ComponentInstance"
     @close="emit('close')"
   >
-    <template #icon>
-      <IconStack2
-        :size="18"
-        :stroke-width="1.5"
-        class="text-accent"
-      />
-    </template>
-
     <div
       v-if="instance"
       class="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-4"

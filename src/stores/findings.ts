@@ -44,7 +44,8 @@ export const useFindingsStore = defineStore('findings', () => {
   }
 
   function getKindForFinding(f: Finding | undefined): string {
-    return f?.findingType?.displayName ?? 'Unknown'
+    const name = f?.findingType?.displayName?.trim()
+    return name ? name : 'Unknown'
   }
 
   async function load() {

@@ -1,47 +1,66 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, defineAsyncComponent } from 'vue'
 import {
-  IconSearch,
   IconCircleOff,
   IconLoader2,
-  IconCategory,
-  IconArrowUpRight,
-  IconList,
-  IconHierarchy,
-  IconChevronRight,
-  IconArrowDown,
-  IconArrowUp,
+  IconChevronsDown,
+  IconChevronsUp,
+  IconBinaryTree,
+  IconFocusCentered,
+  IconZoomScan,
+  IconZoomIn,
+  IconZoomOut,
+  IconArrowsMaximize,
+  IconArrowsMinimize,
+  IconSearch,
+  IconX,
 } from '@tabler/icons-vue'
 import { useContextStore } from '@/stores/contexts'
+import { useSystemStore } from '@/stores/systems'
 import { useFindingsStore } from '@/stores/findings'
 import ListDetail from '@/components/ListDetail.vue'
-import ViewModeSwitch from '@/components/ViewModeSwitch.vue'
+import ContextsList, { type ContextRow } from '@/components/contexts/ContextsList.vue'
+import ContextDetail from '@/components/contexts/ContextDetail.vue'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
+import SystemInstancesDrawer from '@/components/systems/SystemInstancesDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
-import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
+import { useSelectQuery, useResourceNav } from '@/composables/useResourceNav'
+import { useResizable } from '@/composables/useResizable'
+
+// Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
+const ContextGraphPane = defineAsyncComponent(
+  () => import('@/components/contexts/ContextGraphPane.vue'),
+)
 
 const store = useContextStore()
+const systemStore = useSystemStore()
 const findingsStore = useFindingsStore()
-const { goToFinding } = useResourceNav()
 
 const search = ref('')
 const activeTypes = ref<Set<string>>(new Set())
-const allTypes = computed(() => [...new Set(store.contexts.map((c) => store.getTypeName(c)))])
+
+const allTypes = computed(() =>
+  [...new Set(store.contexts.map((c) => store.getTypeName(c)))].sort(),
+)
+
+const chipFilteredContexts = computed(() =>
+  store.contexts.filter(
+    (c) => activeTypes.value.size === 0 || activeTypes.value.has(store.getTypeName(c)),
+  ),
+)
+
 const filteredContexts = computed(() =>
-  store.contexts.filter((c) => {
-    const q = search.value.toLowerCase()
-    if (q) {
-      const inName = c.displayName.toLowerCase().includes(q)
-      const inDesc = (c.description ?? '').toLowerCase().includes(q)
-      const inId = c.contextId.toLocaleLowerCase().includes(q)
-      const inTypeId = (c.contextTypeId ?? '').toLowerCase().includes(q)
-      const inAnnotations = Object.entries(c.annotations).some(
+  chipFilteredContexts.value.filter((c) => {
+    const q = search.value.trim().toLowerCase()
+    if (!q) return true
+    return (
+      c.displayName.toLowerCase().includes(q) ||
+      c.contextId.toLowerCase().includes(q) ||
+      (c.description ?? '').toLowerCase().includes(q) ||
+      Object.entries(c.annotations).some(
         ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
       )
-      if (!inName && !inDesc && !inId && !inTypeId && !inAnnotations) return false
-    }
-    if (activeTypes.value.size > 0 && !activeTypes.value.has(store.getTypeName(c))) return false
-    return true
+    )
   }),
 )
 
@@ -49,11 +68,8 @@ const hasActiveFilters = computed(() => !!search.value || activeTypes.value.size
 
 function toggleType(name: string) {
   const s = new Set(activeTypes.value)
-  if (s.has(name)) {
-    s.delete(name)
-  } else {
-    s.add(name)
-  }
+  if (s.has(name)) s.delete(name)
+  else s.add(name)
   activeTypes.value = s
 }
 
@@ -62,36 +78,43 @@ function clearFilters() {
   activeTypes.value = new Set()
 }
 
-function isTypeUnknown(c: (typeof store.contexts)[number]): boolean {
-  return store.getTypeName(c) === 'Unknown'
-}
-
-const viewMode = ref<'list' | 'tree'>('tree')
-
-const viewModes = [
-  { value: 'list', label: 'List', icon: IconList },
-  { value: 'tree', label: 'Tree', icon: IconHierarchy },
-]
-
-interface TreeRow {
-  context: (typeof store.contexts)[number]
-  depth: number
-  hasChildren: boolean
-}
-
 const collapsed = ref<Set<string>>(new Set())
+
+let defaultCollapseApplied = false
+watch(
+  () => store.contexts.length,
+  (count) => {
+    if (defaultCollapseApplied || count === 0) return
+    defaultCollapseApplied = true
+    const depthOf = (id: string): number => {
+      let depth = 0
+      let cursor = store.contexts.find((x) => x.contextId === id)?.parentId
+      const seen = new Set<string>([id])
+      while (cursor && !seen.has(cursor)) {
+        seen.add(cursor)
+        depth++
+        cursor = store.contexts.find((x) => x.contextId === cursor)?.parentId
+      }
+      return depth
+    }
+    const shut = new Set<string>()
+    for (const item of store.contexts) {
+      const parent = item.parentId
+      if (parent && depthOf(parent) >= 1) shut.add(parent)
+    }
+    collapsed.value = shut
+  },
+  { immediate: true },
+)
 
 function toggleCollapse(id: string) {
   const s = new Set(collapsed.value)
-  if (s.has(id)) {
-    s.delete(id)
-  } else {
-    s.add(id)
-  }
+  if (s.has(id)) s.delete(id)
+  else s.add(id)
   collapsed.value = s
 }
 
-const expandableIds = computed(() => {
+const parentIds = computed(() => {
   const present = new Set(filteredContexts.value.map((c) => c.contextId))
   const ids = new Set<string>()
   for (const c of filteredContexts.value) {
@@ -101,53 +124,155 @@ const expandableIds = computed(() => {
 })
 
 const allCollapsed = computed(
-  () =>
-    expandableIds.value.size > 0 && [...expandableIds.value].every((id) => collapsed.value.has(id)),
+  () => parentIds.value.size > 0 && [...parentIds.value].every((id) => collapsed.value.has(id)),
 )
 
 function toggleAll() {
-  collapsed.value = allCollapsed.value ? new Set() : new Set(expandableIds.value)
+  collapsed.value = allCollapsed.value ? new Set() : new Set(parentIds.value)
 }
 
-const treeRows = computed<TreeRow[]>(() => {
+const contextRows = computed<ContextRow[]>(() => {
   const present = new Set(filteredContexts.value.map((c) => c.contextId))
   const childrenOf = new Map<string, typeof filteredContexts.value>()
   const roots: typeof filteredContexts.value = []
   for (const c of filteredContexts.value) {
     if (c.parentId && present.has(c.parentId)) {
-      const list = childrenOf.get(c.parentId) ?? []
-      list.push(c)
-      childrenOf.set(c.parentId, list)
+      childrenOf.set(c.parentId, [...(childrenOf.get(c.parentId) ?? []), c])
     } else {
       roots.push(c)
     }
   }
-  const rows: TreeRow[] = []
-  const walk = (c: (typeof store.contexts)[number], depth: number) => {
+  const rows: ContextRow[] = []
+  const walk = (c: (typeof store.contexts)[number], depth: number, ancestors: string[]) => {
     const kids = childrenOf.get(c.contextId) ?? []
-    rows.push({ context: c, depth, hasChildren: kids.length > 0 })
-    // Skip the subtree of a collapsed node.
+    rows.push({ context: c, depth, childCount: kids.length, ancestors })
     if (collapsed.value.has(c.contextId)) return
-    for (const child of kids) walk(child, depth + 1)
+    for (const child of kids) walk(child, depth + 1, [...ancestors, c.contextId])
   }
-  for (const r of roots) walk(r, 0)
+  for (const r of roots) walk(r, 0, [])
   return rows
 })
 
-// Selection
+const activeRail = computed(
+  () => store.contexts.find((c) => c.contextId === selectedId.value)?.parentId ?? '',
+)
+
+const matchIds = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  if (q.length < 2) return new Set<string>()
+  return new Set(
+    store.contexts
+      .filter(
+        (x) =>
+          x.displayName.toLowerCase().includes(q) ||
+          x.contextId.toLowerCase().includes(q) ||
+          (x.description ?? '').toLowerCase().includes(q),
+      )
+      .map((x) => x.contextId),
+  )
+})
+
+watch(matchIds, (ids) => {
+  if (ids.size === 0) return
+  const next = new Set(collapsed.value)
+  for (const id of ids) {
+    let cursor: string | undefined = store.contexts.find((x) => x.contextId === id)?.parentId
+    const seen = new Set<string>()
+    while (cursor && !seen.has(cursor)) {
+      seen.add(cursor)
+      next.delete(cursor)
+      cursor = store.contexts.find((x) => x.contextId === cursor)?.parentId
+    }
+  }
+  collapsed.value = next
+})
+
 const selectedId = ref('')
 const selectedContext = computed(() => store.contexts.find((c) => c.contextId === selectedId.value))
-const selectedTypeUnknown = computed(() => {
-  const c = selectedContext.value
-  if (!c) return false
-  return isTypeUnknown(c)
-})
 
 function selectContext(id: string) {
   selectedId.value = id
-  if (id) {
-    store.loadContextDetail(id)
+  const next = new Set(collapsed.value)
+  let cursor: string | undefined = id
+  const seen = new Set<string>()
+  while (cursor && !seen.has(cursor)) {
+    seen.add(cursor)
+    next.delete(cursor)
+    cursor = store.contexts.find((x) => x.contextId === cursor)?.parentId
   }
+  collapsed.value = next
+}
+
+const instanceDrawerOpen = ref(false)
+const selectedInstanceId = ref('')
+
+const { goToResource } = useResourceNav()
+
+function goToSystem(id: string) {
+  instanceDrawerOpen.value = false
+  goToResource('System', id)
+}
+
+function openInstance(id: string) {
+  selectedInstanceId.value = id
+  instanceDrawerOpen.value = true
+}
+
+const graphPane = ref<InstanceType<typeof ContextGraphPane> | null>(null)
+const graphVisible = ref(true)
+const graphFullscreen = ref(false)
+const showInstances = ref(false)
+
+function toggleInstances() {
+  showInstances.value = !showInstances.value
+}
+
+function refitGraph() {
+  if (!graphVisible.value) return
+  nextTick(() => requestAnimationFrame(() => graphPane.value?.fit()))
+}
+
+function toggleGraph() {
+  graphVisible.value = !graphVisible.value
+  if (!graphVisible.value) {
+    graphFullscreen.value = false
+    return
+  }
+  if (graphHeight.value < SNAP_CLOSE) graphHeight.value = DEFAULT_HEIGHT
+  refitGraph()
+}
+
+function toggleFullscreen() {
+  graphFullscreen.value = !graphFullscreen.value
+  if (graphFullscreen.value) graphVisible.value = true
+}
+
+const SNAP_CLOSE = 100
+const DEFAULT_HEIGHT = 320
+
+const {
+  size: graphHeight,
+  isResizing: isResizingGraph,
+  onResizeStart: onGraphResizeStart,
+} = useResizable({ initial: DEFAULT_HEIGHT, min: 48, max: 700, axis: 'y' })
+
+watch(graphHeight, (h) => {
+  if (!isResizingGraph.value) return
+  graphVisible.value = h >= SNAP_CLOSE
+})
+
+watch(matchIds, (ids) => {
+  if (ids.size === 0) return
+  nextTick(() => graphPane.value?.focusMatches())
+})
+
+watch(isResizingGraph, (resizing) => {
+  if (!resizing) refitGraph()
+})
+
+function onGraphHandleDown(e: MouseEvent) {
+  if (!graphVisible.value) graphHeight.value = SNAP_CLOSE
+  onGraphResizeStart(e)
 }
 
 useSelectQuery(
@@ -167,29 +292,6 @@ watch(
   },
   { immediate: true },
 )
-
-watch(selectedId, (id) => {
-  if (id) store.loadContextDetail(id)
-})
-
-watch(
-  () => selectedContext.value?.contextTypeId,
-  (id) => {
-    if (id) store.ensureContextType(id)
-  },
-  { immediate: true },
-)
-
-const relatedFindings = computed(() => {
-  const id = selectedId.value
-  if (!id) return []
-  return findingsStore.findings.filter((f) => f.resources.some((r) => r.resourceId === id))
-})
-
-onMounted(async () => {
-  findingsStore.load()
-  await store.ensureHydrated()
-})
 
 const typesDrawerOpen = ref(false)
 const selectedTypeId = ref('')
@@ -229,9 +331,12 @@ function closeTypesDrawer() {
 }
 
 // Jump to the parent context
-function goToParent(parentId: string) {
-  selectContext(parentId)
-}
+onMounted(async () => {
+  findingsStore.load()
+  systemStore.load()
+  systemStore.loadSystemInstances()
+  await store.ensureHydrated()
+})
 </script>
 
 <template>
@@ -250,32 +355,19 @@ function goToParent(parentId: string) {
           </span>
         </span>
       </div>
-      <ViewModeSwitch
-        v-model="viewMode"
-        :options="viewModes"
-      />
       <button
-        class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-label transition-colors"
+        class="ml-auto rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
         :class="
           typesDrawerOpen
-            ? 'border-accent/20 bg-accent/10 text-accent-text'
-            : 'border-border-1 text-text-3 hover:bg-bg-2 hover:text-text-2'
+            ? 'bg-accent/10 text-accent-text'
+            : 'text-text-3 hover:bg-bg-3 hover:text-text-1'
         "
         @click="openTypesDrawer"
       >
-        <IconCategory
-          :size="13"
-          :stroke-width="1.5"
-        />
-        Context Types
-        <span
-          v-if="store.typesLoaded"
-          class="font-mono text-micro text-text-4"
-        >
-          {{ store.contextTypes.length }}
-        </span>
+        Context types
       </button>
     </div>
+
     <!-- Loading -->
     <div
       v-if="store.loading"
@@ -290,6 +382,7 @@ function goToParent(parentId: string) {
         <span class="text-body">Loading contexts...</span>
       </div>
     </div>
+
     <!-- Error -->
     <div
       v-else-if="store.error && store.contexts.length === 0"
@@ -297,12 +390,13 @@ function goToParent(parentId: string) {
     >
       <p class="text-body text-error">{{ store.error }}</p>
     </div>
+
     <template v-else>
       <!-- Toolbar -->
       <div class="flex flex-wrap items-center gap-2 border-b border-border-1 px-4 py-2">
         <div
           class="flex items-center gap-2 rounded bg-bg-2 px-2.5 py-1.5 transition-shadow focus-within:ring-1 focus-within:ring-border-2"
-          style="min-width: 300px"
+          style="min-width: 260px"
         >
           <IconSearch
             :size="13"
@@ -312,11 +406,26 @@ function goToParent(parentId: string) {
           <input
             v-model="search"
             type="text"
-            placeholder="Search contexts, annotations..."
-            class="w-full bg-transparent font-mono text-label text-text-2 placeholder:text-meta placeholder:text-text-4 outline-none"
+            placeholder="Search contexts, IDs, annotations..."
+            class="w-full bg-transparent font-mono text-label text-text-2 outline-none placeholder:text-meta placeholder:text-text-4"
           />
+          <button
+            v-if="search"
+            class="shrink-0 rounded p-0.5 text-text-4 transition-colors hover:bg-bg-3 hover:text-text-2"
+            title="Clear search"
+            @click="search = ''"
+          >
+            <IconX
+              :size="12"
+              :stroke-width="2"
+            />
+          </button>
         </div>
-        <div class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1">
+
+        <div
+          v-if="allTypes.length > 0"
+          class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1"
+        >
           <span
             class="shrink-0 cursor-default select-none text-micro font-medium uppercase tracking-wider text-text-4"
           >
@@ -336,14 +445,20 @@ function goToParent(parentId: string) {
             {{ type }}
           </button>
         </div>
+
         <button
           v-if="hasActiveFilters"
-          class="flex items-center gap-1 text-meta text-text-4 hover:text-text-2"
+          class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
           @click="clearFilters"
         >
+          <IconX
+            :size="11"
+            :stroke-width="2"
+          />
           Clear
         </button>
       </div>
+
       <!-- Empty state -->
       <div
         v-if="filteredContexts.length === 0"
@@ -361,313 +476,223 @@ function goToParent(parentId: string) {
           </p>
         </div>
       </div>
-      <!-- List-Detail -->
+
+      <!-- list | (graph over detail) -->
       <ListDetail v-else>
-        <!-- List -->
         <template #list>
           <div class="flex h-full flex-col">
-            <div class="min-h-0 flex-1 overflow-y-auto">
-              <!-- flat list -->
-              <template v-if="viewMode === 'list'">
-                <div
-                  v-for="ctx in filteredContexts"
-                  :key="ctx.contextId"
-                  class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
-                  :class="
-                    ctx.contextId === selectedId
-                      ? 'border-l-accent bg-accent/5'
-                      : 'border-l-transparent hover:bg-bg-1'
-                  "
-                  @click="selectContext(ctx.contextId)"
-                >
-                  <div class="text-body font-medium text-text-1">{{ ctx.displayName }}</div>
-                  <div class="mt-2 flex items-center gap-1.5">
-                    <span
-                      class="rounded px-1.5 py-0.5 font-mono text-meta"
-                      :class="
-                        isTypeUnknown(ctx) ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent'
-                      "
-                    >
-                      {{ store.getTypeName(ctx) }}
-                    </span>
-                    <span
-                      v-if="store.getParentName(ctx)"
-                      class="font-mono text-meta text-text-4"
-                    >
-                      ↳ {{ store.getParentName(ctx) }}
-                    </span>
-                  </div>
-                </div>
-              </template>
-              <!-- hierarchy tree -->
-              <template v-else>
-                <div
-                  v-for="row in treeRows"
-                  :key="row.context.contextId"
-                  class="flex cursor-pointer items-center gap-2 border-b border-border-1 border-l-2 py-2.5 pr-4 transition-colors"
-                  :class="
-                    row.context.contextId === selectedId
-                      ? 'border-l-accent bg-accent/5'
-                      : 'border-l-transparent hover:bg-bg-1'
-                  "
-                  :style="{ paddingLeft: `${16 + row.depth * 18}px` }"
-                  @click="selectContext(row.context.contextId)"
-                >
-                  <!-- expand/collapse toggle (parents) or spacer (leaves) -->
-                  <button
-                    v-if="row.hasChildren"
-                    class="flex h-4 w-4 shrink-0 items-center justify-center rounded text-text-4 hover:text-text-2"
-                    :aria-label="collapsed.has(row.context.contextId) ? 'Expand' : 'Collapse'"
-                    @click.stop="toggleCollapse(row.context.contextId)"
-                  >
-                    <IconChevronRight
-                      :size="14"
-                      :stroke-width="2"
-                      class="transition-transform"
-                      :class="{ 'rotate-90': !collapsed.has(row.context.contextId) }"
-                    />
-                  </button>
-                  <span
-                    v-else
-                    class="h-4 w-4 shrink-0"
-                  />
-                  <span class="truncate text-body font-medium text-text-1">
-                    {{ row.context.displayName }}
-                  </span>
-                  <span
-                    class="shrink-0 rounded px-1.5 py-0.5 font-mono text-micro"
-                    :class="
-                      isTypeUnknown(row.context)
-                        ? 'bg-error/10 text-error'
-                        : 'bg-accent/10 text-accent'
-                    "
-                  >
-                    {{ store.getTypeName(row.context) }}
-                  </span>
-                </div>
-              </template>
-            </div>
             <div
-              v-if="viewMode === 'tree' && expandableIds.size > 0"
-              class="shrink-0 border-t border-border-1 bg-bg-0 px-3 py-2"
+              class="flex h-9 shrink-0 items-center justify-between border-b border-border-1 bg-bg-1 px-2"
             >
+              <span class="text-micro font-medium uppercase tracking-wider text-text-4">List</span>
               <button
-                class="flex w-full items-center justify-center gap-1.5 rounded border border-border-1 px-2 py-1 text-meta text-text-3 transition-colors hover:bg-bg-2 hover:text-text-2"
-                :title="allCollapsed ? 'Expand all' : 'Collapse all'"
+                class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
+                :disabled="parentIds.size === 0"
+                :title="
+                  parentIds.size === 0
+                    ? 'Nothing to collapse'
+                    : allCollapsed
+                      ? 'Expand all'
+                      : 'Collapse all'
+                "
                 @click="toggleAll"
               >
                 <component
-                  :is="allCollapsed ? IconArrowDown : IconArrowUp"
-                  :size="13"
+                  :is="allCollapsed ? IconChevronsDown : IconChevronsUp"
+                  :size="14"
                   :stroke-width="1.75"
                 />
-                {{ allCollapsed ? 'Expand all' : 'Collapse all' }}
               </button>
+            </div>
+            <div class="min-h-0 flex-1 overflow-y-auto">
+              <ContextsList
+                :rows="contextRows"
+                :selected-id="selectedId"
+                :collapsed="collapsed"
+                :active-rail="activeRail"
+                @select="selectContext"
+                @toggle-collapse="toggleCollapse"
+              />
             </div>
           </div>
         </template>
 
-        <!-- Detail -->
         <template #detail>
           <div
-            v-if="selectedContext"
-            class="flex-1 overflow-y-auto"
+            class="flex min-w-0 flex-1 flex-col overflow-hidden"
+            :class="isResizingGraph ? 'select-none' : ''"
           >
-            <div class="border-b border-border-1 px-6 py-4">
-              <div class="flex items-start justify-between gap-4">
-                <h2 class="text-title font-medium text-text-1">
-                  {{ selectedContext.displayName }}
-                </h2>
-                <div class="flex items-center gap-1.5">
-                  <span class="font-mono text-label text-text-4">
-                    {{ selectedContext.contextId }}
-                  </span>
-                  <CopyButton
-                    :value="selectedContext.contextId"
-                    :size="13"
-                  />
-                </div>
-              </div>
-              <div class="mt-2">
-                <button
-                  v-if="selectedContext.contextTypeId"
-                  class="group inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-label transition-opacity hover:opacity-80"
-                  :class="
-                    selectedTypeUnknown ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent'
-                  "
-                  title="Show context type"
-                  @click="openTypeInDrawer(selectedContext.contextTypeId)"
-                >
-                  {{ store.getTypeName(selectedContext) }}
-                </button>
-                <span
-                  v-else
-                  class="rounded bg-error/10 px-2 py-0.5 font-mono text-label text-error"
-                >
-                  Unknown
-                </span>
-              </div>
-            </div>
-            <div class="flex flex-col gap-5 px-6 py-5">
-              <!-- detail load failed -->
-              <div
-                v-if="store.hasDetailError(selectedContext.contextId)"
-                class="flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
-              >
-                <div class="min-w-0">
-                  <div class="text-body text-error">Could not load full details</div>
-                  <div class="mt-0.5 font-mono text-meta text-error/80">
-                    Showing basic info only — the detail request failed.
-                  </div>
-                </div>
-              </div>
-              <!-- description -->
-              <p
-                v-if="selectedContext.description"
-                class="text-body leading-relaxed text-text-2"
-              >
-                {{ selectedContext.description }}
-              </p>
-              <!-- Parent -->
-              <div v-if="selectedContext.parentId">
-                <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
-                  Parent
-                </div>
-                <button
-                  v-if="!store.isParentUnresolved(selectedContext)"
-                  class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
-                  title="Go to parent context"
-                  @click="goToParent(selectedContext.parentId)"
-                >
-                  <span
-                    class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+            <!-- Graph toolbar -->
+            <div
+              class="grid h-9 shrink-0 cursor-pointer select-none grid-cols-[1fr_auto_1fr] items-center border-b border-border-1 bg-bg-1 px-2"
+              :title="graphVisible ? 'Double-click to hide graph' : 'Double-click to show graph'"
+              @dblclick="toggleGraph"
+            >
+              <span class="text-micro font-medium uppercase tracking-wider text-text-4">Graph</span>
+              <div class="flex items-center gap-1">
+                <template v-if="graphVisible">
+                  <button
+                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
+                    title="Focus selection"
+                    :disabled="!selectedId"
+                    @click.stop="graphPane?.focusSelected()"
+                    @dblclick.stop
                   >
-                    Context
-                  </span>
-                  <span
-                    class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
+                    <IconFocusCentered
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                  </button>
+                  <button
+                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Fit to view"
+                    @click.stop="graphPane?.fit()"
+                    @dblclick.stop
                   >
-                    {{ store.getParentName(selectedContext) }}
-                  </span>
-                  <IconArrowUpRight
-                    :size="16"
-                    :stroke-width="2"
-                    class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-                  />
-                  <div class="ml-auto flex shrink-0 items-center gap-1.5">
-                    <span class="font-mono text-meta text-text-4">
-                      {{ selectedContext.parentId }}
+                    <IconZoomScan
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                  </button>
+                  <button
+                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Zoom out"
+                    @click.stop="graphPane?.zoomOut()"
+                    @dblclick.stop
+                  >
+                    <IconZoomOut
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                  </button>
+                  <button
+                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Zoom in"
+                    @click.stop="graphPane?.zoomIn()"
+                    @dblclick.stop
+                  >
+                    <IconZoomIn
+                      :size="14"
+                      :stroke-width="1.75"
+                    />
+                  </button>
+                  <button
+                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Show the system instances living in each context"
+                    @click.stop="toggleInstances"
+                    @dblclick.stop
+                  >
+                    Instances
+                    <span
+                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
+                      :class="
+                        showInstances ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'
+                      "
+                    >
+                      {{ showInstances ? 'on' : 'off' }}
                     </span>
-                    <CopyButton
-                      :value="selectedContext.parentId"
-                      :size="12"
-                      @click.stop
-                    />
-                  </div>
-                </button>
-                <!-- unresolved parent (ContextParentNotFound) -->
-                <div
-                  v-else
-                  class="flex items-center gap-3 border-b border-border-1 py-2 last:border-b-0"
-                >
-                  <span
-                    class="flex w-28 shrink-0 items-center justify-center gap-1 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
+                  </button>
+                  <div class="mx-0.5 h-4 w-px bg-bg-3" />
+                  <button
+                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta transition-colors hover:bg-bg-3"
+                    :class="graphFullscreen ? 'text-accent' : 'text-text-3 hover:text-text-1'"
+                    @click.stop="toggleFullscreen"
+                    @dblclick.stop
                   >
-                    <IconAlertTriangle
-                      :size="12"
-                      :stroke-width="2"
+                    <component
+                      :is="graphFullscreen ? IconArrowsMinimize : IconArrowsMaximize"
+                      :size="14"
+                      :stroke-width="1.75"
                     />
-                    Context
-                  </span>
-                  <div class="min-w-0 flex-1">
-                    <div class="truncate text-body text-error">Unresolved parent</div>
-                    <div class="mt-0.5 truncate font-mono text-meta text-error/80">
-                      References a parent context that does not exist.
-                    </div>
-                  </div>
-                  <span class="font-mono text-meta text-text-4">
-                    {{ selectedContext.parentId }}
-                  </span>
-                </div>
-              </div>
-              <!-- annotations -->
-              <div v-if="Object.keys(selectedContext.annotations).length > 0">
-                <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
-                  Annotations
-                </div>
-                <div
-                  v-for="(value, key) in selectedContext.annotations"
-                  :key="key"
-                  class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
-                  style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
-                >
-                  <span
-                    class="truncate text-text-3"
-                    :title="key"
-                  >
-                    {{ key }}
-                  </span>
-                  <span class="break-all text-text-2">{{ value }}</span>
-                </div>
-              </div>
-              <!-- Related findings -->
-              <div v-if="relatedFindings.length > 0">
-                <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
-                  Findings
-                </div>
+                    {{ graphFullscreen ? 'Exit full view' : 'Full view' }}
+                  </button>
+                </template>
                 <button
-                  v-for="f in relatedFindings"
-                  :key="f.findingId"
-                  class="group flex w-full items-center gap-2.5 border-b border-border-1 py-2 text-left last:border-b-0"
-                  title="Go to finding"
-                  @click="goToFinding(f.findingId)"
+                  class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                  @click.stop="toggleGraph"
+                  @dblclick.stop
                 >
-                  <span
-                    class="shrink-0 rounded bg-sensor/10 px-1.5 py-0.5 font-mono text-micro text-sensor"
-                  >
-                    {{ findingsStore.getKindForFinding(f) }}
-                  </span>
-                  <span
-                    class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
-                  >
-                    {{ f.displayName }}
-                  </span>
-                  <IconArrowUpRight
-                    :size="15"
-                    :stroke-width="2"
-                    class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
+                  <IconBinaryTree
+                    :size="14"
+                    :stroke-width="1.75"
                   />
-                  <span class="ml-auto shrink-0 font-mono text-meta text-text-4">
-                    {{ f.findingId }}
-                  </span>
+                  {{ graphVisible ? 'Hide graph' : 'Show graph' }}
                 </button>
+              </div>
+              <span />
+            </div>
+
+            <!-- Graph -->
+            <div
+              v-show="graphVisible"
+              class="relative overflow-hidden"
+              :class="graphFullscreen ? 'min-h-0 flex-1' : 'shrink-0'"
+              :style="graphFullscreen ? undefined : { height: graphHeight + 'px' }"
+            >
+              <!-- A second way back out of full view -->
+              <button
+                v-if="graphFullscreen"
+                class="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded border border-border-1 bg-bg-1/90 px-2 py-1 text-meta text-text-3 transition-colors hover:bg-bg-2 hover:text-text-1"
+                title="Back to the split layout"
+                @click="toggleFullscreen"
+              >
+                <IconArrowsMinimize
+                  :size="14"
+                  :stroke-width="1.75"
+                />
+                Exit full view
+              </button>
+              <ContextGraphPane
+                ref="graphPane"
+                :match-ids="matchIds"
+                :contexts="chipFilteredContexts"
+                :selected-id="selectedId"
+                :show-instances="showInstances"
+                :show-controls="false"
+                class="h-full"
+                @select="selectContext"
+                @open-instance="openInstance"
+              />
+            </div>
+
+            <div
+              v-if="!graphFullscreen"
+              class="h-0.5 shrink-0 cursor-row-resize transition-colors hover:bg-accent/40"
+              :class="isResizingGraph ? 'bg-accent/60' : 'bg-bg-3'"
+              :title="graphVisible ? 'Drag to resize' : 'Drag to open the graph'"
+              @mousedown.prevent="onGraphHandleDown"
+            />
+
+            <!-- Detail -->
+            <div
+              v-if="!graphFullscreen"
+              class="flex min-h-0 flex-1 overflow-hidden border-t border-border-1"
+            >
+              <ContextDetail
+                v-if="selectedContext"
+                :context="selectedContext"
+                @navigate-parent="selectContext"
+                @open-type="openTypeInDrawer"
+              />
+              <div
+                v-else
+                class="flex flex-1 items-center justify-center"
+              >
+                <span class="font-mono text-label text-text-4">Select a context</span>
               </div>
             </div>
-          </div>
-          <div
-            v-else
-            class="flex flex-1 items-center justify-center"
-          >
-            <span class="font-mono text-label text-text-4">Select a context to inspect</span>
           </div>
         </template>
       </ListDetail>
     </template>
-
     <!-- context types drawer -->
     <SlideOverDrawer
       :open="typesDrawerOpen"
       title="Context Types"
+      subtitle="ContextType"
       :count="store.typesLoaded ? store.contextTypes.length : undefined"
       @close="closeTypesDrawer"
     >
-      <template #icon>
-        <IconCategory
-          :size="16"
-          :stroke-width="1.5"
-          class="text-text-3"
-        />
-      </template>
       <div
         v-if="store.typesLoading"
         class="flex flex-1 items-center justify-center"
@@ -752,5 +777,11 @@ function goToParent(parentId: string) {
         </div>
       </template>
     </SlideOverDrawer>
+    <SystemInstancesDrawer
+      :open="instanceDrawerOpen"
+      :selected-instance-id="selectedInstanceId"
+      @close="instanceDrawerOpen = false"
+      @go-to-system="goToSystem"
+    />
   </div>
 </template>

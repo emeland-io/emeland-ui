@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { IconCircleCheck, IconLoader2, IconListDetails } from '@tabler/icons-vue'
+import { IconCircleCheck, IconLoader2 } from '@tabler/icons-vue'
 import { useFindingsStore } from '@/stores/findings'
 import FindingsToolbar from '@/components/findings/FindingsToolbar.vue'
 import FindingsList from '@/components/findings/FindingsList.vue'
@@ -8,6 +8,8 @@ import FindingDetail from '@/components/findings/FindingDetail.vue'
 import ListDetail from '@/components/ListDetail.vue'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
+import SectionLabel from '@/components/SectionLabel.vue'
+import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 
 const store = useFindingsStore()
@@ -154,19 +156,15 @@ function closeTypesDrawer() {
         </span>
       </div>
       <button
-        class="ml-auto flex items-center gap-1.5 rounded border px-2.5 py-1 text-label transition-colors"
+        class="ml-auto flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
         :class="
           typesDrawerOpen
-            ? 'border-accent/20 bg-accent/10 text-accent-text'
-            : 'border-border-1 text-text-3 hover:bg-bg-2 hover:text-text-2'
+            ? 'bg-accent/10 text-accent-text'
+            : 'text-text-3 hover:bg-bg-3 hover:text-text-1'
         "
         @click="openTypesDrawer"
       >
-        <IconListDetails
-          :size="13"
-          :stroke-width="1.5"
-        />
-        Finding Types
+        Finding types
         <span
           v-if="store.typesLoaded"
           class="font-mono text-micro text-text-4"
@@ -229,12 +227,19 @@ function closeTypesDrawer() {
       <!-- List-Detail -->
       <ListDetail v-else>
         <template #list>
-          <FindingsList
-            :findings="filteredFindings"
-            :selected-id="selectedId"
-            :kind-for="store.getKindForFinding"
-            @select="selectFinding"
-          />
+          <div class="flex h-full flex-col">
+            <div class="flex h-9 shrink-0 items-center border-b border-border-1 bg-bg-1 px-2">
+              <span class="text-micro font-medium uppercase tracking-wider text-text-4">List</span>
+            </div>
+            <div class="min-h-0 flex-1 overflow-y-auto">
+              <FindingsList
+                :findings="filteredFindings"
+                :selected-id="selectedId"
+                :kind-for="store.getKindForFinding"
+                @select="selectFinding"
+              />
+            </div>
+          </div>
         </template>
 
         <template #detail>
@@ -274,17 +279,11 @@ function closeTypesDrawer() {
     <!-- Finding Types slide-over drawer -->
     <SlideOverDrawer
       :open="typesDrawerOpen"
-      title="Finding Types"
+      title="Finding types"
+      subtitle="FindingType"
       :count="store.typesLoaded ? store.findingTypes.length : undefined"
       @close="closeTypesDrawer"
     >
-      <template #icon>
-        <IconListDetails
-          :size="16"
-          :stroke-width="1.5"
-          class="text-text-3"
-        />
-      </template>
       <!-- Loading -->
       <div
         v-if="store.typesLoading"
@@ -350,23 +349,13 @@ function closeTypesDrawer() {
             v-if="Object.keys(selectedType.annotations).length > 0"
             class="mt-6"
           >
-            <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
+            <SectionLabel :count="Object.keys(selectedType.annotations).length">
               Annotations
-            </div>
-            <div
-              v-for="(value, key) in selectedType.annotations"
-              :key="key"
-              class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
-              style="grid-template-columns: minmax(180px, 30%) minmax(0, 1fr)"
-            >
-              <span
-                class="truncate text-text-3"
-                :title="key"
-              >
-                {{ key }}
-              </span>
-              <span class="break-all text-text-2">{{ value }}</span>
-            </div>
+            </SectionLabel>
+            <AnnotationsTable
+              :annotations="selectedType.annotations"
+              layout="stacked"
+            />
           </div>
         </div>
         <div

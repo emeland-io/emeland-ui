@@ -3,6 +3,8 @@ import { IconArrowUpRight } from '@tabler/icons-vue'
 import type { Finding } from '@/types/finding'
 import type { ResourceType } from '@/types/common'
 import CopyButton from '@/components/CopyButton.vue'
+import SectionLabel from '@/components/SectionLabel.vue'
+import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import { isResourceNavigable } from '@/constants/resources'
 
 defineProps<{
@@ -19,114 +21,136 @@ const emit = defineEmits<{
 <template>
   <div
     v-if="finding"
-    class="h-full overflow-y-auto"
+    class="@container flex-1 overflow-y-auto"
   >
     <!-- Header -->
     <div class="border-b border-border-1 px-6 py-4">
       <div class="flex items-start justify-between gap-4">
-        <h2 class="text-title font-medium text-text-1">{{ finding.displayName }}</h2>
-        <div class="flex items-center gap-1.5 shrink-0">
-          <span class="font-mono text-label text-text-id">{{ finding.findingId }}</span>
-          <CopyButton
-            :value="finding.findingId"
-            :size="13"
-          />
-        </div>
-      </div>
-      <div class="mt-2 flex items-center gap-2.5">
-        <button
-          v-if="finding.findingType"
-          class="group flex items-center gap-1 rounded border border-warning/20 bg-warning/10 px-2 py-0.5 font-mono text-label text-warning transition-colors hover:bg-warning/20"
-          title="Show finding type"
-          @click="emit('openType', finding.findingType.findingTypeId)"
-        >
-          {{ kind }}
-        </button>
-        <span
-          v-else
-          class="rounded border border-warning/20 bg-warning/10 px-2 py-0.5 font-mono text-label text-warning"
-        >
-          {{ kind }}
-        </span>
-        <button class="text-label text-text-4 transition-colors hover:text-text-2">
-          View Policy
-        </button>
-      </div>
-    </div>
-    <div class="flex flex-col gap-5 px-6 py-5">
-      <!-- Description -->
-      <div
-        v-if="finding.description"
-        class="text-body leading-relaxed text-text-2"
-      >
-        {{ finding.description }}
-      </div>
-      <!-- Resources -->
-      <div v-if="finding.resources.length > 0">
-        <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
-          Resources
-        </div>
-        <div
-          v-for="res in finding.resources"
-          :key="res.resourceId"
-          class="flex items-center gap-3 border-b border-border-1 py-2 last:border-b-0"
-        >
-          <span
-            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
-          >
-            {{ res.resourceType }}
-          </span>
-          <!-- Navigable: name (or id fallback) + jump, copy on id -->
-          <button
-            v-if="isResourceNavigable(res.resourceType)"
-            class="group flex min-w-0 flex-1 items-center gap-1.5 text-left"
-            :title="`Go to ${res.resourceType}`"
-            @click="emit('navigateResource', res.resourceType, res.resourceId)"
-          >
-            <span class="truncate text-body text-text-2 transition-colors group-hover:text-accent">
-              {{ res.displayName || res.resourceId }}
+        <div class="min-w-0">
+          <h2 class="text-title font-medium text-text-1">{{ finding.displayName }}</h2>
+          <div class="mt-2 flex items-center gap-2.5">
+            <button
+              v-if="finding.findingType"
+              class="rounded border px-2 py-0.5 font-mono text-label transition-colors"
+              :class="
+                kind === 'Unknown'
+                  ? 'border-border-2 bg-bg-2 text-text-3 hover:bg-bg-3'
+                  : 'border-warning/20 bg-warning/10 text-warning hover:bg-warning/20'
+              "
+              title="Show finding type"
+              @click="emit('openType', finding.findingType.findingTypeId)"
+            >
+              {{ kind }}
+            </button>
+            <span
+              v-else
+              class="rounded border px-2 py-0.5 font-mono text-label"
+              :class="
+                kind === 'Unknown'
+                  ? 'border-border-2 bg-bg-2 text-text-3'
+                  : 'border-warning/20 bg-warning/10 text-warning'
+              "
+            >
+              {{ kind }}
             </span>
-            <IconArrowUpRight
-              :size="16"
-              :stroke-width="2"
-              class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-            />
-          </button>
-          <!-- Non-navigable: name (or id fallback) -->
-          <span
-            v-else
-            class="min-w-0 flex-1 truncate text-body text-text-2"
-          >
-            {{ res.displayName || res.resourceId }}
-          </span>
-          <!-- id + copy -->
-          <div class="flex items-center gap-1.5 shrink-0">
-            <span class="font-mono text-meta text-text-id">{{ res.resourceId }}</span>
+          </div>
+        </div>
+        <div class="shrink-0 text-right">
+          <div class="flex items-center justify-end gap-1.5">
+            <span class="font-mono text-label text-text-4">{{ finding.findingId }}</span>
             <CopyButton
-              :value="res.resourceId"
-              :size="12"
+              :value="finding.findingId"
+              :size="13"
             />
           </div>
         </div>
       </div>
-      <!-- Annotations -->
-      <div v-if="Object.keys(finding.annotations).length > 0">
-        <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
-          Annotations
+    </div>
+
+    <div class="flex flex-col gap-5 px-6 py-5">
+      <div
+        class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3 @3xl:[&>*:nth-child(2)]:border-l @3xl:[&>*:nth-child(2)]:border-border-1/50 @3xl:[&>*:nth-child(2)]:pl-8 @3xl:[&>*:nth-child(3)]:border-l @3xl:[&>*:nth-child(3)]:border-border-1/50 @3xl:[&>*:nth-child(3)]:pl-8"
+      >
+        <div class="flex flex-col gap-6">
+          <div>
+            <SectionLabel>Description</SectionLabel>
+            <p
+              v-if="finding.description"
+              class="text-body leading-relaxed text-text-2"
+            >
+              {{ finding.description }}
+            </p>
+            <p
+              v-else
+              class="text-data leading-snug text-text-4"
+            >
+              No description.
+            </p>
+          </div>
         </div>
-        <div
-          v-for="(value, key) in finding.annotations"
-          :key="key"
-          class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
-          style="grid-template-columns: minmax(200px, 35%) minmax(0, 1fr)"
-        >
-          <span
-            class="truncate text-text-3"
-            :title="key"
-          >
-            {{ key }}
-          </span>
-          <span class="break-all text-text-2">{{ value }}</span>
+        <div class="flex flex-col gap-6">
+          <div>
+            <SectionLabel :count="finding.resources.length">Resources</SectionLabel>
+            <p
+              v-if="finding.resources.length === 0"
+              class="text-data leading-snug text-text-4"
+            >
+              No resources referenced.
+            </p>
+            <component
+              :is="isResourceNavigable(res.resourceType) ? 'button' : 'div'"
+              v-for="res in finding.resources"
+              :key="res.resourceId"
+              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+              :title="
+                isResourceNavigable(res.resourceType) ? `Go to ${res.resourceType}` : undefined
+              "
+              @click="
+                isResourceNavigable(res.resourceType) &&
+                emit('navigateResource', res.resourceType, res.resourceId)
+              "
+            >
+              <span class="group/row flex w-full items-center gap-3">
+                <span
+                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+                >
+                  {{ res.resourceType }}
+                </span>
+                <span
+                  class="min-w-0 truncate text-body text-text-2 transition-colors"
+                  :class="
+                    isResourceNavigable(res.resourceType) ? 'group-hover/row:text-accent' : ''
+                  "
+                >
+                  {{ res.displayName || res.resourceId }}
+                </span>
+                <IconArrowUpRight
+                  v-if="isResourceNavigable(res.resourceType)"
+                  :size="16"
+                  :stroke-width="2"
+                  class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
+                />
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="font-mono text-meta text-text-4">{{ res.resourceId }}</span>
+                <CopyButton
+                  :value="res.resourceId"
+                  :size="12"
+                  @click.stop
+                />
+              </span>
+            </component>
+          </div>
+        </div>
+        <div class="flex flex-col gap-6">
+          <!-- Annotations -->
+          <div v-if="Object.keys(finding.annotations).length > 0">
+            <SectionLabel>Annotations</SectionLabel>
+            <AnnotationsTable
+              :annotations="finding.annotations"
+              layout="stacked"
+            />
+          </div>
         </div>
       </div>
     </div>
