@@ -65,6 +65,11 @@
 
   --color-accent: #2f6f8f;
   --color-accent-text: #1d5470;
+  --color-node-sensor: #2a6f95;
+  --color-node-filter: #5a52b8;
+  --color-node-injector: #a8541c;
+  --color-node-external: #5a6570;
+
   --color-error: #bd3a34;
   --color-warning: #8f6410;
   --color-sensor: #2a7aaf;
