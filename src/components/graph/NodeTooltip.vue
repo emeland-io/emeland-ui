@@ -94,7 +94,7 @@ const showStats = computed(() => stats.value !== '')
 <template>
   <div class="w-full rounded-lg border border-border-2 bg-bg-1 p-2.5 shadow-lg">
     <div class="flex items-start gap-2">
-      <span class="mt-px shrink-0 rounded-sm bg-bg-3 px-1 font-mono text-micro text-text-3">
+      <span class="mt-px shrink-0 rounded-sm px-1 font-mono text-micro bg-accent/10 text-accent">
         {{ kindLabel }}
       </span>
       <span class="min-w-0 flex-1 break-words text-body font-medium leading-snug text-text-1">
