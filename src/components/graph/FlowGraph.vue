@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import { computed, watch, nextTick, useId } from 'vue'
+import { computed, ref, watch, nextTick, useId } from 'vue'
 import { IconAlertTriangle, IconCircleOff } from '@tabler/icons-vue'
 import {
   VueFlow,
   useVueFlow,
-  Handle,
   Position,
   MarkerType,
   type Node,
   type Edge,
   type NodeMouseEvent,
+  type EdgeMouseEvent,
 } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/controls/dist/style.css'
+import FlowHandles from './FlowHandles.vue'
+import ChannelEdge from './ChannelEdge.vue'
 import type {
   GraphNode,
   GraphEdge,
@@ -90,23 +92,138 @@ const flowNodes = computed<Node[]>(() =>
   })),
 )
 
+// Give every edge its own handle, spread along the node side and ordered by the
+// other endpoints position, plus its own lane for the vertical segment, so
+// parallel edges (e.g. parent -> children) don't overlap or cross.
+const LANE_GAP = 10
+const LANE_BUCKET = 16
+
+const edgePlan = computed(() => {
+  const byId = new Map(props.nodes.map((n) => [n.id, n]))
+  // Absolute positions (frame members are positioned relative to their frame)
+  const abs = new Map<string, { x: number; y: number }>()
+  const absPos = (id: string): { x: number; y: number } => {
+    const cached = abs.get(id)
+    if (cached) return cached
+    const n = byId.get(id)
+    if (!n) return { x: 0, y: 0 }
+    const parent = n.parentId ? absPos(n.parentId) : { x: 0, y: 0 }
+    const pos = { x: parent.x + n.position.x, y: parent.y + n.position.y }
+    abs.set(id, pos)
+    return pos
+  }
+
+  const out = new Map<string, GraphEdge[]>()
+  const inc = new Map<string, GraphEdge[]>()
+  for (const e of props.edges) {
+    out.set(e.source, [...(out.get(e.source) ?? []), e])
+    inc.set(e.target, [...(inc.get(e.target) ?? []), e])
+  }
+
+  const edgeHandles = new Map<string, { sourceHandle?: string; targetHandle?: string }>()
+  const planSide = (perNode: Map<string, GraphEdge[]>, side: 'source' | 'target') => {
+    const plan = new Map<string, string[]>()
+    for (const [nodeId, edges] of perNode) {
+      const sorted = [...edges].sort((a, b) => {
+        const otherA = absPos(side === 'source' ? a.target : a.source)
+        const otherB = absPos(side === 'source' ? b.target : b.source)
+        return otherA.y - otherB.y || otherA.x - otherB.x || a.id.localeCompare(b.id)
+      })
+      const ids = sorted.map((_, i) => `${side}-${i}`)
+      plan.set(nodeId, ids)
+      sorted.forEach((e, i) => {
+        const h = edgeHandles.get(e.id) ?? {}
+        h[side === 'source' ? 'sourceHandle' : 'targetHandle'] = ids[i]
+        edgeHandles.set(e.id, h)
+      })
+    }
+    return plan
+  }
+
+  // Stagger the vertical segment of edges that share the same channel
+  const lanes = new Map<string, number>()
+  const channels = new Map<number, GraphEdge[]>()
+  for (const e of props.edges) {
+    const source = byId.get(e.source)
+    if (!source || !byId.has(e.target)) continue
+    const sourceRight = absPos(e.source).x + (source.size?.width ?? 200)
+    const midX = (sourceRight + absPos(e.target).x) / 2
+    const key = Math.round(midX / LANE_BUCKET)
+    channels.set(key, [...(channels.get(key) ?? []), e])
+  }
+  for (const edges of channels.values()) {
+    if (edges.length < 2) continue
+    const sorted = [...edges].sort(
+      (a, b) =>
+        absPos(a.source).y - absPos(b.source).y ||
+        absPos(a.target).y - absPos(b.target).y ||
+        a.id.localeCompare(b.id),
+    )
+    sorted.forEach((e, i) => lanes.set(e.id, (i - (sorted.length - 1) / 2) * LANE_GAP))
+  }
+
+  return { source: planSide(out, 'source'), target: planSide(inc, 'target'), edgeHandles, lanes }
+})
+
+function handlesOf(nodeId: string, side: 'source' | 'target'): string[] {
+  return edgePlan.value[side].get(nodeId) ?? [`${side}-0`]
+}
+
+const hoveredEdgeId = ref('')
+const hoveredNodeId = ref('')
+
+function onEdgeMouseEnter({ edge }: EdgeMouseEvent) {
+  hoveredEdgeId.value = edge.id
+}
+
+function onEdgeMouseLeave() {
+  hoveredEdgeId.value = ''
+}
+
+function onNodeMouseEnter({ node }: NodeMouseEvent) {
+  hoveredNodeId.value = node.id
+}
+
+function onNodeMouseLeave() {
+  hoveredNodeId.value = ''
+}
+
 const flowEdges = computed<Edge[]>(() =>
-  props.edges.map((e) => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    sourceHandle: e.sourceHandle,
-    targetHandle: e.targetHandle,
-    type: 'smoothstep',
-    class: [
-      e.kind === 'consumes' ? 'edge-consumes' : e.kind === 'provides' ? 'edge-provides' : '',
-      e.source === props.selectedId || e.target === props.selectedId ? 'edge-active' : '',
-    ]
-      .filter(Boolean)
-      .join(' '),
-    zIndex: e.source === props.selectedId || e.target === props.selectedId ? 1 : 0,
-    markerEnd: MarkerType.ArrowClosed,
-  })),
+  props.edges.map((e) => {
+    const isActive = e.source === props.selectedId || e.target === props.selectedId
+    const isHovered =
+      hoveredEdgeId.value === e.id ||
+      e.source === hoveredNodeId.value ||
+      e.target === hoveredNodeId.value
+    const isDim = !!props.selectedId && !isActive
+    return {
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      sourceHandle: edgePlan.value.edgeHandles.get(e.id)?.sourceHandle ?? e.sourceHandle,
+      targetHandle: edgePlan.value.edgeHandles.get(e.id)?.targetHandle ?? e.targetHandle,
+      type: 'channel',
+      data: { lane: edgePlan.value.lanes.get(e.id) ?? 0 },
+      class: [
+        e.kind === 'consumes' ? 'edge-consumes' : e.kind === 'provides' ? 'edge-provides' : '',
+        isActive ? 'edge-active' : '',
+        isHovered ? 'edge-hovered' : '',
+        isDim ? 'edge-dim' : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
+      zIndex: isActive || isHovered ? 1 : 0,
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color:
+          isActive || isHovered
+            ? 'var(--color-accent)'
+            : isDim
+              ? 'color-mix(in srgb, var(--color-text-3) 45%, transparent)'
+              : 'var(--color-text-3)',
+      },
+    }
+  }),
 )
 
 const neighbourIds = computed(() => {
@@ -151,6 +268,10 @@ function onNodeClick({ node }: NodeMouseEvent) {
       :nodes-draggable="false"
       :elevate-edges-on-select="false"
       @node-click="onNodeClick"
+      @node-mouse-enter="onNodeMouseEnter"
+      @node-mouse-leave="onNodeMouseLeave"
+      @edge-mouse-enter="onEdgeMouseEnter"
+      @edge-mouse-leave="onEdgeMouseLeave"
     >
       <Background
         variant="lines"
@@ -163,6 +284,10 @@ function onNodeClick({ node }: NodeMouseEvent) {
         :show-interactive="false"
         position="bottom-left"
       />
+
+      <template #edge-channel="edgeProps">
+        <ChannelEdge v-bind="edgeProps" />
+      </template>
 
       <!-- Context frame -->
       <template #node-context="{ data }">
@@ -215,13 +340,15 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </span>
           </div>
         </div>
-        <Handle
+        <FlowHandles
           type="target"
           :position="Position.Left"
+          :handles="handlesOf(id, 'target')"
         />
-        <Handle
+        <FlowHandles
           type="source"
           :position="Position.Right"
+          :handles="handlesOf(id, 'source')"
         />
       </template>
 
@@ -263,13 +390,15 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </span>
           </div>
         </div>
-        <Handle
+        <FlowHandles
           type="target"
           :position="Position.Left"
+          :handles="handlesOf(id, 'target')"
         />
-        <Handle
+        <FlowHandles
           type="source"
           :position="Position.Right"
+          :handles="handlesOf(id, 'source')"
         />
       </template>
 
@@ -303,9 +432,10 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </div>
           </div>
         </div>
-        <Handle
+        <FlowHandles
           type="target"
           :position="Position.Left"
+          :handles="handlesOf(id, 'target')"
         />
       </template>
 
@@ -325,13 +455,15 @@ function onNodeClick({ node }: NodeMouseEvent) {
             v{{ (data as ApiNodeData).version }}
           </span>
         </div>
-        <Handle
+        <FlowHandles
           type="target"
           :position="Position.Left"
+          :handles="handlesOf(id, 'target')"
         />
-        <Handle
+        <FlowHandles
           type="source"
           :position="Position.Right"
+          :handles="handlesOf(id, 'source')"
         />
       </template>
 
@@ -368,13 +500,15 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </div>
           </div>
         </div>
-        <Handle
+        <FlowHandles
           type="target"
           :position="Position.Left"
+          :handles="handlesOf(id, 'target')"
         />
-        <Handle
+        <FlowHandles
           type="source"
           :position="Position.Right"
+          :handles="handlesOf(id, 'source')"
         />
       </template>
     </VueFlow>
@@ -397,6 +531,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
 .emel-flow :deep(.vue-flow__background pattern line) {
   stroke: color-mix(in srgb, var(--color-border-1) 45%, transparent);
 }
+
 .emel-flow :deep(.vue-flow__background pattern circle) {
   fill: color-mix(in srgb, var(--color-border-1) 45%, transparent);
 }
@@ -429,9 +564,11 @@ function onNodeClick({ node }: NodeMouseEvent) {
 [data-theme='light'] .node-comp {
   --node-comp-fill: color-mix(in srgb, var(--color-text-4) 72%, #fff);
 }
+
 .node-comp:hover {
   background: color-mix(in srgb, var(--node-comp-fill) 80%, var(--color-accent));
 }
+
 .node-comp-selected,
 .node-comp-selected:hover {
   background: color-mix(in srgb, var(--node-comp-fill) 45%, var(--color-accent));
@@ -440,57 +577,96 @@ function onNodeClick({ node }: NodeMouseEvent) {
 .node-inst {
   background: var(--color-text-4);
 }
+
 .node-inst > .node-cut-inner {
   background: var(--color-bg-1);
 }
+
 .node-inst:hover > .node-cut-inner {
   background: color-mix(in srgb, var(--color-bg-1) 90%, var(--color-accent));
 }
+
 .node-inst-owned {
   background: var(--color-accent);
 }
+
 .node-inst-owned > .node-cut-inner {
   background: color-mix(in srgb, var(--color-bg-1) 86%, var(--color-accent));
 }
+
 .node-inst-selected {
   background: var(--color-accent);
 }
+
 .node-inst-selected > .node-cut-inner,
 .node-inst-selected:hover > .node-cut-inner {
   background: color-mix(in srgb, var(--color-bg-1) 68%, var(--color-accent));
 }
 
+.emel-flow :deep(.vue-flow__node) {
+  animation: flow-fade-in 180ms ease-out;
+  transition: box-shadow 200ms;
+}
+
+.emel-flow :deep(.vue-flow__edge) {
+  animation: flow-fade-in 240ms ease-out 60ms backwards;
+  cursor: default;
+}
+
+@keyframes flow-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emel-flow :deep(.vue-flow__node),
+  .emel-flow :deep(.vue-flow__edge) {
+    animation: none;
+  }
+}
+
 .emel-flow :deep(.vue-flow__edge-path) {
   stroke: var(--color-text-3, rgba(120, 140, 130, 0.8));
   stroke-width: 1.5;
+  transition:
+    stroke 150ms,
+    stroke-width 150ms,
+    stroke-opacity 150ms;
 }
+
 .emel-flow :deep(.vue-flow__edge.edge-consumes .vue-flow__edge-path) {
   stroke-dasharray: 5 4;
 }
+
+.emel-flow :deep(.vue-flow__edge.edge-hovered .vue-flow__edge-path),
 .emel-flow :deep(.vue-flow__edge.edge-active .vue-flow__edge-path) {
   stroke: var(--color-accent);
   stroke-width: 2;
 }
-.emel-flow :deep(.vue-flow__edge.edge-active .vue-flow__arrowhead) {
-  fill: var(--color-accent);
+
+.emel-flow :deep(.vue-flow__edge.edge-dim .vue-flow__edge-path) {
+  stroke-opacity: 0.45;
 }
-.emel-flow :deep(.vue-flow__arrowhead) {
-  fill: var(--color-text-3, rgba(120, 140, 130, 0.8));
-}
+
 .emel-flow :deep(.vue-flow__handle) {
   width: 6px;
   height: 6px;
   border: none;
   background: var(--color-border-2, rgba(120, 140, 130, 0.7));
 }
+
 .emel-flow :deep(.vue-flow__controls) {
   box-shadow: none;
 }
+
 .emel-flow :deep(.vue-flow__controls-button) {
   border: 1px solid var(--color-border-2, rgba(120, 140, 130, 0.4));
   background: var(--color-bg-1, #1a1a1a);
   fill: var(--color-text-3, #999);
+  transition: background-color 150ms;
 }
+
 .emel-flow :deep(.vue-flow__controls-button:hover) {
   background: var(--color-bg-2, #222);
 }
