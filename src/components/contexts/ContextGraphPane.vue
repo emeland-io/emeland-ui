@@ -37,16 +37,14 @@ const shared = computed(() => ({
   instanceCountOf: (id: string) =>
     systemStore.systemInstances.filter((i) => i.context === id).length,
   findingCountOf: findingsStore.findingCountFor,
+  findingKindsOf: findingsStore.findingKindsFor,
+  instancesIn: (id: string) => systemStore.systemInstances.filter((i) => i.context === id),
+  systemName: (id: string | undefined) =>
+    id ? systemStore.systemMap.get(id)?.displayName : undefined,
 }))
 
 const graphModel = computed(() =>
-  props.showInstances
-    ? buildContextInstanceGraph({
-        ...shared.value,
-        instancesIn: (id) => systemStore.systemInstances.filter((i) => i.context === id),
-        systemName: (id) => (id ? systemStore.systemMap.get(id)?.displayName : undefined),
-      })
-    : buildContextGraph(shared.value),
+  props.showInstances ? buildContextInstanceGraph(shared.value) : buildContextGraph(shared.value),
 )
 
 function onNodeClick({ id, kind }: GraphNodeClick) {

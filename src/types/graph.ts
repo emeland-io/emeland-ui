@@ -22,32 +22,45 @@ interface BaseGraphNode {
 export interface SystemNodeData {
   label: string
   abstract: boolean
+  description?: string
   version?: string
   findings?: number
+  findingKinds?: string[]
+  instanceNames?: string[]
 }
 export interface InstanceNodeData {
   label: string
   parent?: string
   context?: string
   system?: string
+  component?: string
+  systemInstance?: string
+  type?: 'SystemInstance' | 'ComponentInstance'
 }
 export interface ContextNodeData {
   label: string
 }
 export interface ContextItemNodeData {
   label: string
+  description?: string
   type?: string
   instances?: number
+  instanceNames?: string[]
   findings?: number
+  findingKinds?: string[]
 }
 export interface ApiNodeData {
   label: string
+  description?: string
   version?: string
 }
 export interface ComponentNodeData {
   label: string
+  description?: string
   system?: string
   findings?: number
+  findingKinds?: string[]
+  instanceNames?: string[]
 }
 
 export interface SystemGraphNode extends BaseGraphNode {

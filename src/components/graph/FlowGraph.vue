@@ -17,6 +17,7 @@ import '@vue-flow/core/dist/style.css'
 import '@vue-flow/controls/dist/style.css'
 import FlowHandles from './FlowHandles.vue'
 import ChannelEdge from './ChannelEdge.vue'
+import NodeTooltip from './NodeTooltip.vue'
 import type {
   GraphNode,
   GraphEdge,
@@ -45,7 +46,8 @@ const emit = defineEmits<{
 }>()
 
 const flowId = `flow-${useId()}`
-const { fitView, zoomIn, zoomOut, onNodesInitialized } = useVueFlow(flowId)
+const { fitView, zoomIn, zoomOut, onNodesInitialized, viewport, dimensions, findNode } =
+  useVueFlow(flowId)
 
 const isEmpty = computed(() => props.nodes.length === 0)
 
@@ -85,12 +87,31 @@ const flowNodes = computed<Node[]>(() =>
     class: props.matchIds.has(n.id) ? 'node-match' : '',
     draggable: false,
     selectable: n.selectable ?? true,
+    zIndex: n.kind === 'context' ? 0 : 2,
     style: n.size
       ? { width: `${n.size.width}px`, ...(n.size.height ? { height: `${n.size.height}px` } : {}) }
       : undefined,
     data: n.data,
   })),
 )
+
+// node geometry (frame members are positioned relative to their frame)
+const nodeGeom = computed(() => {
+  const byId = new Map(props.nodes.map((n) => [n.id, n]))
+  const geom = new Map<string, { x: number; y: number; width: number }>()
+  const resolve = (n: GraphNode): { x: number; y: number } => {
+    const cached = geom.get(n.id)
+    if (cached) return cached
+    const parentNode = n.parentId ? byId.get(n.parentId) : undefined
+    const parent = parentNode ? resolve(parentNode) : { x: 0, y: 0 }
+    return { x: parent.x + n.position.x, y: parent.y + n.position.y }
+  }
+  for (const n of props.nodes) {
+    const p = resolve(n)
+    geom.set(n.id, { x: p.x, y: p.y, width: n.size?.width ?? 200 })
+  }
+  return geom
+})
 
 // Give every edge its own handle, spread along the node side and ordered by the
 // other endpoints position, plus its own lane for the vertical segment, so
@@ -99,19 +120,8 @@ const LANE_GAP = 10
 const LANE_BUCKET = 16
 
 const edgePlan = computed(() => {
-  const byId = new Map(props.nodes.map((n) => [n.id, n]))
-  // Absolute positions (frame members are positioned relative to their frame)
-  const abs = new Map<string, { x: number; y: number }>()
-  const absPos = (id: string): { x: number; y: number } => {
-    const cached = abs.get(id)
-    if (cached) return cached
-    const n = byId.get(id)
-    if (!n) return { x: 0, y: 0 }
-    const parent = n.parentId ? absPos(n.parentId) : { x: 0, y: 0 }
-    const pos = { x: parent.x + n.position.x, y: parent.y + n.position.y }
-    abs.set(id, pos)
-    return pos
-  }
+  const geom = nodeGeom.value
+  const absPos = (id: string) => geom.get(id) ?? { x: 0, y: 0, width: 200 }
 
   const out = new Map<string, GraphEdge[]>()
   const inc = new Map<string, GraphEdge[]>()
@@ -140,26 +150,55 @@ const edgePlan = computed(() => {
     return plan
   }
 
-  // Stagger the vertical segment of edges that share the same channel
+  const intervals = [...geom.values()].map((g) => [g.x, g.x + g.width] as const)
+  const isFree = (x: number) => !intervals.some(([a, b]) => x > a - 2 && x < b + 2)
+
+  const TRUNK_PAD = 12
   const lanes = new Map<string, number>()
   const channels = new Map<number, GraphEdge[]>()
+  const midXOf = new Map<string, number>()
+  const boundsOf = new Map<string, { lo: number; hi: number }>()
   for (const e of props.edges) {
-    const source = byId.get(e.source)
-    if (!source || !byId.has(e.target)) continue
-    const sourceRight = absPos(e.source).x + (source.size?.width ?? 200)
-    const midX = (sourceRight + absPos(e.target).x) / 2
-    const key = Math.round(midX / LANE_BUCKET)
+    if (!geom.has(e.source) || !geom.has(e.target)) continue
+    const sourceRight = absPos(e.source).x + absPos(e.source).width
+    const targetLeft = absPos(e.target).x
+    midXOf.set(e.id, (sourceRight + targetLeft) / 2)
+    boundsOf.set(e.id, { lo: sourceRight + TRUNK_PAD, hi: targetLeft - TRUNK_PAD })
+    const key = Math.round(midXOf.get(e.id)! / LANE_BUCKET)
     channels.set(key, [...(channels.get(key) ?? []), e])
   }
   for (const edges of channels.values()) {
-    if (edges.length < 2) continue
     const sorted = [...edges].sort(
       (a, b) =>
         absPos(a.source).y - absPos(b.source).y ||
         absPos(a.target).y - absPos(b.target).y ||
         a.id.localeCompare(b.id),
     )
-    sorted.forEach((e, i) => lanes.set(e.id, (i - (sorted.length - 1) / 2) * LANE_GAP))
+    const used = new Set<number>()
+    sorted.forEach((e, i) => {
+      const mid = midXOf.get(e.id)!
+      const { lo, hi } = boundsOf.get(e.id)!
+      const stagger = edges.length > 1 ? (i - (sorted.length - 1) / 2) * LANE_GAP : 0
+      const desired = mid + stagger
+      let laneX = Math.min(Math.max(desired, lo), hi)
+      if (!isFree(laneX) || used.has(Math.round(laneX))) {
+        for (let d = 1; lo <= hi; d++) {
+          const right = desired + d * LANE_GAP
+          const left = desired - d * LANE_GAP
+          if (right > hi && left < lo) break
+          if (right <= hi && isFree(right) && !used.has(Math.round(right))) {
+            laneX = right
+            break
+          }
+          if (left >= lo && isFree(left) && !used.has(Math.round(left))) {
+            laneX = left
+            break
+          }
+        }
+      }
+      used.add(Math.round(laneX))
+      lanes.set(e.id, laneX - mid)
+    })
   }
 
   return { source: planSide(out, 'source'), target: planSide(inc, 'target'), edgeHandles, lanes }
@@ -187,6 +226,102 @@ function onNodeMouseEnter({ node }: NodeMouseEvent) {
 function onNodeMouseLeave() {
   hoveredNodeId.value = ''
 }
+
+const tooltipNodeId = ref('')
+let tooltipTimer: ReturnType<typeof setTimeout> | undefined
+watch(hoveredNodeId, (id) => {
+  clearTimeout(tooltipTimer)
+  tooltipNodeId.value = ''
+  const node = props.nodes.find((n) => n.id === id)
+  if (node && node.kind !== 'context') {
+    tooltipTimer = setTimeout(() => (tooltipNodeId.value = id), 250)
+  }
+})
+
+const tooltipEl = ref<HTMLElement | null>(null)
+const tooltipSize = ref({ w: 288, h: 80 })
+watch(
+  tooltipNodeId,
+  async (id) => {
+    if (!id) return
+    await nextTick()
+    if (tooltipEl.value) {
+      tooltipSize.value = { w: tooltipEl.value.offsetWidth, h: tooltipEl.value.offsetHeight }
+    }
+  },
+  { flush: 'post' },
+)
+
+const TOOLTIP_GAP = 10
+const TOOLTIP_MARGIN = 8
+
+const tooltip = computed(() => {
+  const node = props.nodes.find((n) => n.id === tooltipNodeId.value)
+  const geom = nodeGeom.value.get(tooltipNodeId.value)
+  if (!node || !geom) return null
+  const byId = new Map(props.nodes.map((n) => [n.id, n]))
+  const embedded = (node.data as { instanceNames?: string[] }).instanceNames
+  const instances = (
+    embedded ??
+    props.edges
+      .filter((e) => e.source === node.id)
+      .map((e) => byId.get(e.target))
+      .filter((n) => n?.kind === 'instance')
+      .map((n) => n!.data.label)
+  )
+    .slice()
+    .sort((a, b) => a.localeCompare(b))
+
+  // Place the tooltip where it fits: above, below, right or left of the node
+  const { x, y, zoom } = viewport.value
+  const { w, h } = tooltipSize.value
+  const W = dimensions.value.width
+  const H = dimensions.value.height
+  const nodeLeft = x + geom.x * zoom
+  const nodeTop = y + geom.y * zoom
+  const nodeW = geom.width * zoom
+  const nodeH = (findNode(node.id)?.dimensions.height ?? 64) * zoom
+  const centerX = nodeLeft + nodeW / 2
+  const centerY = nodeTop + nodeH / 2
+
+  const candidates = [
+    { left: centerX - w / 2, top: nodeTop - TOOLTIP_GAP - h, space: nodeTop - TOOLTIP_MARGIN },
+    {
+      left: centerX - w / 2,
+      top: nodeTop + nodeH + TOOLTIP_GAP,
+      space: H - TOOLTIP_MARGIN - (nodeTop + nodeH),
+    },
+    {
+      left: nodeLeft + nodeW + TOOLTIP_GAP,
+      top: centerY - h / 2,
+      space: W - TOOLTIP_MARGIN - (nodeLeft + nodeW),
+    },
+    {
+      left: nodeLeft - TOOLTIP_GAP - w,
+      top: centerY - h / 2,
+      space: nodeLeft - TOOLTIP_MARGIN,
+    },
+  ]
+  const fits = (c: (typeof candidates)[number]) =>
+    c.left >= TOOLTIP_MARGIN &&
+    c.top >= TOOLTIP_MARGIN &&
+    c.left + w <= W - TOOLTIP_MARGIN &&
+    c.top + h <= H - TOOLTIP_MARGIN
+  const placement =
+    candidates.find(fits) ?? candidates.reduce((best, c) => (c.space > best.space ? c : best))
+  const clamp = (v: number, min: number, max: number) =>
+    Math.min(Math.max(v, min), Math.max(min, max))
+  const left = clamp(placement.left, TOOLTIP_MARGIN, W - w - TOOLTIP_MARGIN)
+  const top = clamp(placement.top, TOOLTIP_MARGIN, H - h - TOOLTIP_MARGIN)
+
+  return {
+    node,
+    instances,
+    incoming: edgePlan.value.target.get(node.id)?.length ?? 0,
+    outgoing: edgePlan.value.source.get(node.id)?.length ?? 0,
+    style: { left: `${left}px`, top: `${top}px` },
+  }
+})
 
 const flowEdges = computed<Edge[]>(() =>
   props.edges.map((e) => {
@@ -305,7 +440,6 @@ function onNodeClick({ node }: NodeMouseEvent) {
         <div
           class="node-cut node-comp w-full cursor-pointer px-3 py-2"
           :class="id === selectedId ? 'node-comp-selected' : ''"
-          :title="(data as ContextItemNodeData).label"
         >
           <div class="flex items-center gap-2">
             <span class="truncate text-body font-medium text-text-1">
@@ -314,7 +448,6 @@ function onNodeClick({ node }: NodeMouseEvent) {
             <span
               v-if="(data as ContextItemNodeData).findings"
               class="ml-auto flex shrink-0 items-center gap-1 rounded-full badge-warning px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
-              :title="`${(data as ContextItemNodeData).findings} finding(s)`"
             >
               <IconAlertTriangle
                 :size="10"
@@ -334,7 +467,6 @@ function onNodeClick({ node }: NodeMouseEvent) {
             <span
               v-if="(data as ContextItemNodeData).instances"
               class="ml-auto shrink-0 tabular-nums"
-              :title="`${(data as ContextItemNodeData).instances} instance(s)`"
             >
               {{ (data as ContextItemNodeData).instances }} inst
             </span>
@@ -357,7 +489,6 @@ function onNodeClick({ node }: NodeMouseEvent) {
         <div
           class="node-cut node-comp w-full cursor-pointer px-3 py-2"
           :class="id === selectedId ? 'node-comp-selected' : ''"
-          :title="(data as SystemNodeData).label"
         >
           <div class="flex items-center gap-2">
             <span class="truncate text-body font-medium text-text-1">
@@ -366,7 +497,6 @@ function onNodeClick({ node }: NodeMouseEvent) {
             <span
               v-if="(data as SystemNodeData).findings"
               class="ml-auto flex shrink-0 items-center gap-1 rounded-full badge-warning px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
-              :title="`${(data as SystemNodeData).findings} finding(s)`"
             >
               <IconAlertTriangle
                 :size="10"
@@ -412,7 +542,6 @@ function onNodeClick({ node }: NodeMouseEvent) {
                 ? 'node-inst-owned'
                 : ''
           "
-          :title="(data as InstanceNodeData).label"
         >
           <div class="node-cut-inner px-3 py-2">
             <div class="truncate text-body text-text-2">{{ (data as InstanceNodeData).label }}</div>
@@ -443,7 +572,6 @@ function onNodeClick({ node }: NodeMouseEvent) {
         <div
           class="flex h-full w-full items-center gap-2 rounded-full border bg-bg-1 px-4 transition-colors"
           :class="neighbourIds.has(id) ? 'border-accent' : 'border-text-4'"
-          :title="(data as ApiNodeData).label"
         >
           <span class="min-w-0 flex-1 truncate text-body text-text-1">
             {{ (data as ApiNodeData).label }}
@@ -472,7 +600,6 @@ function onNodeClick({ node }: NodeMouseEvent) {
         <div
           class="node-cut node-comp w-full cursor-pointer px-3 py-2"
           :class="id === selectedId ? 'node-comp-selected' : ''"
-          :title="(data as ComponentNodeData).label"
         >
           <div>
             <div class="flex items-center gap-2">
@@ -482,7 +609,6 @@ function onNodeClick({ node }: NodeMouseEvent) {
               <span
                 v-if="(data as ComponentNodeData).findings"
                 class="badge-warning ml-auto flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
-                :title="`${(data as ComponentNodeData).findings} finding(s)`"
               >
                 <IconAlertTriangle
                   :size="10"
@@ -512,6 +638,20 @@ function onNodeClick({ node }: NodeMouseEvent) {
         />
       </template>
     </VueFlow>
+
+    <div
+      v-if="tooltip"
+      ref="tooltipEl"
+      class="tooltip-wrap pointer-events-none absolute z-20"
+      :style="tooltip.style"
+    >
+      <NodeTooltip
+        :node="tooltip.node"
+        :incoming="tooltip.incoming"
+        :outgoing="tooltip.outgoing"
+        :instances="tooltip.instances"
+      />
+    </div>
   </div>
 </template>
 
@@ -531,7 +671,6 @@ function onNodeClick({ node }: NodeMouseEvent) {
 .emel-flow :deep(.vue-flow__background pattern line) {
   stroke: color-mix(in srgb, var(--color-border-1) 45%, transparent);
 }
-
 .emel-flow :deep(.vue-flow__background pattern circle) {
   fill: color-mix(in srgb, var(--color-border-1) 45%, transparent);
 }
@@ -564,11 +703,9 @@ function onNodeClick({ node }: NodeMouseEvent) {
 [data-theme='light'] .node-comp {
   --node-comp-fill: color-mix(in srgb, var(--color-text-4) 72%, #fff);
 }
-
 .node-comp:hover {
   background: color-mix(in srgb, var(--node-comp-fill) 80%, var(--color-accent));
 }
-
 .node-comp-selected,
 .node-comp-selected:hover {
   background: color-mix(in srgb, var(--node-comp-fill) 45%, var(--color-accent));
@@ -577,27 +714,21 @@ function onNodeClick({ node }: NodeMouseEvent) {
 .node-inst {
   background: var(--color-text-4);
 }
-
 .node-inst > .node-cut-inner {
   background: var(--color-bg-1);
 }
-
 .node-inst:hover > .node-cut-inner {
   background: color-mix(in srgb, var(--color-bg-1) 90%, var(--color-accent));
 }
-
 .node-inst-owned {
   background: var(--color-accent);
 }
-
 .node-inst-owned > .node-cut-inner {
   background: color-mix(in srgb, var(--color-bg-1) 86%, var(--color-accent));
 }
-
 .node-inst-selected {
   background: var(--color-accent);
 }
-
 .node-inst-selected > .node-cut-inner,
 .node-inst-selected:hover > .node-cut-inner {
   background: color-mix(in srgb, var(--color-bg-1) 68%, var(--color-accent));
@@ -607,18 +738,23 @@ function onNodeClick({ node }: NodeMouseEvent) {
   animation: flow-fade-in 180ms ease-out;
   transition: box-shadow 200ms;
 }
-
 .emel-flow :deep(.vue-flow__edge) {
   animation: flow-fade-in 240ms ease-out 60ms backwards;
   cursor: default;
 }
-
 @keyframes flow-fade-in {
   from {
     opacity: 0;
   }
 }
 
+.tooltip-wrap {
+  width: 288px;
+  max-width: calc(100% - 16px);
+  max-height: calc(100% - 16px);
+  overflow: hidden;
+  animation: flow-fade-in 150ms ease-out;
+}
 @media (prefers-reduced-motion: reduce) {
   .emel-flow :deep(.vue-flow__node),
   .emel-flow :deep(.vue-flow__edge) {
@@ -634,39 +770,32 @@ function onNodeClick({ node }: NodeMouseEvent) {
     stroke-width 150ms,
     stroke-opacity 150ms;
 }
-
 .emel-flow :deep(.vue-flow__edge.edge-consumes .vue-flow__edge-path) {
   stroke-dasharray: 5 4;
 }
-
 .emel-flow :deep(.vue-flow__edge.edge-hovered .vue-flow__edge-path),
 .emel-flow :deep(.vue-flow__edge.edge-active .vue-flow__edge-path) {
   stroke: var(--color-accent);
   stroke-width: 2;
 }
-
 .emel-flow :deep(.vue-flow__edge.edge-dim .vue-flow__edge-path) {
   stroke-opacity: 0.45;
 }
-
 .emel-flow :deep(.vue-flow__handle) {
   width: 6px;
   height: 6px;
   border: none;
   background: var(--color-border-2, rgba(120, 140, 130, 0.7));
 }
-
 .emel-flow :deep(.vue-flow__controls) {
   box-shadow: none;
 }
-
 .emel-flow :deep(.vue-flow__controls-button) {
   border: 1px solid var(--color-border-2, rgba(120, 140, 130, 0.4));
   background: var(--color-bg-1, #1a1a1a);
   fill: var(--color-text-3, #999);
   transition: background-color 150ms;
 }
-
 .emel-flow :deep(.vue-flow__controls-button:hover) {
   background: var(--color-bg-2, #222);
 }

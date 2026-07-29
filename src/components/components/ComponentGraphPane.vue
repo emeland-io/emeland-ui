@@ -19,7 +19,12 @@ const props = withDefaults(
     showControls?: boolean
     matchIds?: Set<string>
   }>(),
-  { showInstances: false, showApis: true, showControls: true, matchIds: () => new Set<string>() },
+  {
+    showInstances: false,
+    showApis: true,
+    showControls: true,
+    matchIds: () => new Set<string>(),
+  },
 )
 
 const emit = defineEmits<{
@@ -38,10 +43,15 @@ const graphModel = computed(() =>
     components: props.components,
     apiName: (id) => apiStore.getApiName(id),
     apiVersion: (id) => apiStore.apiMap.get(id)?.version?.version || undefined,
+    apiDescription: (id) => apiStore.apiMap.get(id)?.description || undefined,
     systemName: (id) => systemStore.systemMap.get(id)?.displayName,
     findingCountOf: findingsStore.findingCountFor,
-    instancesOf: props.showInstances ? (id) => store.getInstancesForComponent(id) : undefined,
+    findingKindsOf: findingsStore.findingKindsFor,
+    instancesOf: (id) => store.getInstancesForComponent(id),
     instanceContext: (inst) => contextForInstance(inst).name,
+    systemInstanceName: (id) =>
+      systemStore.systemInstances.find((i) => i.systemInstanceId === id)?.displayName,
+    showInstances: props.showInstances,
     showApis: props.showApis,
   }),
 )

@@ -13,27 +13,24 @@ export interface ContextGraphInput {
   typeName: (context: Context) => string
   instanceCountOf?: (contextId: string) => number
   findingCountOf?: (contextId: string) => number
+  findingKindsOf?: (contextId: string) => string[]
+  instancesIn?: (contextId: string) => SystemInstance[]
+  systemName?: (systemId: string | undefined) => string | undefined
 }
 
-export function buildContextGraph({
-  contexts,
-  typeName,
-  instanceCountOf,
-  findingCountOf,
-}: ContextGraphInput): GraphModel {
+export function buildContextGraph(input: ContextGraphInput): GraphModel {
   return buildContextInstanceGraph({
-    contexts,
-    typeName,
-    instanceCountOf,
-    findingCountOf,
-    instancesIn: () => [],
-    systemName: () => undefined,
+    ...input,
+    instancesIn: input.instancesIn ?? (() => []),
+    systemName: input.systemName ?? (() => undefined),
+    showInstances: false,
   })
 }
 
 export interface ContextInstanceGraphInput extends ContextGraphInput {
   instancesIn: (contextId: string) => SystemInstance[]
   systemName: (systemId: string | undefined) => string | undefined
+  showInstances?: boolean
 }
 
 const NO_SYSTEM = 'no-system'
@@ -43,8 +40,10 @@ export function buildContextInstanceGraph({
   typeName,
   instanceCountOf,
   findingCountOf,
+  findingKindsOf,
   instancesIn,
   systemName,
+  showInstances = true,
 }: ContextInstanceGraphInput): GraphModel {
   const all = contexts ?? []
   const byId = new Map(all.map((c) => [c.contextId, c]))
@@ -79,6 +78,27 @@ export function buildContextInstanceGraph({
   }
   for (const r of roots) visit(r)
 
+  const frameOf = (inst: SystemInstance) => inst.system ?? NO_SYSTEM
+  const frameLabel = (inst: SystemInstance) =>
+    inst.system ? (systemName(inst.system) ?? inst.system) : 'No system'
+
+  // Sorted instances per context
+  const instanceNamesOf = new Map<string, string[]>()
+  const sortedInstancesOf = new Map<string, SystemInstance[]>()
+  for (const context of ordered) {
+    const instances = [...instancesIn(context.contextId)].sort(
+      (a, b) =>
+        frameLabel(a).localeCompare(frameLabel(b)) || a.displayName.localeCompare(b.displayName),
+    )
+    sortedInstancesOf.set(context.contextId, instances)
+    if (instances.length) {
+      instanceNamesOf.set(
+        context.contextId,
+        instances.map((i) => i.displayName),
+      )
+    }
+  }
+
   const anchors: LayoutAnchor[] = ordered.map((context) => ({
     id: context.contextId,
     kind: 'context-node',
@@ -87,45 +107,44 @@ export function buildContextInstanceGraph({
     selectable: true,
     data: {
       label: context.displayName,
+      description: context.description || undefined,
       type: typeName(context) || undefined,
       instances: instanceCountOf?.(context.contextId) || undefined,
+      instanceNames: instanceNamesOf.get(context.contextId),
       findings: findingCountOf?.(context.contextId) || undefined,
+      findingKinds: findingKindsOf?.(context.contextId),
     },
   }))
-
-  const frameOf = (inst: SystemInstance) => inst.system ?? NO_SYSTEM
-  const frameLabel = (inst: SystemInstance) =>
-    inst.system ? (systemName(inst.system) ?? inst.system) : 'No system'
 
   const frameLabels = new Map<string, string>()
   const members: LayoutMember[] = []
   const edges: GraphEdge[] = []
 
-  for (const context of ordered) {
-    const instances = [...instancesIn(context.contextId)].sort(
-      (a, b) =>
-        frameLabel(a).localeCompare(frameLabel(b)) || a.displayName.localeCompare(b.displayName),
-    )
-    for (const inst of instances) {
-      const frameId = frameOf(inst)
-      if (!frameLabels.has(frameId)) frameLabels.set(frameId, frameLabel(inst))
-      members.push({
-        id: inst.systemInstanceId,
-        kind: 'instance',
-        frameId,
-        rowKey: context.contextId,
-        data: {
-          label: inst.displayName,
-          parent: context.contextId,
-          system: inst.system ? systemName(inst.system) : undefined,
-        },
-      })
-      edges.push({
-        id: `${context.contextId}->${inst.systemInstanceId}`,
-        source: context.contextId,
-        target: inst.systemInstanceId,
-        kind: 'contains',
-      })
+  if (showInstances) {
+    for (const context of ordered) {
+      for (const inst of sortedInstancesOf.get(context.contextId) ?? []) {
+        const frameId = frameOf(inst)
+        if (!frameLabels.has(frameId)) frameLabels.set(frameId, frameLabel(inst))
+        members.push({
+          id: inst.systemInstanceId,
+          kind: 'instance',
+          frameId,
+          rowKey: context.contextId,
+          data: {
+            label: inst.displayName,
+            parent: context.contextId,
+            context: context.displayName,
+            system: inst.system ? systemName(inst.system) : undefined,
+            type: 'SystemInstance',
+          },
+        })
+        edges.push({
+          id: `${context.contextId}->${inst.systemInstanceId}`,
+          source: context.contextId,
+          target: inst.systemInstanceId,
+          kind: 'contains',
+        })
+      }
     }
   }
 
