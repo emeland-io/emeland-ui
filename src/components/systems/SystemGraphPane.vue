@@ -41,10 +41,13 @@ const graphModel = computed(() =>
         instancesOf: store.getInstancesForSystem,
         contextName,
         findingCountOf: findingsStore.findingCountFor,
+        findingKindsOf: findingsStore.findingKindsFor,
       })
     : buildSystemGraph({
         systems: props.systems,
         findingCountOf: findingsStore.findingCountFor,
+        findingKindsOf: findingsStore.findingKindsFor,
+        instancesOf: store.getInstancesForSystem,
       }),
 )
 

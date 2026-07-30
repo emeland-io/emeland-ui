@@ -12,6 +12,7 @@ export interface InstanceGraphInput {
   instancesOf: (systemId: string) => SystemInstance[]
   contextName: (contextId: string | undefined) => string | undefined
   findingCountOf?: (systemId: string) => number
+  findingKindsOf?: (systemId: string) => string[]
 }
 
 const NO_CONTEXT = 'no-context'
@@ -21,6 +22,7 @@ export function buildInstanceGraph({
   instancesOf,
   contextName,
   findingCountOf,
+  findingKindsOf,
 }: InstanceGraphInput): GraphModel {
   const allSystems = systems ?? []
   const withInstances = allSystems
@@ -75,8 +77,10 @@ export function buildInstanceGraph({
     data: {
       label: system.displayName,
       abstract: system.abstract,
+      description: system.description || undefined,
       version: system.version?.version || undefined,
       findings: findingCountOf?.(system.systemId) || undefined,
+      findingKinds: findingKindsOf?.(system.systemId),
     },
   }))
 
@@ -115,7 +119,13 @@ export function buildInstanceGraph({
         kind: 'instance',
         frameId: frameOf(inst),
         rowKey: system.systemId,
-        data: { label: inst.displayName, parent: system.systemId },
+        data: {
+          label: inst.displayName,
+          parent: system.systemId,
+          system: system.displayName,
+          context: ctxLabel(inst),
+          type: 'SystemInstance',
+        },
       })
       edges.push({
         id: `${system.systemId}->${inst.systemInstanceId}`,

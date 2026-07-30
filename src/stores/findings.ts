@@ -48,6 +48,21 @@ export const useFindingsStore = defineStore('findings', () => {
     return name ? name : 'Unknown'
   }
 
+  const findingKindsByResource = computed(() => {
+    const m = new Map<string, Set<string>>()
+    for (const f of findings.value) {
+      const kind = getKindForFinding(f)
+      for (const r of f.resources) {
+        m.set(r.resourceId, (m.get(r.resourceId) ?? new Set()).add(kind))
+      }
+    }
+    return m
+  })
+
+  function findingKindsFor(resourceId: string): string[] {
+    return [...(findingKindsByResource.value.get(resourceId) ?? [])].sort()
+  }
+
   async function load() {
     if (loaded.value || loading.value) return
     loading.value = true
@@ -107,6 +122,7 @@ export const useFindingsStore = defineStore('findings', () => {
     selectedTypeDetail,
     typeMap,
     findingCountFor,
+    findingKindsFor,
     getTypeForFinding,
     getKindForFinding,
     hasDetailError: errs.hasDetailError,

@@ -6,10 +6,14 @@ export interface ComponentGraphInput {
   components: Component[]
   apiName: (id: string) => string | undefined
   apiVersion?: (id: string) => string | undefined
+  apiDescription?: (id: string) => string | undefined
   systemName?: (id: string) => string | undefined
   findingCountOf?: (componentId: string) => number
+  findingKindsOf?: (componentId: string) => string[]
   instancesOf?: (componentId: string) => ComponentInstance[]
   instanceContext?: (instance: ComponentInstance) => string | undefined
+  systemInstanceName?: (systemInstanceId: string) => string | undefined
+  showInstances?: boolean
   showApis?: boolean
 }
 
@@ -17,10 +21,14 @@ export function buildComponentGraph({
   components,
   apiName,
   apiVersion,
+  apiDescription,
   systemName,
   findingCountOf,
+  findingKindsOf,
   instancesOf,
   instanceContext,
+  systemInstanceName,
+  showInstances = true,
   showApis = true,
 }: ComponentGraphInput): GraphModel {
   const nodes: DagNodeSpec[] = []
@@ -33,36 +41,49 @@ export function buildComponentGraph({
     nodes.push({
       id: `api:${id}`,
       kind: 'api',
-      data: { label: apiName(id) ?? id, version: apiVersion?.(id) },
+      data: {
+        label: apiName(id) ?? id,
+        description: apiDescription?.(id),
+        version: apiVersion?.(id),
+      },
     })
   }
 
   for (const c of components) {
+    const instances = instancesOf?.(c.componentId) ?? []
     nodes.push({
       id: `comp:${c.componentId}`,
       kind: 'component',
       data: {
         label: c.displayName,
+        description: c.description || undefined,
         system: systemName?.(c.system),
         findings: findingCountOf?.(c.componentId) || undefined,
+        findingKinds: findingKindsOf?.(c.componentId),
+        instanceNames: instances.length ? instances.map((inst) => inst.displayName) : undefined,
       },
     })
-    for (const inst of instancesOf?.(c.componentId) ?? []) {
-      nodes.push({
-        id: `inst:${inst.componentInstanceId}`,
-        kind: 'instance',
-        data: {
-          label: inst.displayName,
-          parent: `comp:${c.componentId}`,
-          context: instanceContext?.(inst),
-        },
-      })
-      edges.push({
-        id: `has:${c.componentId}:${inst.componentInstanceId}`,
-        source: `comp:${c.componentId}`,
-        target: `inst:${inst.componentInstanceId}`,
-        kind: 'contains',
-      })
+    if (showInstances) {
+      for (const inst of instances) {
+        nodes.push({
+          id: `inst:${inst.componentInstanceId}`,
+          kind: 'instance',
+          data: {
+            label: inst.displayName,
+            parent: `comp:${c.componentId}`,
+            component: c.displayName,
+            context: instanceContext?.(inst),
+            systemInstance: systemInstanceName?.(inst.systemInstance),
+            type: 'ComponentInstance',
+          },
+        })
+        edges.push({
+          id: `has:${c.componentId}:${inst.componentInstanceId}`,
+          source: `comp:${c.componentId}`,
+          target: `inst:${inst.componentInstanceId}`,
+          kind: 'contains',
+        })
+      }
     }
     if (!showApis) continue
     for (const apiId of c.provides) {
