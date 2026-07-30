@@ -51,12 +51,12 @@ const DEFAULTS: Required<FramedColumnsOptions> = {
   header: 34,
   pad: 14,
   anchorX: 0,
-  anchorIndent: 232,
+  anchorIndent: 288,
   anchorWidth: 208,
   frameX0: 300,
   frameWidth: 244,
   memberWidth: 216,
-  columnGap: 56,
+  columnGap: 72,
 }
 
 export function layoutFramedColumns(
