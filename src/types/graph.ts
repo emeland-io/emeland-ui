@@ -53,6 +53,12 @@ export interface ApiNodeData {
   label: string
   description?: string
   version?: string
+  /** true when the API is consumed in a context it is not provided in */
+  crosses?: boolean
+  /** number of contexts the API is consumed in but not provided in */
+  crossCount?: number
+  findings?: number
+  findingKinds?: string[]
 }
 export interface ComponentNodeData {
   label: string

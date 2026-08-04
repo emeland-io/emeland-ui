@@ -11,67 +11,89 @@ import {
   IconArrowsMinimize,
   IconBinaryTree,
 } from '@tabler/icons-vue'
-import { useComponentStore } from '@/stores/components'
-import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
+import { useSystemStore } from '@/stores/systems'
+import { useComponentStore } from '@/stores/components'
 import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import ListDetail from '@/components/ListDetail.vue'
-import ComponentsToolbar from '@/components/components/ComponentsToolbar.vue'
-import ComponentsList from '@/components/components/ComponentsList.vue'
-import ComponentDetail from '@/components/components/ComponentDetail.vue'
-import ComponentInstanceDrawer from '@/components/components/ComponentInstanceDrawer.vue'
+import ApisToolbar from '@/components/apis/ApisToolbar.vue'
+import ApisList from '@/components/apis/ApisList.vue'
+import ApiDetail from '@/components/apis/ApiDetail.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 import { useResizable } from '@/composables/useResizable'
+import { resolveApiContextFlows } from '@/utils/apiContexts'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
-const ComponentGraphPane = defineAsyncComponent(
-  () => import('@/components/components/ComponentGraphPane.vue'),
-)
+const ApiGraphPane = defineAsyncComponent(() => import('@/components/apis/ApiGraphPane.vue'))
 
-const store = useComponentStore()
+const store = useApiStore()
 const systemStore = useSystemStore()
-const apiStore = useApiStore()
+const componentStore = useComponentStore()
 const contextStore = useContextStore()
 const findingsStore = useFindingsStore()
 const { goToResource } = useResourceNav()
 
 const search = ref('')
 const activeSystems = ref<Set<string>>(new Set())
+const crossContextOnly = ref(false)
 
 function systemName(id: string): string {
   return systemStore.systemMap.get(id)?.displayName ?? id
 }
 
-const chipFilteredComponents = computed(() =>
-  store.components.filter(
-    (c) => activeSystems.value.size === 0 || activeSystems.value.has(c.system),
+const contextFlows = computed(() =>
+  resolveApiContextFlows({
+    apis: store.apis,
+    components: componentStore.components,
+    componentInstances: componentStore.componentInstances,
+    systemInstances: systemStore.systemInstances,
+  }),
+)
+
+const crossings = computed(
+  () =>
+    new Map<string, number>(
+      [...contextFlows.value]
+        .filter(([, f]) => f.crosses)
+        .map(([id, f]) => [id, f.crossContexts.length]),
+    ),
+)
+
+const chipFilteredApis = computed(() =>
+  store.apis.filter(
+    (a) =>
+      (activeSystems.value.size === 0 || activeSystems.value.has(a.system)) &&
+      (!crossContextOnly.value || crossings.value.has(a.apiId)),
   ),
 )
 
-const filteredComponents = computed(() =>
-  chipFilteredComponents.value.filter((c) => {
+const filteredApis = computed(() =>
+  chipFilteredApis.value.filter((a) => {
     const q = search.value.toLowerCase()
     if (!q) return true
     return (
-      c.displayName.toLowerCase().includes(q) ||
-      (c.description ?? '').toLowerCase().includes(q) ||
-      c.componentId.toLowerCase().includes(q) ||
-      (c.version?.version ?? '').toLowerCase().includes(q) ||
-      systemName(c.system).toLowerCase().includes(q) ||
-      Object.entries(c.annotations).some(
+      a.displayName.toLowerCase().includes(q) ||
+      (a.description ?? '').toLowerCase().includes(q) ||
+      a.apiId.toLowerCase().includes(q) ||
+      a.type.toLowerCase().includes(q) ||
+      (a.version?.version ?? '').toLowerCase().includes(q) ||
+      systemName(a.system).toLowerCase().includes(q) ||
+      Object.entries(a.annotations).some(
         ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
       )
     )
   }),
 )
 
-const hasActiveFilters = computed(() => !!search.value || activeSystems.value.size > 0)
+const hasActiveFilters = computed(
+  () => !!search.value || activeSystems.value.size > 0 || crossContextOnly.value,
+)
 
 const filterSystems = computed(() => {
   const seen = new Map<string, string>()
-  for (const c of store.components) {
-    if (c.system && !seen.has(c.system)) seen.set(c.system, systemName(c.system))
+  for (const a of store.apis) {
+    if (a.system && !seen.has(a.system)) seen.set(a.system, systemName(a.system))
   }
   return [...seen].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
 })
@@ -89,53 +111,42 @@ function toggleSystem(id: string) {
 function clearFilters() {
   search.value = ''
   activeSystems.value = new Set()
+  crossContextOnly.value = false
 }
 
 const matchIds = computed(() => {
   const q = search.value.trim().toLowerCase()
   if (q.length < 2) return new Set<string>()
   return new Set(
-    store.components
+    store.apis
       .filter(
         (x) =>
           x.displayName.toLowerCase().includes(q) ||
-          x.componentId.toLowerCase().includes(q) ||
+          x.apiId.toLowerCase().includes(q) ||
           (x.description ?? '').toLowerCase().includes(q),
       )
-      .map((x) => x.componentId),
+      .map((x) => x.apiId),
   )
 })
 
 const selectedId = ref('')
-const selectedComponent = computed(() =>
-  store.components.find((c) => c.componentId === selectedId.value),
+const selectedApi = computed(() => store.apis.find((a) => a.apiId === selectedId.value))
+const selectedFlow = computed(() =>
+  selectedId.value ? contextFlows.value.get(selectedId.value) : undefined,
 )
 
-function selectComponent(id: string) {
+function selectApi(id: string) {
   selectedId.value = id
 }
 
-const instanceDrawerOpen = ref(false)
-const selectedInstanceId = ref('')
-
-function openInstance(id: string) {
-  selectedInstanceId.value = id
-  instanceDrawerOpen.value = true
-}
-
 // Graph controls
-const graphPane = ref<InstanceType<typeof ComponentGraphPane> | null>(null)
+const graphPane = ref<InstanceType<typeof ApiGraphPane> | null>(null)
 const graphVisible = ref(true)
 const graphFullscreen = ref(false)
-const showInstances = ref(false)
-const showApis = ref(true)
+const showComponents = ref(true)
 
-function toggleInstances() {
-  showInstances.value = !showInstances.value
-}
-
-function toggleApis() {
-  showApis.value = !showApis.value
+function toggleComponents() {
+  showComponents.value = !showComponents.value
 }
 
 function refitGraph() {
@@ -188,24 +199,24 @@ function onGraphHandleDown(e: MouseEvent) {
 
 useSelectQuery(
   selectedId,
-  computed(() => store.components),
-  (c) => c.componentId,
+  computed(() => store.apis),
+  (a) => a.apiId,
 )
 
 watch(
-  filteredComponents,
+  filteredApis,
   (list) => {
     if (list.length === 0) {
       selectedId.value = ''
-    } else if (!list.some((c) => c.componentId === selectedId.value)) {
-      selectComponent(list[0].componentId)
+    } else if (!list.some((a) => a.apiId === selectedId.value)) {
+      selectApi(list[0].apiId)
     }
   },
   { immediate: true },
 )
 
 watch(selectedId, (id) => {
-  if (id) store.loadComponentDetail(id)
+  if (id) store.loadApiDetail(id)
 })
 
 onMounted(async () => {
@@ -213,10 +224,10 @@ onMounted(async () => {
   systemStore.load()
   systemStore.loadSystemInstances()
   contextStore.ensureHydrated()
-  apiStore.load()
-  await store.load()
-  await store.loadAllDetails()
-  store.loadComponentInstances()
+  await Promise.all([store.load(), componentStore.load()])
+  await Promise.all([store.loadAllDetails(), componentStore.loadAllDetails()])
+  store.loadApiInstances()
+  componentStore.loadComponentInstances()
 })
 </script>
 
@@ -225,14 +236,14 @@ onMounted(async () => {
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
       <div class="flex min-w-44 items-center gap-3">
-        <h1 class="text-title font-medium text-text-1">Components</h1>
+        <h1 class="text-title font-medium text-text-1">APIs</h1>
         <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-          {{ filteredComponents.length }}
+          {{ filteredApis.length }}
           <span
-            v-if="filteredComponents.length !== store.components.length"
+            v-if="filteredApis.length !== store.apis.length"
             class="text-text-4"
           >
-            of {{ store.components.length }}
+            of {{ store.apis.length }}
           </span>
         </span>
       </div>
@@ -249,31 +260,33 @@ onMounted(async () => {
           :stroke-width="1.5"
           class="animate-spin"
         />
-        <span class="text-body">Loading components...</span>
+        <span class="text-body">Loading APIs...</span>
       </div>
     </div>
 
     <!-- Error -->
     <div
-      v-else-if="store.error && store.components.length === 0"
+      v-else-if="store.error && store.apis.length === 0"
       class="flex flex-1 items-center justify-center"
     >
       <p class="text-body text-error">{{ store.error }}</p>
     </div>
 
     <template v-else>
-      <ComponentsToolbar
+      <ApisToolbar
         v-model:search="search"
         :systems="filterSystems"
         :active-systems="activeSystems"
+        :cross-context="crossContextOnly"
         :has-active-filters="hasActiveFilters"
         @toggle-system="toggleSystem"
+        @toggle-cross-context="crossContextOnly = !crossContextOnly"
         @clear="clearFilters"
       />
 
       <!-- Empty state -->
       <div
-        v-if="filteredComponents.length === 0"
+        v-if="filteredApis.length === 0"
         class="flex flex-1 items-center justify-center"
       >
         <div class="text-center">
@@ -282,11 +295,9 @@ onMounted(async () => {
             :stroke-width="1.5"
             class="mx-auto text-text-4"
           />
-          <p class="mt-3 text-body text-text-2">No components</p>
+          <p class="mt-3 text-body text-text-2">No APIs</p>
           <p class="mt-1 text-label text-text-4">
-            {{
-              hasActiveFilters ? 'No results for current filters' : 'No components discovered yet'
-            }}
+            {{ hasActiveFilters ? 'No results for current filters' : 'No APIs discovered yet' }}
           </p>
         </div>
       </div>
@@ -299,10 +310,11 @@ onMounted(async () => {
               <span class="text-micro font-medium uppercase tracking-wider text-text-4">List</span>
             </div>
             <div class="min-h-0 flex-1 overflow-y-auto">
-              <ComponentsList
-                :components="filteredComponents"
+              <ApisList
+                :apis="filteredApis"
                 :selected-id="selectedId"
-                @select="selectComponent"
+                :crossings="crossings"
+                @select="selectApi"
               />
             </div>
           </div>
@@ -370,32 +382,18 @@ onMounted(async () => {
                   <div class="mx-0.5 h-4 w-px bg-bg-3" />
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Show APIs as nodes; when off, components link directly"
-                    @click.stop="toggleApis"
+                    title="Show providing and consuming components; when off, APIs link directly"
+                    @click.stop="toggleComponents"
                     @dblclick.stop
                   >
-                    APIs
-                    <span
-                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
-                      :class="showApis ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'"
-                    >
-                      {{ showApis ? 'on' : 'off' }}
-                    </span>
-                  </button>
-                  <button
-                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Show component instances as nodes"
-                    @click.stop="toggleInstances"
-                    @dblclick.stop
-                  >
-                    Instances
+                    Components
                     <span
                       class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
                       :class="
-                        showInstances ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'
+                        showComponents ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'
                       "
                     >
-                      {{ showInstances ? 'on' : 'off' }}
+                      {{ showComponents ? 'on' : 'off' }}
                     </span>
                   </button>
                   <div class="mx-0.5 h-4 w-px bg-bg-3" />
@@ -447,18 +445,16 @@ onMounted(async () => {
                 />
                 Exit full view
               </button>
-              <ComponentGraphPane
+              <ApiGraphPane
                 ref="graphPane"
-                :match-ids="new Set([...matchIds].map((id) => `comp:${id}`))"
-                :components="chipFilteredComponents"
+                :match-ids="new Set([...matchIds].map((id) => `api:${id}`))"
+                :apis="chipFilteredApis"
                 :selected-id="selectedId"
-                :show-instances="showInstances"
-                :show-apis="showApis"
+                :show-components="showComponents"
                 :show-controls="false"
                 class="h-full"
-                @select="selectComponent"
-                @open-instance="openInstance"
-                @open-api="(id) => goToResource('API', id)"
+                @select="selectApi"
+                @open-component="(id) => goToResource('Component', id)"
               />
             </div>
 
@@ -475,17 +471,14 @@ onMounted(async () => {
               v-if="!graphFullscreen"
               class="flex min-h-0 flex-1 overflow-hidden border-t border-border-1"
             >
-              <ComponentDetail :component="selectedComponent" />
+              <ApiDetail
+                :api="selectedApi"
+                :flow="selectedFlow"
+              />
             </div>
           </div>
         </template>
       </ListDetail>
     </template>
-
-    <ComponentInstanceDrawer
-      :open="instanceDrawerOpen"
-      :selected-instance-id="selectedInstanceId"
-      @close="instanceDrawerOpen = false"
-    />
   </div>
 </template>

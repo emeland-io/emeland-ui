@@ -61,7 +61,7 @@ const consumes = computed(() =>
   (instance.value?.consumes ?? []).map((id) => ({ id, name: apiStore.getApiName(id) ?? id })),
 )
 
-function navigate(type: 'Component' | 'System' | 'Context', id: string) {
+function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) {
   emit('close')
   goToResource(type, id)
 }
@@ -110,7 +110,7 @@ function navigate(type: 'Component' | 'System' | 'Context', id: string) {
           @click="navigate('Component', instance.component)"
         >
           <span
-            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
           >
             Component
           </span>
@@ -145,7 +145,7 @@ function navigate(type: 'Component' | 'System' | 'Context', id: string) {
           @click="systemInstance?.system && navigate('System', systemInstance.system)"
         >
           <span
-            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
           >
             Instance
           </span>
@@ -182,7 +182,7 @@ function navigate(type: 'Component' | 'System' | 'Context', id: string) {
         >
           <span
             v-if="contextType"
-            class="shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+            class="shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
           >
             {{ contextType }}
           </span>
@@ -212,17 +212,21 @@ function navigate(type: 'Component' | 'System' | 'Context', id: string) {
       <div v-if="provides.length">
         <SectionLabel :count="provides.length">Provides APIs</SectionLabel>
         <div class="flex flex-wrap gap-1.5">
-          <span
+          <component
+            :is="apiStore.apiMap.has(api.id) ? 'button' : 'span'"
             v-for="api in provides"
             :key="api.id"
-            class="flex items-center gap-1 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent"
+            class="flex items-center gap-1 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent-text transition-colors"
+            :class="apiStore.apiMap.has(api.id) ? 'hover:bg-accent/20' : ''"
+            :title="apiStore.apiMap.has(api.id) ? `Go to API — ${api.id}` : api.id"
+            @click="apiStore.apiMap.has(api.id) && navigate('API', api.id)"
           >
             <IconArrowUp
               :size="11"
               :stroke-width="2"
             />
             {{ api.name }}
-          </span>
+          </component>
         </div>
       </div>
 
@@ -230,17 +234,21 @@ function navigate(type: 'Component' | 'System' | 'Context', id: string) {
       <div v-if="consumes.length">
         <SectionLabel :count="consumes.length">Consumes APIs</SectionLabel>
         <div class="flex flex-wrap gap-1.5">
-          <span
+          <component
+            :is="apiStore.apiMap.has(api.id) ? 'button' : 'span'"
             v-for="api in consumes"
             :key="api.id"
-            class="flex items-center gap-1 rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta text-text-3"
+            class="flex items-center gap-1 rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta text-text-3 transition-colors"
+            :class="apiStore.apiMap.has(api.id) ? 'hover:bg-bg-3 hover:text-text-1' : ''"
+            :title="apiStore.apiMap.has(api.id) ? `Go to API — ${api.id}` : api.id"
+            @click="apiStore.apiMap.has(api.id) && navigate('API', api.id)"
           >
             <IconArrowDown
               :size="11"
               :stroke-width="2"
             />
             {{ api.name }}
-          </span>
+          </component>
         </div>
       </div>
 

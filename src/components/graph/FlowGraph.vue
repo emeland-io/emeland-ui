@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, useId } from 'vue'
-import { IconAlertTriangle, IconCircleOff } from '@tabler/icons-vue'
+import { IconAlertTriangle, IconCircleOff, IconArrowsExchange } from '@tabler/icons-vue'
 import {
   VueFlow,
   useVueFlow,
@@ -272,6 +272,18 @@ const tooltip = computed(() => {
     .slice()
     .sort((a, b) => a.localeCompare(b))
 
+  // api nodes: names of providing/consuming components, derived from the edges
+  // (mirrors how instance names are derived above)
+  const neighboursOf = (dir: 'in' | 'out') =>
+    props.edges
+      .filter((e) => (dir === 'in' ? e.target : e.source) === node.id)
+      .map((e) => byId.get(dir === 'in' ? e.source : e.target))
+      .filter((n) => n?.kind === 'component')
+      .map((n) => n!.data.label)
+      .sort((a, b) => a.localeCompare(b))
+  const providers = node.kind === 'api' ? neighboursOf('in') : []
+  const consumers = node.kind === 'api' ? neighboursOf('out') : []
+
   // Place the tooltip where it fits: above, below, right or left of the node
   const { x, y, zoom } = viewport.value
   const { w, h } = tooltipSize.value
@@ -317,6 +329,8 @@ const tooltip = computed(() => {
   return {
     node,
     instances,
+    providers,
+    consumers,
     incoming: edgePlan.value.target.get(node.id)?.length ?? 0,
     outgoing: edgePlan.value.source.get(node.id)?.length ?? 0,
     style: { left: `${left}px`, top: `${top}px` },
@@ -447,7 +461,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </span>
             <span
               v-if="(data as ContextItemNodeData).findings"
-              class="ml-auto flex shrink-0 items-center gap-1 rounded-full badge-warning px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
+              class="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
             >
               <IconAlertTriangle
                 :size="10"
@@ -496,7 +510,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </span>
             <span
               v-if="(data as SystemNodeData).findings"
-              class="ml-auto flex shrink-0 items-center gap-1 rounded-full badge-warning px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
+              class="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
             >
               <IconAlertTriangle
                 :size="10"
@@ -570,11 +584,32 @@ function onNodeClick({ node }: NodeMouseEvent) {
 
       <template #node-api="{ id, data }">
         <div
-          class="flex h-full w-full items-center gap-2 rounded-full border bg-bg-1 px-4 transition-colors"
-          :class="neighbourIds.has(id) ? 'border-accent' : 'border-text-4'"
+          class="flex h-full w-full cursor-pointer items-center gap-2 rounded-full border bg-bg-1 px-4 py-2 transition-colors"
+          :class="id === selectedId || neighbourIds.has(id) ? 'border-accent' : 'border-text-4'"
         >
           <span class="min-w-0 flex-1 truncate text-body text-text-1">
             {{ (data as ApiNodeData).label }}
+          </span>
+          <span
+            v-if="(data as ApiNodeData).findings"
+            class="flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
+          >
+            <IconAlertTriangle
+              :size="10"
+              :stroke-width="2"
+            />
+            {{ (data as ApiNodeData).findings }}
+          </span>
+          <span
+            v-if="(data as ApiNodeData).crosses"
+            class="flex shrink-0 items-center gap-1 rounded-full border border-border-2 bg-bg-2 px-1.5 py-0.5 font-mono text-micro tabular-nums text-text-3"
+            title="Crosses a context boundary"
+          >
+            <IconArrowsExchange
+              :size="10"
+              :stroke-width="2"
+            />
+            {{ (data as ApiNodeData).crossCount }}
           </span>
           <span
             v-if="(data as ApiNodeData).version"
@@ -608,7 +643,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
               </span>
               <span
                 v-if="(data as ComponentNodeData).findings"
-                class="badge-warning ml-auto flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
+                class="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
               >
                 <IconAlertTriangle
                   :size="10"
@@ -650,16 +685,14 @@ function onNodeClick({ node }: NodeMouseEvent) {
         :incoming="tooltip.incoming"
         :outgoing="tooltip.outgoing"
         :instances="tooltip.instances"
+        :providers="tooltip.providers"
+        :consumers="tooltip.consumers"
       />
     </div>
   </div>
 </template>
 
 <style scoped>
-.badge-warning {
-  background: color-mix(in srgb, var(--color-bg-0) 88%, var(--color-warning));
-}
-
 .emel-flow :deep(.vue-flow__node.node-match) {
   box-shadow:
     0 0 0 4px var(--color-bg-0),

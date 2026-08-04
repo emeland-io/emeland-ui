@@ -133,7 +133,7 @@ function collapseAll() {
         </span>
         <span
           v-if="systemInstanceName(inst.systemInstance)"
-          class="shrink-0 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent"
+          class="shrink-0 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent-text"
         >
           {{ systemInstanceName(inst.systemInstance) }}
         </span>

@@ -720,7 +720,7 @@ onMounted(async () => {
             "
             @click="selectTypeInDrawer(type.contextTypeId)"
           >
-            <span class="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent">
+            <span class="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent-text">
               {{ type.displayName }}
             </span>
           </div>
@@ -731,7 +731,7 @@ onMounted(async () => {
           class="flex-1 overflow-y-auto px-6 py-5"
         >
           <div class="flex items-center gap-2">
-            <span class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent">
+            <span class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent-text">
               {{ selectedType.displayName }}
             </span>
             <span class="font-mono text-label text-text-4">{{ selectedType.contextTypeId }}</span>

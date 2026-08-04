@@ -50,7 +50,7 @@ const relatedFindings = computed(() =>
             <button
               v-if="context.contextTypeId"
               class="group inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-label transition-opacity hover:opacity-80"
-              :class="typeUnknown ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent'"
+              :class="typeUnknown ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent-text'"
               title="Show context type"
               @click="emit('open-type', context.contextTypeId)"
             >
@@ -127,7 +127,7 @@ const relatedFindings = computed(() =>
             >
               <span class="group/row flex w-full items-center gap-3">
                 <span
-                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
                 >
                   Context
                 </span>
@@ -244,7 +244,7 @@ const relatedFindings = computed(() =>
             >
               <span class="group/row flex w-full items-center gap-3">
                 <span
-                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
                 >
                   Context
                 </span>

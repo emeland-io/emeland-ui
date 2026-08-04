@@ -37,6 +37,10 @@ const consumes = computed(() =>
   (props.component?.consumes ?? []).map((id) => ({ id, name: apiStore.getApiName(id) ?? id })),
 )
 
+function apiKnown(id: string): boolean {
+  return apiStore.apiMap.has(id)
+}
+
 const relatedFindings = computed(() => {
   const id = props.component?.componentId
   if (!id) return []
@@ -148,7 +152,7 @@ function versionDates(c: Component | undefined): [string, string][] {
             >
               <span class="group/row flex w-full items-center gap-3">
                 <span
-                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
                 >
                   System
                 </span>
@@ -202,14 +206,17 @@ function versionDates(c: Component | undefined): [string, string][] {
                 v-else
                 class="flex flex-wrap gap-1.5"
               >
-                <span
+                <component
+                  :is="apiKnown(api.id) ? 'button' : 'span'"
                   v-for="api in provides"
                   :key="api.id"
-                  class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent"
-                  :title="api.id"
+                  class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent-text transition-colors"
+                  :class="apiKnown(api.id) ? 'hover:bg-accent/20' : ''"
+                  :title="apiKnown(api.id) ? `Go to API — ${api.id}` : api.id"
+                  @click="apiKnown(api.id) && goToResource('API', api.id)"
                 >
                   {{ api.name }}
-                </span>
+                </component>
               </div>
             </div>
           </div>
@@ -277,14 +284,17 @@ function versionDates(c: Component | undefined): [string, string][] {
                 v-else
                 class="flex flex-wrap gap-1.5"
               >
-                <span
+                <component
+                  :is="apiKnown(api.id) ? 'button' : 'span'"
                   v-for="api in consumes"
                   :key="api.id"
-                  class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3"
-                  :title="api.id"
+                  class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3 transition-colors"
+                  :class="apiKnown(api.id) ? 'hover:bg-bg-3 hover:text-text-1' : ''"
+                  :title="apiKnown(api.id) ? `Go to API — ${api.id}` : api.id"
+                  @click="apiKnown(api.id) && goToResource('API', api.id)"
                 >
                   {{ api.name }}
-                </span>
+                </component>
               </div>
             </div>
           </div>

@@ -84,7 +84,7 @@ function findingCount(id: string): number {
     <div class="mt-2 flex flex-wrap items-center gap-1.5">
       <span
         class="rounded px-1.5 py-0.5 font-mono text-meta"
-        :class="row.system.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent'"
+        :class="row.system.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent-text'"
       >
         {{ store.getKindForSystem(row.system) }}
       </span>

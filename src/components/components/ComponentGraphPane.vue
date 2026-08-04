@@ -30,6 +30,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   select: [id: string]
   'open-instance': [id: string]
+  'open-api': [id: string]
 }>()
 
 const store = useComponentStore()
@@ -59,6 +60,7 @@ const graphModel = computed(() =>
 function onNodeClick({ id, kind }: GraphNodeClick) {
   if (kind === 'component') emit('select', id.slice('comp:'.length))
   else if (kind === 'instance') emit('open-instance', id.slice('inst:'.length))
+  else if (kind === 'api') emit('open-api', id.slice('api:'.length))
 }
 
 const graph = ref<InstanceType<typeof FlowGraph> | null>(null)

@@ -406,7 +406,7 @@ function closeTypesDrawer() {
                           :class="
                             selectedNodeTypeUnknown
                               ? 'bg-error/10 text-error'
-                              : 'bg-accent/10 text-accent'
+                              : 'bg-accent/10 text-accent-text'
                           "
                         >
                           <IconAlertTriangle

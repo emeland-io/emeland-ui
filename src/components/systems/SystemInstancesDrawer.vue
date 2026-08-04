@@ -90,7 +90,7 @@ const drawerInstance = computed(() =>
           @click="emit('go-to-system', drawerInstance.system)"
         >
           <span
-            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
           >
             System
           </span>
@@ -125,7 +125,7 @@ const drawerInstance = computed(() =>
         >
           <span
             v-if="contextType(drawerInstance.context)"
-            class="shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+            class="shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
           >
             {{ contextType(drawerInstance.context) }}
           </span>

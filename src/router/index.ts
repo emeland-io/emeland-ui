@@ -28,7 +28,7 @@ const routes = [
     name: 'Components',
     component: () => import('@/views/ComponentsView.vue'),
   },
-  { path: '/apis', name: 'APIs', component: () => import('@/views/Tmp.vue') },
+  { path: '/apis', name: 'APIs', component: () => import('@/views/ApisView.vue') },
 
   // Identity P2
   { path: '/identities', name: 'Identities', component: () => import('@/views/Tmp.vue') },
