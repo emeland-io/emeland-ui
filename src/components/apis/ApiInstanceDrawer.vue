@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconArrowUpRight, IconArrowUp, IconArrowDown } from '@tabler/icons-vue'
-import { useComponentStore } from '@/stores/components'
-import { useSystemStore } from '@/stores/systems'
+import { IconArrowUpRight } from '@tabler/icons-vue'
 import { useApiStore } from '@/stores/apis'
+import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import { useInstanceContext } from '@/composables/useInstanceContext'
 import { useResourceNav } from '@/composables/useResourceNav'
@@ -13,6 +12,7 @@ import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
 import MappingTag from '@/components/MappingTag.vue'
+import { endpointUrl } from '@/utils/endpoint'
 import { mappingStateOf } from '@/utils/mapping'
 
 const props = defineProps<{
@@ -24,26 +24,28 @@ const emit = defineEmits<{
   close: []
 }>()
 
-const store = useComponentStore()
+const store = useApiStore()
 const systemStore = useSystemStore()
-const apiStore = useApiStore()
 const contextStore = useContextStore()
-const { contextForInstance } = useInstanceContext()
+const { contextIdForSystemInstance } = useInstanceContext()
 const { goToResource } = useResourceNav()
 
 const instance = computed(() =>
-  store.componentInstances.find((i) => i.componentInstanceId === props.selectedInstanceId),
+  store.apiInstances.find((i) => i.apiInstanceId === props.selectedInstanceId),
 )
+
+// an instance is "unmapped" when its parent API is missing or unresolvable
+const apiResolvable = computed(() => !!instance.value?.api && store.apiMap.has(instance.value.api))
 
 const mappingState = computed(() =>
-  instance.value
-    ? mappingStateOf(instance.value.component, store.componentMap.has(instance.value.component))
-    : undefined,
+  instance.value ? mappingStateOf(instance.value.api, apiResolvable.value) : undefined,
 )
 
-const componentName = computed(() =>
-  instance.value ? store.componentMap.get(instance.value.component)?.displayName : undefined,
+const apiName = computed(() =>
+  instance.value?.api ? store.apiMap.get(instance.value.api)?.displayName : undefined,
 )
+
+const url = computed(() => (instance.value ? endpointUrl(instance.value.annotations) : undefined))
 
 const systemInstance = computed(() => {
   const id = instance.value?.systemInstance
@@ -51,25 +53,23 @@ const systemInstance = computed(() => {
   return systemStore.systemInstances.find((si) => si.systemInstanceId === id)
 })
 
-const context = computed(() => (instance.value ? contextForInstance(instance.value) : undefined))
+const contextId = computed(() =>
+  instance.value ? contextIdForSystemInstance(instance.value.systemInstance) : undefined,
+)
+
+const context = computed(() => {
+  const id = contextId.value
+  if (!id) return undefined
+  return contextStore.contextMap.get(id)
+})
 
 const contextType = computed(() => {
-  const id = context.value?.id
-  if (!id) return undefined
-  const ctx = contextStore.contextMap.get(id)
-  if (!ctx) return undefined
-  const type = contextStore.getTypeName(ctx)
+  if (!context.value) return undefined
+  const type = contextStore.getTypeName(context.value)
   return type === 'Unknown' ? undefined : type
 })
 
-const provides = computed(() =>
-  (instance.value?.provides ?? []).map((id) => ({ id, name: apiStore.getApiName(id) ?? id })),
-)
-const consumes = computed(() =>
-  (instance.value?.consumes ?? []).map((id) => ({ id, name: apiStore.getApiName(id) ?? id })),
-)
-
-function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) {
+function navigate(type: 'API' | 'System' | 'Context', id: string) {
   emit('close')
   goToResource(type, id)
 }
@@ -79,7 +79,7 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
   <SlideOverDrawer
     :open="open"
     :title="instance?.displayName ?? 'Instance'"
-    subtitle="ComponentInstance"
+    subtitle="ApiInstance"
     @close="emit('close')"
   >
     <template #header-tags>
@@ -98,10 +98,36 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
           <span class="text-text-3">Instance ID</span>
           <span class="flex min-w-0 items-center gap-1.5">
             <span class="break-all text-text-2">
-              {{ instance.componentInstanceId }}
+              {{ instance.apiInstanceId }}
             </span>
             <CopyButton
-              :value="instance.componentInstanceId"
+              :value="instance.apiInstanceId"
+              :size="12"
+            />
+          </span>
+        </div>
+        <div
+          class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
+          style="grid-template-columns: minmax(160px, 30%) minmax(0, 1fr)"
+        >
+          <span class="text-text-3">Endpoint</span>
+          <span class="flex min-w-0 items-center gap-1.5">
+            <span
+              v-if="url"
+              class="break-all text-text-2"
+            >
+              {{ url }}
+            </span>
+            <span
+              v-else
+              class="text-text-4"
+              title="No emeland.io/endpoint.host annotation — not a probe target"
+            >
+              no endpoint declared
+            </span>
+            <CopyButton
+              v-if="url"
+              :value="url"
               :size="12"
             />
           </span>
@@ -112,23 +138,24 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
         />
       </div>
 
-      <!-- owning component -->
-      <div v-if="instance.component">
-        <SectionLabel>Component</SectionLabel>
+      <!-- owning API -->
+      <div v-if="instance.api">
+        <SectionLabel>API</SectionLabel>
         <button
+          v-if="apiResolvable"
           class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
-          title="Go to component"
-          @click="navigate('Component', instance.component)"
+          title="Go to API"
+          @click="navigate('API', instance.api!)"
         >
           <span
             class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
           >
-            Component
+            API
           </span>
           <span
             class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
           >
-            {{ componentName ?? instance.component }}
+            {{ apiName ?? instance.api }}
           </span>
           <IconArrowUpRight
             :size="16"
@@ -136,14 +163,32 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
             class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
           />
           <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ instance.component }}</span>
+            <span class="font-mono text-meta text-text-4">{{ instance.api }}</span>
             <CopyButton
-              :value="instance.component"
+              :value="instance.api!"
               :size="12"
               @click.stop
             />
           </div>
         </button>
+        <div
+          v-else
+          class="flex w-full items-center gap-3 border-b border-border-1 py-2 last:border-b-0"
+        >
+          <span
+            class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
+          >
+            API
+          </span>
+          <span class="max-w-full truncate text-body text-error">Unresolved API</span>
+          <div class="ml-auto flex shrink-0 items-center gap-1.5">
+            <span class="font-mono text-meta text-text-4">{{ instance.api }}</span>
+            <CopyButton
+              :value="instance.api!"
+              :size="12"
+            />
+          </div>
+        </div>
       </div>
 
       <!-- system instance -->
@@ -184,12 +229,13 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
       </div>
 
       <!-- context -->
-      <div v-if="context?.id">
+      <div v-if="contextId">
         <SectionLabel>Context</SectionLabel>
-        <button
+        <component
+          :is="context ? 'button' : 'div'"
           class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
-          title="Go to context"
-          @click="navigate('Context', context.id)"
+          :title="context ? 'Go to context' : undefined"
+          @click="context && navigate('Context', contextId!)"
         >
           <span
             v-if="contextType"
@@ -198,69 +244,26 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
             {{ contextType }}
           </span>
           <span
-            class="max-w-full truncate text-body transition-colors group-hover:text-accent"
-            :class="context.unresolved ? 'text-error' : 'text-text-2'"
+            class="max-w-full truncate text-body transition-colors"
+            :class="[context ? 'text-text-2 group-hover:text-accent' : 'text-error']"
           >
-            {{ context.name ?? (context.unresolved ? 'Unresolved context' : context.id) }}
+            {{ context?.displayName ?? 'Unresolved context' }}
           </span>
           <IconArrowUpRight
+            v-if="context"
             :size="16"
             :stroke-width="2"
             class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
           />
           <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ context.id }}</span>
+            <span class="font-mono text-meta text-text-4">{{ contextId }}</span>
             <CopyButton
-              :value="context.id"
+              :value="contextId!"
               :size="12"
               @click.stop
             />
           </div>
-        </button>
-      </div>
-
-      <!-- provides -->
-      <div v-if="provides.length">
-        <SectionLabel :count="provides.length">Provides APIs</SectionLabel>
-        <div class="flex flex-wrap gap-1.5">
-          <component
-            :is="apiStore.apiMap.has(api.id) ? 'button' : 'span'"
-            v-for="api in provides"
-            :key="api.id"
-            class="flex items-center gap-1 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent-text transition-colors"
-            :class="apiStore.apiMap.has(api.id) ? 'hover:bg-accent/20' : ''"
-            :title="apiStore.apiMap.has(api.id) ? `Go to API — ${api.id}` : api.id"
-            @click="apiStore.apiMap.has(api.id) && navigate('API', api.id)"
-          >
-            <IconArrowUp
-              :size="11"
-              :stroke-width="2"
-            />
-            {{ api.name }}
-          </component>
-        </div>
-      </div>
-
-      <!-- consumes -->
-      <div v-if="consumes.length">
-        <SectionLabel :count="consumes.length">Consumes APIs</SectionLabel>
-        <div class="flex flex-wrap gap-1.5">
-          <component
-            :is="apiStore.apiMap.has(api.id) ? 'button' : 'span'"
-            v-for="api in consumes"
-            :key="api.id"
-            class="flex items-center gap-1 rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta text-text-3 transition-colors"
-            :class="apiStore.apiMap.has(api.id) ? 'hover:bg-bg-3 hover:text-text-1' : ''"
-            :title="apiStore.apiMap.has(api.id) ? `Go to API — ${api.id}` : api.id"
-            @click="apiStore.apiMap.has(api.id) && navigate('API', api.id)"
-          >
-            <IconArrowDown
-              :size="11"
-              :stroke-width="2"
-            />
-            {{ api.name }}
-          </component>
-        </div>
+        </component>
       </div>
 
       <!-- annotations -->

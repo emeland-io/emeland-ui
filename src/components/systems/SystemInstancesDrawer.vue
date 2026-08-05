@@ -8,6 +8,8 @@ import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
+import MappingTag from '@/components/MappingTag.vue'
+import { mappingStateOf } from '@/utils/mapping'
 import { useResourceNav } from '@/composables/useResourceNav'
 
 const props = defineProps<{
@@ -45,6 +47,12 @@ function goToContext(id: string) {
 const drawerInstance = computed(() =>
   store.systemInstances.find((i) => i.systemInstanceId === props.selectedInstanceId),
 )
+
+const mappingState = computed(() =>
+  drawerInstance.value
+    ? mappingStateOf(drawerInstance.value.system, store.systemMap.has(drawerInstance.value.system))
+    : undefined,
+)
 </script>
 
 <template>
@@ -54,6 +62,9 @@ const drawerInstance = computed(() =>
     subtitle="SystemInstance"
     @close="emit('close')"
   >
+    <template #header-tags>
+      <MappingTag :state="mappingState" />
+    </template>
     <div
       v-if="drawerInstance"
       class="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-4"

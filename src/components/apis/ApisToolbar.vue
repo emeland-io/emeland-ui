@@ -6,6 +6,8 @@ const props = defineProps<{
   search: string
   systems: { id: string; name: string }[]
   activeSystems: Set<string>
+  types: string[]
+  activeTypes: Set<string>
   crossContext: boolean
   hasActiveFilters: boolean
 }>()
@@ -13,6 +15,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:search': [value: string]
   'toggle-system': [id: string]
+  'toggle-type': [type: string]
   'toggle-cross-context': []
   clear: []
 }>()
@@ -73,6 +76,29 @@ const searchModel = computed({
         @click="emit('toggle-system', sys.id)"
       >
         {{ sys.name }}
+      </button>
+    </div>
+    <div
+      v-if="types.length > 0"
+      class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1"
+    >
+      <span
+        class="shrink-0 cursor-default select-none text-micro font-medium uppercase tracking-wider text-text-4"
+      >
+        Type
+      </span>
+      <button
+        v-for="t in types"
+        :key="t"
+        class="rounded px-2 py-0.5 font-mono text-meta transition-colors"
+        :class="
+          activeTypes.has(t)
+            ? 'bg-accent/10 text-accent-text'
+            : 'bg-bg-0 text-text-3 hover:bg-bg-1 hover:text-text-1'
+        "
+        @click="emit('toggle-type', t)"
+      >
+        {{ t }}
       </button>
     </div>
     <div class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1">

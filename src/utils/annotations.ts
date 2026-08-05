@@ -43,3 +43,17 @@ export function wellKnownAnnotations(annotations: Annotations): WellKnownAnnotat
   }
   return rows
 }
+
+export function differingAnnotationKeys(items: Annotations[]): string[] {
+  if (items.length < 2) return []
+  const keys = new Set<string>()
+  for (const annotations of items) {
+    for (const key of Object.keys(annotations)) keys.add(key)
+  }
+  return [...keys]
+    .filter((key) => {
+      const first = items[0][key]
+      return items.some((annotations) => annotations[key] !== first)
+    })
+    .sort()
+}

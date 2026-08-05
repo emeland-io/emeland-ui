@@ -3,6 +3,7 @@ import { ref, computed, watch, nextTick, onMounted, defineAsyncComponent } from 
 import {
   IconCircleOff,
   IconLoader2,
+  IconChevronRight,
   IconFocusCentered,
   IconZoomScan,
   IconZoomIn,
@@ -20,9 +21,11 @@ import ListDetail from '@/components/ListDetail.vue'
 import ApisToolbar from '@/components/apis/ApisToolbar.vue'
 import ApisList from '@/components/apis/ApisList.vue'
 import ApiDetail from '@/components/apis/ApiDetail.vue'
+import ApiInstanceDrawer from '@/components/apis/ApiInstanceDrawer.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 import { useResizable } from '@/composables/useResizable'
 import { resolveApiContextFlows } from '@/utils/apiContexts'
+import { endpointUrl } from '@/utils/endpoint'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
 const ApiGraphPane = defineAsyncComponent(() => import('@/components/apis/ApiGraphPane.vue'))
@@ -36,7 +39,13 @@ const { goToResource } = useResourceNav()
 
 const search = ref('')
 const activeSystems = ref<Set<string>>(new Set())
+const activeTypes = ref<Set<string>>(new Set())
 const crossContextOnly = ref(false)
+
+const listCollapsed = ref(false)
+const listCollapsedEffective = computed(() => listCollapsed.value && !search.value.trim())
+
+const TYPE_ORDER = ['OpenAPI', 'GraphQL', 'gRPC', 'Other', 'Unknown']
 
 function systemName(id: string): string {
   return systemStore.systemMap.get(id)?.displayName ?? id
@@ -64,6 +73,7 @@ const chipFilteredApis = computed(() =>
   store.apis.filter(
     (a) =>
       (activeSystems.value.size === 0 || activeSystems.value.has(a.system)) &&
+      (activeTypes.value.size === 0 || activeTypes.value.has(a.type)) &&
       (!crossContextOnly.value || crossings.value.has(a.apiId)),
   ),
 )
@@ -87,8 +97,29 @@ const filteredApis = computed(() =>
 )
 
 const hasActiveFilters = computed(
-  () => !!search.value || activeSystems.value.size > 0 || crossContextOnly.value,
+  () =>
+    !!search.value ||
+    activeSystems.value.size > 0 ||
+    activeTypes.value.size > 0 ||
+    crossContextOnly.value,
 )
+
+// instances without a resolvable parent API, filtered by the same search text
+const unmappedFiltered = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  const base = !q
+    ? store.unmappedInstances
+    : store.unmappedInstances.filter(
+        (i) =>
+          i.displayName.toLowerCase().includes(q) ||
+          i.apiInstanceId.toLowerCase().includes(q) ||
+          (endpointUrl(i.annotations) ?? '').toLowerCase().includes(q),
+      )
+  return [...base].sort(
+    (a, b) =>
+      a.displayName.localeCompare(b.displayName) || a.apiInstanceId.localeCompare(b.apiInstanceId),
+  )
+})
 
 const filterSystems = computed(() => {
   const seen = new Map<string, string>()
@@ -108,11 +139,28 @@ function toggleSystem(id: string) {
   activeSystems.value = s
 }
 
+function toggleType(type: string) {
+  const s = new Set(activeTypes.value)
+  if (s.has(type)) {
+    s.delete(type)
+  } else {
+    s.add(type)
+  }
+  activeTypes.value = s
+}
+
 function clearFilters() {
   search.value = ''
   activeSystems.value = new Set()
+  activeTypes.value = new Set()
   crossContextOnly.value = false
 }
+
+// API types present in the loaded data, in display order
+const filterTypes = computed(() => {
+  const present = new Set(store.apis.map((a) => a.type))
+  return TYPE_ORDER.filter((t) => present.has(t as (typeof store.apis)[number]['type']))
+})
 
 const matchIds = computed(() => {
   const q = search.value.trim().toLowerCase()
@@ -139,14 +187,28 @@ function selectApi(id: string) {
   selectedId.value = id
 }
 
+const instanceDrawerOpen = ref(false)
+const selectedInstanceId = ref('')
+
+function openInstance(id: string) {
+  selectedInstanceId.value = id
+  instanceDrawerOpen.value = true
+}
+
 // Graph controls
 const graphPane = ref<InstanceType<typeof ApiGraphPane> | null>(null)
 const graphVisible = ref(true)
 const graphFullscreen = ref(false)
 const showComponents = ref(true)
+const showInstances = ref(false)
+const showUnmappedGhosts = ref(true)
 
 function toggleComponents() {
   showComponents.value = !showComponents.value
+}
+
+function toggleInstances() {
+  showInstances.value = !showInstances.value
 }
 
 function refitGraph() {
@@ -238,13 +300,16 @@ onMounted(async () => {
       <div class="flex min-w-44 items-center gap-3">
         <h1 class="text-title font-medium text-text-1">APIs</h1>
         <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-          {{ filteredApis.length }}
-          <span
-            v-if="filteredApis.length !== store.apis.length"
-            class="text-text-4"
-          >
-            of {{ store.apis.length }}
-          </span>
+          {{ store.apis.length }}
+        </span>
+        <span class="font-mono text-label text-text-3">
+          {{ store.apiInstances.length }} instances
+        </span>
+        <span
+          class="font-mono text-label"
+          :class="store.unmappedInstances.length > 0 ? 'text-warning' : 'text-text-4'"
+        >
+          {{ store.unmappedInstances.length }} unmapped
         </span>
       </div>
     </div>
@@ -277,16 +342,19 @@ onMounted(async () => {
         v-model:search="search"
         :systems="filterSystems"
         :active-systems="activeSystems"
+        :types="filterTypes"
+        :active-types="activeTypes"
         :cross-context="crossContextOnly"
         :has-active-filters="hasActiveFilters"
         @toggle-system="toggleSystem"
+        @toggle-type="toggleType"
         @toggle-cross-context="crossContextOnly = !crossContextOnly"
         @clear="clearFilters"
       />
 
       <!-- Empty state -->
       <div
-        v-if="filteredApis.length === 0"
+        v-if="filteredApis.length === 0 && unmappedFiltered.length === 0"
         class="flex flex-1 items-center justify-center"
       >
         <div class="text-center">
@@ -306,15 +374,53 @@ onMounted(async () => {
       <ListDetail v-else>
         <template #list>
           <div class="flex h-full flex-col">
-            <div class="flex h-9 shrink-0 items-center border-b border-border-1 bg-bg-1 px-2">
-              <span class="text-micro font-medium uppercase tracking-wider text-text-4">List</span>
+            <div
+              class="flex h-9 shrink-0 cursor-pointer select-none items-center border-b border-border-1 bg-bg-1 px-2"
+              :title="
+                listCollapsedEffective ? 'Double-click to expand' : 'Double-click to collapse'
+              "
+              @dblclick="listCollapsed = !listCollapsed"
+            >
+              <span class="flex items-center gap-1.5">
+                <span class="text-micro font-medium uppercase tracking-wider text-text-4">
+                  List
+                </span>
+                <span
+                  class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3"
+                >
+                  {{ filteredApis.length }}
+                  <span
+                    v-if="filteredApis.length !== store.apis.length"
+                    class="text-text-4"
+                  >
+                    of {{ store.apis.length }}
+                  </span>
+                </span>
+              </span>
+              <button
+                class="ml-auto rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                :title="listCollapsedEffective ? 'Expand' : 'Collapse'"
+                @click.stop="listCollapsed = !listCollapsed"
+                @dblclick.stop
+              >
+                <IconChevronRight
+                  :size="14"
+                  :stroke-width="2"
+                  class="transition-transform"
+                  :class="listCollapsedEffective ? '' : 'rotate-90'"
+                />
+              </button>
             </div>
             <div class="min-h-0 flex-1 overflow-y-auto">
               <ApisList
                 :apis="filteredApis"
                 :selected-id="selectedId"
                 :crossings="crossings"
+                :unmapped="unmappedFiltered"
+                :force-expanded="!!search.trim()"
+                :list-collapsed="listCollapsedEffective"
                 @select="selectApi"
+                @open-instance="openInstance"
               />
             </div>
           </div>
@@ -396,6 +502,46 @@ onMounted(async () => {
                       {{ showComponents ? 'on' : 'off' }}
                     </span>
                   </button>
+                  <button
+                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Show API instances as nodes; unmapped ones appear as ghost nodes"
+                    @click.stop="toggleInstances"
+                    @dblclick.stop
+                  >
+                    Instances
+                    <span
+                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
+                      :class="
+                        showInstances ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'
+                      "
+                    >
+                      {{ showInstances ? 'on' : 'off' }}
+                    </span>
+                  </button>
+                  <button
+                    v-if="store.unmappedInstances.length > 0"
+                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
+                    :disabled="!showInstances"
+                    :title="
+                      showInstances
+                        ? 'Show unmapped instances as ghost nodes'
+                        : 'Enable Instances to show unmapped instances'
+                    "
+                    @click.stop="showUnmappedGhosts = !showUnmappedGhosts"
+                    @dblclick.stop
+                  >
+                    Unmapped
+                    <span
+                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
+                      :class="
+                        showInstances && showUnmappedGhosts
+                          ? 'bg-accent/15 text-accent-text'
+                          : 'bg-bg-0 text-text-4'
+                      "
+                    >
+                      {{ showInstances && showUnmappedGhosts ? 'on' : 'off' }}
+                    </span>
+                  </button>
                   <div class="mx-0.5 h-4 w-px bg-bg-3" />
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta transition-colors hover:bg-bg-3"
@@ -451,10 +597,13 @@ onMounted(async () => {
                 :apis="chipFilteredApis"
                 :selected-id="selectedId"
                 :show-components="showComponents"
+                :show-instances="showInstances"
+                :show-unmapped="showUnmappedGhosts"
                 :show-controls="false"
                 class="h-full"
                 @select="selectApi"
                 @open-component="(id) => goToResource('Component', id)"
+                @open-instance="openInstance"
               />
             </div>
 
@@ -474,11 +623,18 @@ onMounted(async () => {
               <ApiDetail
                 :api="selectedApi"
                 :flow="selectedFlow"
+                @open-instance="openInstance"
               />
             </div>
           </div>
         </template>
       </ListDetail>
     </template>
+
+    <ApiInstanceDrawer
+      :open="instanceDrawerOpen"
+      :selected-instance-id="selectedInstanceId"
+      @close="instanceDrawerOpen = false"
+    />
   </div>
 </template>

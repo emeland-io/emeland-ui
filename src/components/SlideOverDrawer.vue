@@ -53,12 +53,18 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
               {{ count }}
             </span>
           </div>
-          <span
-            v-if="subtitle"
-            class="mt-1.5 inline-block rounded bg-bg-2 px-2 py-0.5 font-mono text-meta text-text-3"
+          <div
+            v-if="subtitle || $slots['header-tags']"
+            class="mt-1.5 flex items-center gap-1.5"
           >
-            {{ subtitle }}
-          </span>
+            <span
+              v-if="subtitle"
+              class="inline-block rounded bg-bg-2 px-2 py-0.5 font-mono text-meta text-text-3"
+            >
+              {{ subtitle }}
+            </span>
+            <slot name="header-tags" />
+          </div>
         </div>
         <button
           class="flex h-7 w-7 items-center justify-center rounded text-text-4 transition-colors hover:bg-bg-2 hover:text-text-2"

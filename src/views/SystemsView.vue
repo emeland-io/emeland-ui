@@ -3,6 +3,7 @@ import { ref, computed, watch, nextTick, onMounted, defineAsyncComponent } from 
 import {
   IconCircleOff,
   IconLoader2,
+  IconChevronRight,
   IconChevronsDown,
   IconChevronsUp,
   IconBinaryTree,
@@ -79,6 +80,24 @@ const hasActiveFilters = computed(
   () => !!search.value || activeKinds.value.size > 0 || activeContexts.value.size > 0,
 )
 
+// instances without a resolvable parent system, filtered by the same search text
+const unmappedFiltered = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  const base = !q
+    ? store.unmappedInstances
+    : store.unmappedInstances.filter(
+        (i) =>
+          i.displayName.toLowerCase().includes(q) ||
+          i.systemInstanceId.toLowerCase().includes(q) ||
+          (contextName(i.context) ?? '').toLowerCase().includes(q),
+      )
+  return [...base].sort(
+    (a, b) =>
+      a.displayName.localeCompare(b.displayName) ||
+      a.systemInstanceId.localeCompare(b.systemInstanceId),
+  )
+})
+
 const allContexts = computed(() => {
   const seen = new Map<string, string>()
   for (const inst of store.systemInstances) {
@@ -110,6 +129,9 @@ function clearFilters() {
 }
 
 const collapsed = ref<Set<string>>(new Set())
+
+const listCollapsed = ref(false)
+const listCollapsedEffective = computed(() => listCollapsed.value && !search.value.trim())
 
 let defaultCollapseApplied = false
 watch(
@@ -250,6 +272,7 @@ const graphPane = ref<InstanceType<typeof SystemGraphPane> | null>(null)
 const graphVisible = ref(true)
 const graphFullscreen = ref(false)
 const showInstances = ref(true)
+const showUnmappedGhosts = ref(true)
 
 function toggleInstances() {
   showInstances.value = !showInstances.value
@@ -340,13 +363,16 @@ onMounted(async () => {
       <div class="flex min-w-44 items-center gap-3">
         <h1 class="text-title font-medium text-text-1">Systems</h1>
         <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-          {{ filteredSystems.length }}
-          <span
-            v-if="filteredSystems.length !== store.systems.length"
-            class="text-text-4"
-          >
-            of {{ store.systems.length }}
-          </span>
+          {{ store.systems.length }}
+        </span>
+        <span class="font-mono text-label text-text-3">
+          {{ store.systemInstances.length }} instances
+        </span>
+        <span
+          class="font-mono text-label"
+          :class="store.unmappedInstances.length > 0 ? 'text-warning' : 'text-text-4'"
+        >
+          {{ store.unmappedInstances.length }} unmapped
         </span>
       </div>
     </div>
@@ -389,7 +415,7 @@ onMounted(async () => {
 
       <!-- Empty state -->
       <div
-        v-if="filteredSystems.length === 0"
+        v-if="filteredSystems.length === 0 && unmappedFiltered.length === 0"
         class="flex flex-1 items-center justify-center"
       >
         <div class="text-center">
@@ -411,27 +437,62 @@ onMounted(async () => {
           <div class="flex h-full flex-col">
             <!-- list bar, mirroring the graph bar on the other side -->
             <div
-              class="flex h-9 shrink-0 items-center justify-between border-b border-border-1 bg-bg-1 px-2"
+              class="flex h-9 shrink-0 cursor-pointer select-none items-center justify-between border-b border-border-1 bg-bg-1 px-2"
+              :title="
+                listCollapsedEffective ? 'Double-click to expand' : 'Double-click to collapse'
+              "
+              @dblclick="listCollapsed = !listCollapsed"
             >
-              <span class="text-micro font-medium uppercase tracking-wider text-text-4">List</span>
-              <button
-                class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
-                :disabled="parentIds.size === 0"
-                :title="
-                  parentIds.size === 0
-                    ? 'Nothing to collapse'
-                    : allCollapsed
-                      ? 'Expand all'
-                      : 'Collapse all'
-                "
-                @click="toggleAll"
-              >
-                <component
-                  :is="allCollapsed ? IconChevronsDown : IconChevronsUp"
-                  :size="14"
-                  :stroke-width="1.75"
-                />
-              </button>
+              <span class="flex items-center gap-1.5">
+                <span class="text-micro font-medium uppercase tracking-wider text-text-4">
+                  List
+                </span>
+                <span
+                  class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3"
+                >
+                  {{ filteredSystems.length }}
+                  <span
+                    v-if="filteredSystems.length !== store.systems.length"
+                    class="text-text-4"
+                  >
+                    of {{ store.systems.length }}
+                  </span>
+                </span>
+              </span>
+              <span class="flex items-center gap-0.5">
+                <button
+                  class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
+                  :disabled="parentIds.size === 0"
+                  :title="
+                    parentIds.size === 0
+                      ? 'Nothing to collapse'
+                      : allCollapsed
+                        ? 'Expand all'
+                        : 'Collapse all'
+                  "
+                  @click.stop="toggleAll"
+                  @dblclick.stop
+                >
+                  <component
+                    :is="allCollapsed ? IconChevronsDown : IconChevronsUp"
+                    :size="14"
+                    :stroke-width="1.75"
+                  />
+                </button>
+                <button
+                  class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                  :title="listCollapsedEffective ? 'Expand' : 'Collapse'"
+                  @click.stop="listCollapsed = !listCollapsed"
+                  @dblclick.stop
+                >
+                  <IconChevronRight
+                    :size="14"
+                    :stroke-width="2"
+                    class="transition-transform"
+                    :class="listCollapsedEffective ? '' : 'rotate-90'"
+                  />
+                </button>
+              </span>
             </div>
             <div class="min-h-0 flex-1 overflow-y-auto">
               <SystemsList
@@ -439,8 +500,12 @@ onMounted(async () => {
                 :selected-id="selectedId"
                 :collapsed="collapsed"
                 :active-rail="activeRail"
+                :unmapped="unmappedFiltered"
+                :force-expanded="!!search.trim()"
+                :list-collapsed="listCollapsedEffective"
                 @select="selectSystem"
                 @toggle-collapse="toggleCollapse"
+                @open-instance="openInstanceInDrawer"
               />
             </div>
           </div>
@@ -521,6 +586,30 @@ onMounted(async () => {
                       {{ showInstances ? 'on' : 'off' }}
                     </span>
                   </button>
+                  <button
+                    v-if="store.unmappedInstances.length > 0"
+                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
+                    :disabled="!showInstances"
+                    :title="
+                      showInstances
+                        ? 'Show unmapped instances as ghost nodes'
+                        : 'Enable Instances to show unmapped instances'
+                    "
+                    @click.stop="showUnmappedGhosts = !showUnmappedGhosts"
+                    @dblclick.stop
+                  >
+                    Unmapped
+                    <span
+                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
+                      :class="
+                        showInstances && showUnmappedGhosts
+                          ? 'bg-accent/15 text-accent-text'
+                          : 'bg-bg-0 text-text-4'
+                      "
+                    >
+                      {{ showInstances && showUnmappedGhosts ? 'on' : 'off' }}
+                    </span>
+                  </button>
                   <div class="mx-0.5 h-4 w-px bg-bg-3" />
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta transition-colors hover:bg-bg-3"
@@ -576,6 +665,7 @@ onMounted(async () => {
                 :systems="chipFilteredSystems"
                 :selected-id="selectedId"
                 :show-instances="showInstances"
+                :show-unmapped="showUnmappedGhosts"
                 :show-controls="false"
                 class="h-full"
                 @select="selectSystem"

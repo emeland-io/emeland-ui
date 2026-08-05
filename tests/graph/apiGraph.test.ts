@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildApiGraph } from '@/graph/apiGraph'
-import type { Api } from '@/types/api'
+import type { Api, ApiInstance } from '@/types/api'
 import type { Component } from '@/types/component'
 
 function api(apiId: string, over: Partial<Api> = {}): Api {
@@ -13,6 +13,10 @@ function api(apiId: string, over: Partial<Api> = {}): Api {
     annotations: {},
     ...over,
   }
+}
+
+function apiInst(apiInstanceId: string, over: Partial<ApiInstance> = {}): ApiInstance {
+  return { apiInstanceId, displayName: apiInstanceId, annotations: {}, ...over }
 }
 
 function comp(componentId: string, over: Partial<Component> = {}): Component {
@@ -107,6 +111,80 @@ describe('buildApiGraph', () => {
     const a2 = byId.get('api:a2')!.data as { findings?: number; findingKinds?: string[] }
     expect(a2.findings).toBeUndefined()
     expect(a2.findingKinds).toEqual([])
+  })
+
+  it('attaches mapped instances to their API and floats unmapped ones as ghosts', () => {
+    const g = buildApiGraph({
+      apis: [api('a1')],
+      components: [],
+      showInstances: true,
+      instancesOf: (id) => (id === 'a1' ? [apiInst('i1')] : []),
+      unmappedInstances: [apiInst('i2')],
+    })
+    const byId = new Map(g.nodes.map((n) => [n.id, n]))
+    expect(byId.get('inst:i1')).toMatchObject({ kind: 'instance' })
+    expect((byId.get('inst:i1')!.data as { parent?: string }).parent).toBe('api:a1')
+    expect((byId.get('inst:i2')!.data as { unmapped?: boolean }).unmapped).toBe(true)
+    expect(g.edges.map((e) => e.id)).toEqual(['has:a1:i1'])
+  })
+
+  it('renders no instance nodes when showInstances is off', () => {
+    const g = buildApiGraph({
+      apis: [api('a1')],
+      components: [],
+      instancesOf: () => [apiInst('i1')],
+      unmappedInstances: [apiInst('i2')],
+    })
+    expect(g.nodes.map((n) => n.id)).toEqual(['api:a1'])
+    expect(g.edges).toEqual([])
+  })
+
+  it('frames unmapped ghost nodes in a dashed context frame', () => {
+    const g = buildApiGraph({
+      apis: [api('a1')],
+      components: [],
+      showInstances: true,
+      instancesOf: (id) => (id === 'a1' ? [apiInst('i1')] : []),
+      unmappedInstances: [apiInst('i2'), apiInst('i3', { api: 'aX' })],
+    })
+    const frame = g.nodes.find((n) => n.id === 'frame:unmapped')
+    expect(frame).toBeDefined()
+    expect(frame!.kind).toBe('context')
+    expect(frame!.selectable).toBe(false)
+    expect(frame!.data).toMatchObject({ label: 'Unmapped' })
+    // the frame comes first so it renders behind the members
+    expect(g.nodes[0].id).toBe('frame:unmapped')
+
+    // bbox containment: every ghost sits inside the frame
+    const ghosts = g.nodes.filter(
+      (n) => n.kind === 'instance' && (n.data as { unmapped?: boolean }).unmapped,
+    )
+    expect(ghosts.map((n) => n.id).sort()).toEqual(['inst:i2', 'inst:i3'])
+    const fx = frame!.position.x
+    const fy = frame!.position.y
+    const fw = frame!.size!.width
+    const fh = frame!.size!.height!
+    for (const ghost of ghosts) {
+      const gw = ghost.size!.width
+      expect(ghost.position.x).toBeGreaterThanOrEqual(fx)
+      expect(ghost.position.y).toBeGreaterThanOrEqual(fy)
+      expect(ghost.position.x + gw).toBeLessThanOrEqual(fx + fw)
+      expect(ghost.position.y).toBeLessThanOrEqual(fy + fh)
+    }
+    // unresolved parent reference is flagged on the ghost data
+    const byId = new Map(g.nodes.map((n) => [n.id, n]))
+    expect((byId.get('inst:i3')!.data as { unresolved?: boolean }).unresolved).toBe(true)
+    expect((byId.get('inst:i2')!.data as { unresolved?: boolean }).unresolved).toBeUndefined()
+  })
+
+  it('adds no frame when there are no unmapped instances', () => {
+    const g = buildApiGraph({
+      apis: [api('a1')],
+      components: [],
+      showInstances: true,
+      instancesOf: (id) => (id === 'a1' ? [apiInst('i1')] : []),
+    })
+    expect(g.nodes.some((n) => n.id === 'frame:unmapped')).toBe(false)
   })
 
   it('lays out nodes with positions', () => {

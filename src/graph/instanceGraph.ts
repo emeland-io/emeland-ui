@@ -13,9 +13,11 @@ export interface InstanceGraphInput {
   contextName: (contextId: string | undefined) => string | undefined
   findingCountOf?: (systemId: string) => number
   findingKindsOf?: (systemId: string) => string[]
+  unmappedInstances?: SystemInstance[]
 }
 
 const NO_CONTEXT = 'no-context'
+const UNMAPPED_ROW = 'unmapped'
 
 export function buildInstanceGraph({
   systems,
@@ -23,8 +25,10 @@ export function buildInstanceGraph({
   contextName,
   findingCountOf,
   findingKindsOf,
+  unmappedInstances,
 }: InstanceGraphInput): GraphModel {
   const allSystems = systems ?? []
+  const unmapped = unmappedInstances ?? []
   const withInstances = allSystems
     .map((system) => ({ system, instances: instancesOf(system.systemId) }))
     .filter((g) => g.instances.length > 0)
@@ -91,6 +95,12 @@ export function buildInstanceGraph({
       if (!frameLabels.has(id)) frameLabels.set(id, ctxLabel(inst))
     }
   }
+
+  for (const inst of unmapped) {
+    const id = frameOf(inst)
+    if (!frameLabels.has(id)) frameLabels.set(id, ctxLabel(inst))
+  }
+
   const frames: LayoutFrame[] = [...frameLabels]
     .sort((a, b) => a[1].localeCompare(b[1]))
     .map(([id, label], order) => ({ id, kind: 'context', order, data: { label } }))
@@ -134,6 +144,25 @@ export function buildInstanceGraph({
         kind: 'contains',
       })
     }
+  }
+
+  const unmappedOrdered = [...unmapped].sort(
+    (a, b) => ctxLabel(a).localeCompare(ctxLabel(b)) || a.displayName.localeCompare(b.displayName),
+  )
+  for (const inst of unmappedOrdered) {
+    members.push({
+      id: inst.systemInstanceId,
+      kind: 'instance',
+      frameId: frameOf(inst),
+      rowKey: UNMAPPED_ROW,
+      data: {
+        label: inst.displayName,
+        context: ctxLabel(inst),
+        type: 'SystemInstance',
+        unmapped: true,
+        unresolved: inst.system ? true : undefined,
+      },
+    })
   }
 
   return layoutFramedColumns({ anchors, frames, members, edges })

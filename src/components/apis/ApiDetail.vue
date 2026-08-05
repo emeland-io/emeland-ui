@@ -11,12 +11,17 @@ import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import { endpointUrl } from '@/utils/endpoint'
+import { differingAnnotationKeys } from '@/utils/annotations'
 import type { Api, ApiInstance } from '@/types/api'
 import type { ApiContextFlow } from '@/utils/apiContexts'
 
 const props = defineProps<{
   api: Api | undefined
   flow?: ApiContextFlow
+}>()
+
+const emit = defineEmits<{
+  'open-instance': [id: string]
 }>()
 
 const store = useApiStore()
@@ -92,6 +97,19 @@ const instanceRows = computed(() =>
         a.inst.displayName.localeCompare(b.inst.displayName),
     ),
 )
+
+// annotation keys that differ across the instances of this API
+const differingKeys = computed(() =>
+  differingAnnotationKeys(instances.value.map((i) => i.annotations)),
+)
+
+const diffNote = computed(() => {
+  const n = differingKeys.value.length
+  if (n === 0) return ''
+  return n === 1
+    ? '1 annotation key differs across instances'
+    : `${n} annotation keys differ across instances`
+})
 
 function versionDates(a: Api | undefined): [string, string][] {
   if (!a?.version) return []
@@ -497,14 +515,27 @@ function versionDates(a: Api | undefined): [string, string][] {
         >
           <!-- Instances / endpoints -->
           <div>
-            <SectionLabel :count="instanceRows.length">Instances</SectionLabel>
-            <div
+            <div class="flex items-baseline justify-between gap-3">
+              <SectionLabel :count="instanceRows.length">Instances</SectionLabel>
+              <span
+                v-if="differingKeys.length > 0"
+                class="shrink-0 cursor-default font-mono text-micro text-text-4"
+                :title="`Differing annotation keys:\n${differingKeys.join('\n')}`"
+              >
+                {{ diffNote }}
+              </span>
+            </div>
+            <button
               v-for="row in instanceRows"
               :key="row.inst.apiInstanceId"
-              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
+              class="group flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+              title="Show instance details"
+              @click="emit('open-instance', row.inst.apiInstanceId)"
             >
               <span class="flex w-full items-center gap-3">
-                <span class="min-w-0 flex-1 truncate text-body text-text-2">
+                <span
+                  class="min-w-0 flex-1 truncate text-body text-text-2 transition-colors group-hover:text-accent"
+                >
                   {{ row.inst.displayName }}
                 </span>
                 <span
@@ -535,6 +566,7 @@ function versionDates(a: Api | undefined): [string, string][] {
                   v-if="row.url"
                   :value="row.url"
                   :size="12"
+                  @click.stop
                 />
                 <span class="ml-2 font-mono text-meta text-text-4">
                   {{ row.inst.apiInstanceId }}
@@ -542,9 +574,10 @@ function versionDates(a: Api | undefined): [string, string][] {
                 <CopyButton
                   :value="row.inst.apiInstanceId"
                   :size="12"
+                  @click.stop
                 />
               </span>
-            </div>
+            </button>
           </div>
         </div>
       </div>

@@ -47,6 +47,11 @@ export const useSystemStore = defineStore('system', () => {
     return instancesBySystem.value.get(id) ?? []
   }
 
+  // Instances without a resolvable parent system
+  const unmappedInstances = computed(() =>
+    systemInstances.value.filter((i) => !i.system || !systemMap.value.has(i.system)),
+  )
+
   function getKindForSystem(s: System): string {
     return s.abstract ? 'Abstract' : 'Concrete'
   }
@@ -126,6 +131,7 @@ export const useSystemStore = defineStore('system', () => {
     detailsHydrated,
     systemMap,
     instancesBySystem,
+    unmappedInstances,
     getParentName,
     isParentUnresolved,
     getInstancesForSystem,

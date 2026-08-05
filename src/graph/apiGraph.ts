@@ -1,7 +1,7 @@
-import type { Api } from '@/types/api'
+import type { Api, ApiInstance } from '@/types/api'
 import type { Component } from '@/types/component'
 import type { GraphModel, GraphEdge } from '@/types/graph'
-import { layoutDag, type DagNode as DagNodeSpec } from './layoutDag'
+import { layoutDag, frameGhostNodes, type DagNode as DagNodeSpec } from './layoutDag'
 
 export interface ApiGraphInput {
   apis: Api[]
@@ -11,7 +11,12 @@ export interface ApiGraphInput {
   findingKindsOf?: (resourceId: string) => string[]
   crossesOf?: (apiId: string) => boolean
   crossCountOf?: (apiId: string) => number
+  instancesOf?: (apiId: string) => ApiInstance[]
+  unmappedInstances?: ApiInstance[]
+  instanceContext?: (instance: ApiInstance) => string | undefined
+  systemInstanceName?: (systemInstanceId: string) => string | undefined
   showComponents?: boolean
+  showInstances?: boolean
 }
 
 export function buildApiGraph({
@@ -22,7 +27,12 @@ export function buildApiGraph({
   findingKindsOf,
   crossesOf,
   crossCountOf,
+  instancesOf,
+  unmappedInstances,
+  instanceContext,
+  systemInstanceName,
   showComponents = true,
+  showInstances = false,
 }: ApiGraphInput): GraphModel {
   const presentApis = new Set(apis.map((a) => a.apiId))
   const nodes: DagNodeSpec[] = apis.map((a) => ({
@@ -39,6 +49,49 @@ export function buildApiGraph({
     },
   }))
   const edges: GraphEdge[] = []
+
+  // instances that realize a shown API attach to it; unmapped ones float as ghosts
+  if (showInstances) {
+    for (const a of apis) {
+      for (const inst of instancesOf?.(a.apiId) ?? []) {
+        nodes.push({
+          id: `inst:${inst.apiInstanceId}`,
+          kind: 'instance',
+          data: {
+            label: inst.displayName,
+            parent: `api:${a.apiId}`,
+            context: instanceContext?.(inst),
+            systemInstance: inst.systemInstance
+              ? systemInstanceName?.(inst.systemInstance)
+              : undefined,
+            type: 'ApiInstance',
+          },
+        })
+        edges.push({
+          id: `has:${a.apiId}:${inst.apiInstanceId}`,
+          source: `api:${a.apiId}`,
+          target: `inst:${inst.apiInstanceId}`,
+          kind: 'contains',
+        })
+      }
+    }
+    for (const inst of unmappedInstances ?? []) {
+      nodes.push({
+        id: `inst:${inst.apiInstanceId}`,
+        kind: 'instance',
+        data: {
+          label: inst.displayName,
+          context: instanceContext?.(inst),
+          systemInstance: inst.systemInstance
+            ? systemInstanceName?.(inst.systemInstance)
+            : undefined,
+          type: 'ApiInstance',
+          unmapped: true,
+          unresolved: inst.api ? true : undefined,
+        },
+      })
+    }
+  }
 
   // components that provide or consume any of the shown APIs
   const relevant = components.filter(
@@ -101,5 +154,5 @@ export function buildApiGraph({
     }
   }
 
-  return layoutDag({ nodes, edges, direction: 'LR' })
+  return frameGhostNodes(layoutDag({ nodes, edges, direction: 'LR' }))
 }

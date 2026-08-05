@@ -230,4 +230,42 @@ export const apiInstances: ApiInstance[] = [
     // no endpoint annotations: not a probe target
     annotations: {},
   },
+
+  // Unmapped instances
+  {
+    apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000a1',
+    displayName: 'Inventory Scrape',
+    // no api: discovered by the k8s sensor, not yet mapped to an API resource
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
+    annotations: {
+      'emeland.io/endpoint.protocol': 'http',
+      'emeland.io/endpoint.host': 'inventory.prod.internal',
+      'emeland.io/endpoint.port': '9100',
+      'emeland.io/endpoint.path': '/metrics',
+    },
+  },
+  {
+    apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000a2',
+    displayName: 'Staging Listener',
+    // no api
+    systemInstance: 'e8b9c1d2-0000-4b5c-8d7e-8f9a1b2c3d02', // Application (staging)
+    annotations: {
+      'emeland.io/endpoint.protocol': 'http',
+      'emeland.io/endpoint.host': 'listener.staging.internal',
+      'emeland.io/endpoint.port': '8088',
+    },
+  },
+  {
+    apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000a3',
+    displayName: 'Legacy Endpoint',
+    api: 'ffffffff-0000-4211-8000-0000000000aa', // unresolvable API reference
+    // no endpoint annotations
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000a4',
+    displayName: 'Floating Endpoint',
+    // no api, no systemInstance: fully detached
+    annotations: {},
+  },
 ]

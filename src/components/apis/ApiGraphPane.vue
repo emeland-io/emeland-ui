@@ -1,25 +1,31 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { IconArrowsExchange } from '@tabler/icons-vue'
+import { useApiStore } from '@/stores/apis'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
+import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import { buildApiGraph } from '@/graph/apiGraph'
 import { resolveApiContextFlows } from '@/utils/apiContexts'
 import type { GraphNodeClick } from '@/types/graph'
 import FlowGraph from '@/components/graph/FlowGraph.vue'
-import type { Api } from '@/types/api'
+import type { Api, ApiInstance } from '@/types/api'
 
 const props = withDefaults(
   defineProps<{
     apis: Api[]
     selectedId: string
     showComponents?: boolean
+    showInstances?: boolean
+    showUnmapped?: boolean
     showControls?: boolean
     matchIds?: Set<string>
   }>(),
   {
     showComponents: true,
+    showInstances: false,
+    showUnmapped: true,
     showControls: true,
     matchIds: () => new Set<string>(),
   },
@@ -28,11 +34,21 @@ const props = withDefaults(
 const emit = defineEmits<{
   select: [id: string]
   'open-component': [id: string]
+  'open-instance': [id: string]
 }>()
 
+const apiStore = useApiStore()
 const componentStore = useComponentStore()
 const systemStore = useSystemStore()
+const contextStore = useContextStore()
 const findingsStore = useFindingsStore()
+
+function instanceContext(inst: ApiInstance): string | undefined {
+  const ctxId = systemStore.systemInstances.find(
+    (si) => si.systemInstanceId === inst.systemInstance,
+  )?.context
+  return ctxId ? (contextStore.contextMap.get(ctxId)?.displayName ?? ctxId) : undefined
+}
 
 const contextFlows = computed(() =>
   resolveApiContextFlows({
@@ -54,13 +70,20 @@ const graphModel = computed(() =>
     findingKindsOf: findingsStore.findingKindsFor,
     crossesOf: (id) => contextFlows.value.get(id)?.crosses ?? false,
     crossCountOf: (id) => contextFlows.value.get(id)?.crossContexts.length ?? 0,
+    instancesOf: (id) => apiStore.getInstancesForApi(id),
+    unmappedInstances: props.showUnmapped ? apiStore.unmappedInstances : [],
+    instanceContext,
+    systemInstanceName: (id) =>
+      systemStore.systemInstances.find((si) => si.systemInstanceId === id)?.displayName,
     showComponents: props.showComponents,
+    showInstances: props.showInstances,
   }),
 )
 
 function onNodeClick({ id, kind }: GraphNodeClick) {
   if (kind === 'api') emit('select', id.slice('api:'.length))
   else if (kind === 'component') emit('open-component', id.slice('comp:'.length))
+  else if (kind === 'instance') emit('open-instance', id.slice('inst:'.length))
 }
 
 const graph = ref<InstanceType<typeof FlowGraph> | null>(null)
@@ -129,6 +152,48 @@ defineExpose({
             />
           </svg>
           component
+        </div>
+        <div
+          v-if="showInstances"
+          class="flex items-center gap-1.5"
+        >
+          <svg
+            width="18"
+            height="11"
+            viewBox="0 0 18 11"
+            class="shrink-0"
+            aria-hidden="true"
+          >
+            <polygon
+              points="0,0 13,0 18,5 18,11 0,11"
+              fill="var(--color-bg-3)"
+            />
+          </svg>
+          instance
+        </div>
+        <div
+          v-if="showInstances && showUnmapped && apiStore.unmappedInstances.length > 0"
+          class="flex items-center gap-1.5"
+        >
+          <svg
+            width="18"
+            height="11"
+            viewBox="0 0 18 11"
+            class="shrink-0"
+            aria-hidden="true"
+          >
+            <rect
+              x="0.5"
+              y="0.5"
+              width="17"
+              height="10"
+              rx="2"
+              fill="none"
+              stroke="var(--color-text-3)"
+              stroke-dasharray="2.5 2"
+            />
+          </svg>
+          unmapped
         </div>
         <div
           v-if="anyCrosses"

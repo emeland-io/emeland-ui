@@ -3,6 +3,7 @@ import { ref, computed, watch, nextTick, onMounted, defineAsyncComponent } from 
 import {
   IconCircleOff,
   IconLoader2,
+  IconChevronRight,
   IconFocusCentered,
   IconZoomScan,
   IconZoomIn,
@@ -21,7 +22,8 @@ import ComponentsToolbar from '@/components/components/ComponentsToolbar.vue'
 import ComponentsList from '@/components/components/ComponentsList.vue'
 import ComponentDetail from '@/components/components/ComponentDetail.vue'
 import ComponentInstanceDrawer from '@/components/components/ComponentInstanceDrawer.vue'
-import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
+import { useSelectQuery, useResourceNav } from '@/composables/useResourceNav'
+import { useInstanceContext } from '@/composables/useInstanceContext'
 import { useResizable } from '@/composables/useResizable'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
@@ -35,9 +37,13 @@ const apiStore = useApiStore()
 const contextStore = useContextStore()
 const findingsStore = useFindingsStore()
 const { goToResource } = useResourceNav()
+const { contextForInstance } = useInstanceContext()
 
 const search = ref('')
 const activeSystems = ref<Set<string>>(new Set())
+
+const listCollapsed = ref(false)
+const listCollapsedEffective = computed(() => listCollapsed.value && !search.value.trim())
 
 function systemName(id: string): string {
   return systemStore.systemMap.get(id)?.displayName ?? id
@@ -67,6 +73,24 @@ const filteredComponents = computed(() =>
 )
 
 const hasActiveFilters = computed(() => !!search.value || activeSystems.value.size > 0)
+
+// instances without a resolvable parent component, filtered by the same search text
+const unmappedFiltered = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  const base = !q
+    ? store.unmappedInstances
+    : store.unmappedInstances.filter(
+        (i) =>
+          i.displayName.toLowerCase().includes(q) ||
+          i.componentInstanceId.toLowerCase().includes(q) ||
+          (contextForInstance(i).name ?? '').toLowerCase().includes(q),
+      )
+  return [...base].sort(
+    (a, b) =>
+      a.displayName.localeCompare(b.displayName) ||
+      a.componentInstanceId.localeCompare(b.componentInstanceId),
+  )
+})
 
 const filterSystems = computed(() => {
   const seen = new Map<string, string>()
@@ -128,6 +152,7 @@ const graphPane = ref<InstanceType<typeof ComponentGraphPane> | null>(null)
 const graphVisible = ref(true)
 const graphFullscreen = ref(false)
 const showInstances = ref(false)
+const showUnmappedGhosts = ref(true)
 const showApis = ref(true)
 
 function toggleInstances() {
@@ -227,13 +252,16 @@ onMounted(async () => {
       <div class="flex min-w-44 items-center gap-3">
         <h1 class="text-title font-medium text-text-1">Components</h1>
         <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-          {{ filteredComponents.length }}
-          <span
-            v-if="filteredComponents.length !== store.components.length"
-            class="text-text-4"
-          >
-            of {{ store.components.length }}
-          </span>
+          {{ store.components.length }}
+        </span>
+        <span class="font-mono text-label text-text-3">
+          {{ store.componentInstances.length }} instances
+        </span>
+        <span
+          class="font-mono text-label"
+          :class="store.unmappedInstances.length > 0 ? 'text-warning' : 'text-text-4'"
+        >
+          {{ store.unmappedInstances.length }} unmapped
         </span>
       </div>
     </div>
@@ -271,9 +299,9 @@ onMounted(async () => {
         @clear="clearFilters"
       />
 
-      <!-- Empty state -->
+      <!-- Empty state (unmapped instances may still match the search) -->
       <div
-        v-if="filteredComponents.length === 0"
+        v-if="filteredComponents.length === 0 && unmappedFiltered.length === 0"
         class="flex flex-1 items-center justify-center"
       >
         <div class="text-center">
@@ -295,14 +323,52 @@ onMounted(async () => {
       <ListDetail v-else>
         <template #list>
           <div class="flex h-full flex-col">
-            <div class="flex h-9 shrink-0 items-center border-b border-border-1 bg-bg-1 px-2">
-              <span class="text-micro font-medium uppercase tracking-wider text-text-4">List</span>
+            <div
+              class="flex h-9 shrink-0 cursor-pointer select-none items-center border-b border-border-1 bg-bg-1 px-2"
+              :title="
+                listCollapsedEffective ? 'Double-click to expand' : 'Double-click to collapse'
+              "
+              @dblclick="listCollapsed = !listCollapsed"
+            >
+              <span class="flex items-center gap-1.5">
+                <span class="text-micro font-medium uppercase tracking-wider text-text-4">
+                  List
+                </span>
+                <span
+                  class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3"
+                >
+                  {{ filteredComponents.length }}
+                  <span
+                    v-if="filteredComponents.length !== store.components.length"
+                    class="text-text-4"
+                  >
+                    of {{ store.components.length }}
+                  </span>
+                </span>
+              </span>
+              <button
+                class="ml-auto rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                :title="listCollapsedEffective ? 'Expand' : 'Collapse'"
+                @click.stop="listCollapsed = !listCollapsed"
+                @dblclick.stop
+              >
+                <IconChevronRight
+                  :size="14"
+                  :stroke-width="2"
+                  class="transition-transform"
+                  :class="listCollapsedEffective ? '' : 'rotate-90'"
+                />
+              </button>
             </div>
             <div class="min-h-0 flex-1 overflow-y-auto">
               <ComponentsList
                 :components="filteredComponents"
                 :selected-id="selectedId"
+                :unmapped="unmappedFiltered"
+                :force-expanded="!!search.trim()"
+                :list-collapsed="listCollapsedEffective"
                 @select="selectComponent"
+                @open-instance="openInstance"
               />
             </div>
           </div>
@@ -398,6 +464,30 @@ onMounted(async () => {
                       {{ showInstances ? 'on' : 'off' }}
                     </span>
                   </button>
+                  <button
+                    v-if="store.unmappedInstances.length > 0"
+                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
+                    :disabled="!showInstances"
+                    :title="
+                      showInstances
+                        ? 'Show unmapped instances as ghost nodes'
+                        : 'Enable Instances to show unmapped instances'
+                    "
+                    @click.stop="showUnmappedGhosts = !showUnmappedGhosts"
+                    @dblclick.stop
+                  >
+                    Unmapped
+                    <span
+                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
+                      :class="
+                        showInstances && showUnmappedGhosts
+                          ? 'bg-accent/15 text-accent-text'
+                          : 'bg-bg-0 text-text-4'
+                      "
+                    >
+                      {{ showInstances && showUnmappedGhosts ? 'on' : 'off' }}
+                    </span>
+                  </button>
                   <div class="mx-0.5 h-4 w-px bg-bg-3" />
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta transition-colors hover:bg-bg-3"
@@ -453,6 +543,7 @@ onMounted(async () => {
                 :components="chipFilteredComponents"
                 :selected-id="selectedId"
                 :show-instances="showInstances"
+                :show-unmapped="showUnmappedGhosts"
                 :show-apis="showApis"
                 :show-controls="false"
                 class="h-full"

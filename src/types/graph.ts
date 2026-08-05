@@ -35,7 +35,9 @@ export interface InstanceNodeData {
   system?: string
   component?: string
   systemInstance?: string
-  type?: 'SystemInstance' | 'ComponentInstance'
+  type?: 'SystemInstance' | 'ComponentInstance' | 'ApiInstance'
+  unmapped?: boolean
+  unresolved?: boolean
 }
 export interface ContextNodeData {
   label: string

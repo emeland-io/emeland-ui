@@ -195,4 +195,23 @@ export const systemInstances: SystemInstance[] = [
       'emeland.io/namespace': 'monitoring',
     },
   },
+
+  // Unmapped instances
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a1',
+    displayName: 'Tmp Host',
+    system: '', // no parent system
+    context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:25:11Z',
+      'emeland.io/cluster': 'ber-prod',
+    },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a2',
+    displayName: 'Legacy Runtime',
+    system: 'ffffffff-0000-4211-8000-0000000000bb', // unresolvable system reference
+    context: '0a000000-0000-4211-8000-000000000008', // Altsystem
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
 ]

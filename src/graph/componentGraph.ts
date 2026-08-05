@@ -1,6 +1,6 @@
 import type { Component, ComponentInstance } from '@/types/component'
 import type { GraphModel, GraphEdge } from '@/types/graph'
-import { layoutDag, type DagNode as DagNodeSpec } from './layoutDag'
+import { layoutDag, frameGhostNodes, type DagNode as DagNodeSpec } from './layoutDag'
 
 export interface ComponentGraphInput {
   components: Component[]
@@ -13,6 +13,7 @@ export interface ComponentGraphInput {
   instancesOf?: (componentId: string) => ComponentInstance[]
   instanceContext?: (instance: ComponentInstance) => string | undefined
   systemInstanceName?: (systemInstanceId: string) => string | undefined
+  unmappedInstances?: ComponentInstance[]
   showInstances?: boolean
   showApis?: boolean
 }
@@ -28,6 +29,7 @@ export function buildComponentGraph({
   instancesOf,
   instanceContext,
   systemInstanceName,
+  unmappedInstances,
   showInstances = true,
   showApis = true,
 }: ComponentGraphInput): GraphModel {
@@ -84,6 +86,21 @@ export function buildComponentGraph({
           kind: 'contains',
         })
       }
+      // unmapped instances: ghost nodes without a parent edge
+      for (const inst of unmappedInstances ?? []) {
+        nodes.push({
+          id: `inst:${inst.componentInstanceId}`,
+          kind: 'instance',
+          data: {
+            label: inst.displayName,
+            context: instanceContext?.(inst),
+            systemInstance: systemInstanceName?.(inst.systemInstance),
+            type: 'ComponentInstance',
+            unmapped: true,
+            unresolved: inst.component ? true : undefined,
+          },
+        })
+      }
     }
     if (!showApis) continue
     for (const apiId of c.provides) {
@@ -132,5 +149,5 @@ export function buildComponentGraph({
     }
   }
 
-  return layoutDag({ nodes, edges, direction: 'LR' })
+  return frameGhostNodes(layoutDag({ nodes, edges, direction: 'LR' }))
 }

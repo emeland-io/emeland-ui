@@ -79,6 +79,11 @@ export const useApiStore = defineStore('api', () => {
     return instancesByApi.value.get(apiId) ?? []
   }
 
+  // Instances without a parent API
+  const unmappedInstances = computed(() =>
+    apiInstances.value.filter((i) => !i.api || !apiMap.value.has(i.api)),
+  )
+
   async function loadApiInstances(): Promise<void> {
     if (instancesLoaded.value || instancesLoading.value) return
     instancesLoading.value = true
@@ -107,6 +112,7 @@ export const useApiStore = defineStore('api', () => {
     instancesLoaded,
     instancesByApi,
     getInstancesForApi,
+    unmappedInstances,
     loadApiInstances,
     apiMap,
     getApiName,

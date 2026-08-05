@@ -6,6 +6,8 @@ import type {
   GraphEdgeKind,
   GraphNodeKind,
   GraphSize,
+  InstanceNodeData,
+  ContextGraphNode,
 } from '@/types/graph'
 
 /**
@@ -87,4 +89,46 @@ export function layoutDag(input: LayoutDagInput): GraphModel {
   })
 
   return { nodes, edges: [...input.edges] }
+}
+
+/**
+ * Wraps the unmapped instance "ghost" nodes of a laid-out graph in a dashed
+ * frame (a context node, rendered behind the members) so they read as a
+ * deliberate group instead of scattered floaters. Purely visual: the ghosts
+ * keep their positions and are not children of the frame.
+ *
+ */
+export function frameGhostNodes(model: GraphModel, label = 'Unmapped'): GraphModel {
+  const ghosts = model.nodes.filter(
+    (n) => n.kind === 'instance' && (n.data as InstanceNodeData).unmapped,
+  )
+  if (ghosts.length === 0) return model
+
+  const PAD_X = 14
+  const PAD_TOP = 48 // room for the frame label tab plus breathing space above the first node
+  const PAD_BOTTOM = 14
+  const GHOST_H = SIZE.instance.height
+
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (const ghost of ghosts) {
+    const w = ghost.size?.width ?? SIZE.instance.width
+    minX = Math.min(minX, ghost.position.x)
+    minY = Math.min(minY, ghost.position.y)
+    maxX = Math.max(maxX, ghost.position.x + w)
+    maxY = Math.max(maxY, ghost.position.y + GHOST_H)
+  }
+
+  const frame: ContextGraphNode = {
+    id: 'frame:unmapped',
+    kind: 'context',
+    position: { x: minX - PAD_X, y: minY - PAD_TOP },
+    size: { width: maxX - minX + 2 * PAD_X, height: maxY - minY + PAD_TOP + PAD_BOTTOM },
+    selectable: false,
+    data: { label },
+  }
+
+  return { nodes: [frame, ...model.nodes], edges: model.edges }
 }

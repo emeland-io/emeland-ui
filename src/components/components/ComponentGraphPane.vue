@@ -15,12 +15,14 @@ const props = withDefaults(
     components: Component[]
     selectedId: string
     showInstances?: boolean
+    showUnmapped?: boolean
     showApis?: boolean
     showControls?: boolean
     matchIds?: Set<string>
   }>(),
   {
     showInstances: false,
+    showUnmapped: true,
     showApis: true,
     showControls: true,
     matchIds: () => new Set<string>(),
@@ -52,6 +54,7 @@ const graphModel = computed(() =>
     instanceContext: (inst) => contextForInstance(inst).name,
     systemInstanceName: (id) =>
       systemStore.systemInstances.find((i) => i.systemInstanceId === id)?.displayName,
+    unmappedInstances: props.showUnmapped ? store.unmappedInstances : [],
     showInstances: props.showInstances,
     showApis: props.showApis,
   }),
@@ -124,6 +127,30 @@ defineExpose({
             />
           </svg>
           instance
+        </div>
+        <div
+          v-if="showInstances && showUnmapped && store.unmappedInstances.length > 0"
+          class="flex items-center gap-1.5"
+        >
+          <svg
+            width="18"
+            height="11"
+            viewBox="0 0 18 11"
+            class="shrink-0"
+            aria-hidden="true"
+          >
+            <rect
+              x="0.5"
+              y="0.5"
+              width="17"
+              height="10"
+              rx="2"
+              fill="none"
+              stroke="var(--color-text-3)"
+              stroke-dasharray="2.5 2"
+            />
+          </svg>
+          unmapped
         </div>
         <div
           v-if="showApis"

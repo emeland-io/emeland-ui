@@ -48,7 +48,7 @@ export interface FramedColumnsOptions {
 const DEFAULTS: Required<FramedColumnsOptions> = {
   rowH: 72,
   nodeH: 56,
-  header: 34,
+  header: 48,
   pad: 14,
   anchorX: 0,
   anchorIndent: 288,

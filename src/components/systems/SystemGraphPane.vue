@@ -16,8 +16,14 @@ const props = withDefaults(
     showControls?: boolean
     matchIds?: Set<string>
     showInstances?: boolean
+    showUnmapped?: boolean
   }>(),
-  { showControls: true, showInstances: true, matchIds: () => new Set<string>() },
+  {
+    showControls: true,
+    showInstances: true,
+    showUnmapped: true,
+    matchIds: () => new Set<string>(),
+  },
 )
 
 const emit = defineEmits<{
@@ -42,6 +48,7 @@ const graphModel = computed(() =>
         contextName,
         findingCountOf: findingsStore.findingCountFor,
         findingKindsOf: findingsStore.findingKindsFor,
+        unmappedInstances: props.showUnmapped ? store.unmappedInstances : [],
       })
     : buildSystemGraph({
         systems: props.systems,
@@ -118,6 +125,30 @@ defineExpose({
           </svg>
           instance
         </div>
+        <div
+          v-if="showInstances && showUnmapped && store.unmappedInstances.length > 0"
+          class="flex items-center gap-1.5"
+        >
+          <svg
+            width="18"
+            height="11"
+            viewBox="0 0 18 11"
+            class="shrink-0"
+            aria-hidden="true"
+          >
+            <rect
+              x="0.5"
+              y="0.5"
+              width="17"
+              height="10"
+              rx="2"
+              fill="none"
+              stroke="var(--color-text-3)"
+              stroke-dasharray="2.5 2"
+            />
+          </svg>
+          unmapped
+        </div>
       </div>
 
       <div class="flex flex-col gap-1">
@@ -138,9 +169,8 @@ defineExpose({
               width="17"
               height="10"
               rx="2"
-              fill="none"
-              stroke="var(--color-border-2)"
-              stroke-dasharray="2.5 2"
+              fill="color-mix(in srgb, var(--color-accent) 4%, transparent)"
+              stroke="color-mix(in srgb, var(--color-accent) 35%, transparent)"
             />
           </svg>
           context

@@ -238,4 +238,28 @@ export const componentInstances: ComponentInstance[] = [
       'emeland.io/namespace': 'monitoring',
     },
   },
+
+  // Unmapped instances
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a1',
+    displayName: 'Mystery Container',
+    component: '', // no parent component
+    systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (prod-eu)
+    consumes: [],
+    provides: [],
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:25:02Z',
+      'emeland.io/cluster': 'ber-prod',
+      'emeland.io/namespace': 'kong',
+    },
+  },
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a2',
+    displayName: 'Legacy Worker',
+    component: 'ffffffff-0000-4211-8000-0000000000cc', // unresolvable component reference
+    systemInstance: '2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e', // Prometheus (prod)
+    consumes: [],
+    provides: [],
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
 ]

@@ -51,6 +51,8 @@ const data = computed(
       instances?: number
       crosses?: boolean
       description?: string
+      unmapped?: boolean
+      unresolved?: boolean
     },
 )
 
@@ -62,6 +64,7 @@ const facts = computed(() => {
   const d = data.value
   const rows: string[] = []
   if (d.abstract !== undefined) rows.push(d.abstract ? 'Abstract' : 'Concrete')
+  if (d.unmapped) rows.push(d.unresolved ? 'Unresolved parent' : 'Unmapped')
   // instance type is already shown in the badge
   if (d.type && props.node.kind !== 'instance') rows.push(d.type)
   if (d.component) rows.push(d.component)

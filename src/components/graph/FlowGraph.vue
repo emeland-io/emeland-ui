@@ -18,6 +18,7 @@ import '@vue-flow/controls/dist/style.css'
 import FlowHandles from './FlowHandles.vue'
 import ChannelEdge from './ChannelEdge.vue'
 import NodeTooltip from './NodeTooltip.vue'
+import MappingTag from '@/components/MappingTag.vue'
 import type {
   GraphNode,
   GraphEdge,
@@ -440,9 +441,9 @@ function onNodeClick({ node }: NodeMouseEvent) {
 
       <!-- Context frame -->
       <template #node-context="{ data }">
-        <div class="h-full w-full rounded-lg border border-dashed border-border-2 bg-transparent">
+        <div class="frame-dashed h-full w-full">
           <div
-            class="truncate px-2.5 pt-1.5 font-mono text-micro font-semibold uppercase tracking-wide text-text-4"
+            class="frame-tab mx-2 mt-2 inline-flex max-w-[calc(100%-16px)] items-center truncate rounded-sm px-1.5 py-0.5 font-mono text-micro font-semibold uppercase tracking-wide text-text-3"
           >
             {{ (data as ContextNodeData).label }}
           </div>
@@ -461,7 +462,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </span>
             <span
               v-if="(data as ContextItemNodeData).findings"
-              class="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
+              class="node-findings ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/40 bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
             >
               <IconAlertTriangle
                 :size="10"
@@ -510,7 +511,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </span>
             <span
               v-if="(data as SystemNodeData).findings"
-              class="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
+              class="node-findings ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/40 bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
             >
               <IconAlertTriangle
                 :size="10"
@@ -547,7 +548,30 @@ function onNodeClick({ node }: NodeMouseEvent) {
       </template>
 
       <template #node-instance="{ id, data }">
+        <!-- unmapped instance: no resolvable parent, rendered as a ghost -->
         <div
+          v-if="(data as InstanceNodeData).unmapped"
+          class="node-inst-ghost w-full cursor-pointer px-3 py-2"
+          :class="id === selectedId ? 'node-inst-ghost-selected' : ''"
+        >
+          <div class="flex items-center gap-2">
+            <div class="min-w-0 flex-1 truncate text-body text-text-2">
+              {{ (data as InstanceNodeData).label }}
+            </div>
+            <MappingTag
+              :state="(data as InstanceNodeData).unresolved ? 'unresolved' : 'unmapped'"
+            />
+          </div>
+          <div
+            v-if="(data as InstanceNodeData).context"
+            class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-3"
+          >
+            <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">C</span>
+            <span class="truncate">{{ (data as InstanceNodeData).context }}</span>
+          </div>
+        </div>
+        <div
+          v-else
           class="node-cut node-inst w-full cursor-pointer"
           :class="
             id === selectedId
@@ -592,7 +616,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
           </span>
           <span
             v-if="(data as ApiNodeData).findings"
-            class="flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
+            class="flex shrink-0 items-center gap-1 rounded-full border border-warning/40 bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
           >
             <IconAlertTriangle
               :size="10"
@@ -643,7 +667,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
               </span>
               <span
                 v-if="(data as ComponentNodeData).findings"
-                class="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
+                class="node-findings ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/40 bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
               >
                 <IconAlertTriangle
                   :size="10"
@@ -712,6 +736,17 @@ function onNodeClick({ node }: NodeMouseEvent) {
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
 }
 
+.frame-dashed {
+  /* border: 1.5px solid color-mix(in srgb, var(--color-text-3) 60%, transparent); */
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-accent) 4%, transparent);
+}
+
+.frame-tab {
+  background: color-mix(in srgb, var(--color-text-3) 12%, var(--color-bg-0));
+  /* border: 1px solid color-mix(in srgb, var(--color-text-3) 30%, transparent); */
+}
+
 .node-cut-inner {
   clip-path: polygon(
     2px 2px,
@@ -744,6 +779,11 @@ function onNodeClick({ node }: NodeMouseEvent) {
   background: color-mix(in srgb, var(--node-comp-fill) 45%, var(--color-accent));
 }
 
+.node-comp-selected .node-findings {
+  background-color: var(--color-bg-1);
+  border-color: var(--color-warning);
+}
+
 .node-inst {
   background: var(--color-text-4);
 }
@@ -764,6 +804,25 @@ function onNodeClick({ node }: NodeMouseEvent) {
 }
 .node-inst-selected > .node-cut-inner,
 .node-inst-selected:hover > .node-cut-inner {
+  background: color-mix(in srgb, var(--color-bg-1) 68%, var(--color-accent));
+}
+
+/* unmapped instances */
+.node-inst-ghost {
+  border: 1.5px dashed var(--color-text-3);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-bg-2) 70%, transparent);
+  transition:
+    border-color 150ms,
+    background-color 150ms;
+}
+.node-inst-ghost:hover {
+  border-color: var(--color-text-2);
+  background: color-mix(in srgb, var(--color-bg-2) 85%, transparent);
+}
+.node-inst-ghost-selected,
+.node-inst-ghost-selected:hover {
+  border-color: var(--color-accent);
   background: color-mix(in srgb, var(--color-bg-1) 68%, var(--color-accent));
 }
 
