@@ -582,7 +582,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
         <!-- unmapped instance: no resolvable parent, rendered as a standalone node -->
         <div
           v-if="(data as InstanceNodeData).unmapped"
-          class="node-inst-unmapped flex h-full w-full cursor-pointer flex-col justify-center px-3"
+          class="node-inst-unmapped flex h-full w-full cursor-pointer flex-col justify-center px-3 py-2"
           :class="id === selectedId ? 'node-inst-unmapped-selected' : ''"
         >
           <div class="flex items-center gap-2">
