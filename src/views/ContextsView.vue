@@ -22,9 +22,8 @@ import ListDetail from '@/components/ListDetail.vue'
 import ContextsList, { type ContextRow } from '@/components/contexts/ContextsList.vue'
 import ContextDetail from '@/components/contexts/ContextDetail.vue'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
-import SystemInstancesDrawer from '@/components/systems/SystemInstancesDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
-import { useSelectQuery, useResourceNav } from '@/composables/useResourceNav'
+import { useSelectQuery } from '@/composables/useResourceNav'
 import { useResizable } from '@/composables/useResizable'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
@@ -203,29 +202,9 @@ function selectContext(id: string) {
   collapsed.value = next
 }
 
-const instanceDrawerOpen = ref(false)
-const selectedInstanceId = ref('')
-
-const { goToResource } = useResourceNav()
-
-function goToSystem(id: string) {
-  instanceDrawerOpen.value = false
-  goToResource('System', id)
-}
-
-function openInstance(id: string) {
-  selectedInstanceId.value = id
-  instanceDrawerOpen.value = true
-}
-
 const graphPane = ref<InstanceType<typeof ContextGraphPane> | null>(null)
 const graphVisible = ref(true)
 const graphFullscreen = ref(false)
-const showInstances = ref(false)
-
-function toggleInstances() {
-  showInstances.value = !showInstances.value
-}
 
 function refitGraph() {
   if (!graphVisible.value) return
@@ -346,13 +325,7 @@ onMounted(async () => {
       <div class="flex min-w-44 items-center gap-3">
         <h1 class="text-title font-medium text-text-1">Contexts</h1>
         <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-          {{ filteredContexts.length }}
-          <span
-            v-if="filteredContexts.length !== store.contexts.length"
-            class="text-text-4"
-          >
-            of {{ store.contexts.length }}
-          </span>
+          {{ store.contexts.length }}
         </span>
       </div>
       <button
@@ -396,7 +369,7 @@ onMounted(async () => {
       <div class="flex flex-wrap items-center gap-2 border-b border-border-1 px-4 py-2">
         <div
           class="flex items-center gap-2 rounded bg-bg-2 px-2.5 py-1.5 transition-shadow focus-within:ring-1 focus-within:ring-border-2"
-          style="min-width: 260px"
+          style="min-width: 300px"
         >
           <IconSearch
             :size="13"
@@ -484,7 +457,22 @@ onMounted(async () => {
             <div
               class="flex h-9 shrink-0 items-center justify-between border-b border-border-1 bg-bg-1 px-2"
             >
-              <span class="text-micro font-medium uppercase tracking-wider text-text-4">List</span>
+              <span class="flex items-center gap-1.5">
+                <span class="text-micro font-medium uppercase tracking-wider text-text-4">
+                  List
+                </span>
+                <span
+                  class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3"
+                >
+                  {{ filteredContexts.length }}
+                  <span
+                    v-if="filteredContexts.length !== store.contexts.length"
+                    class="text-text-4"
+                  >
+                    of {{ store.contexts.length }}
+                  </span>
+                </span>
+              </span>
               <button
                 class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
                 :disabled="parentIds.size === 0"
@@ -576,22 +564,6 @@ onMounted(async () => {
                       :stroke-width="1.75"
                     />
                   </button>
-                  <button
-                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Show the system instances living in each context"
-                    @click.stop="toggleInstances"
-                    @dblclick.stop
-                  >
-                    Instances
-                    <span
-                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
-                      :class="
-                        showInstances ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'
-                      "
-                    >
-                      {{ showInstances ? 'on' : 'off' }}
-                    </span>
-                  </button>
                   <div class="mx-0.5 h-4 w-px bg-bg-3" />
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta transition-colors hover:bg-bg-3"
@@ -647,11 +619,9 @@ onMounted(async () => {
                 :match-ids="matchIds"
                 :contexts="chipFilteredContexts"
                 :selected-id="selectedId"
-                :show-instances="showInstances"
                 :show-controls="false"
                 class="h-full"
                 @select="selectContext"
-                @open-instance="openInstance"
               />
             </div>
 
@@ -720,7 +690,7 @@ onMounted(async () => {
             "
             @click="selectTypeInDrawer(type.contextTypeId)"
           >
-            <span class="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent">
+            <span class="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent-text">
               {{ type.displayName }}
             </span>
           </div>
@@ -731,7 +701,7 @@ onMounted(async () => {
           class="flex-1 overflow-y-auto px-6 py-5"
         >
           <div class="flex items-center gap-2">
-            <span class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent">
+            <span class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent-text">
               {{ selectedType.displayName }}
             </span>
             <span class="font-mono text-label text-text-4">{{ selectedType.contextTypeId }}</span>
@@ -777,11 +747,5 @@ onMounted(async () => {
         </div>
       </template>
     </SlideOverDrawer>
-    <SystemInstancesDrawer
-      :open="instanceDrawerOpen"
-      :selected-instance-id="selectedInstanceId"
-      @close="instanceDrawerOpen = false"
-      @go-to-system="goToSystem"
-    />
   </div>
 </template>

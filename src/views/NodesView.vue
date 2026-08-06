@@ -154,13 +154,7 @@ function closeTypesDrawer() {
       <div class="flex min-w-44 items-center gap-3">
         <h1 class="text-title font-medium text-text-1">Nodes</h1>
         <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-          {{ filteredNodes.length }}
-          <span
-            v-if="filteredNodes.length !== store.nodes.length"
-            class="text-text-4"
-          >
-            of {{ store.nodes.length }}
-          </span>
+          {{ store.nodes.length }}
         </span>
       </div>
       <button
@@ -288,7 +282,22 @@ function closeTypesDrawer() {
           <div class="flex h-full flex-col">
             <!-- list bar, so the column starts on the same line as the detail -->
             <div class="flex h-9 shrink-0 items-center border-b border-border-1 bg-bg-1 px-2">
-              <span class="text-micro font-medium uppercase tracking-wider text-text-4">List</span>
+              <span class="flex items-center gap-1.5">
+                <span class="text-micro font-medium uppercase tracking-wider text-text-4">
+                  List
+                </span>
+                <span
+                  class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3"
+                >
+                  {{ filteredNodes.length }}
+                  <span
+                    v-if="filteredNodes.length !== store.nodes.length"
+                    class="text-text-4"
+                  >
+                    of {{ store.nodes.length }}
+                  </span>
+                </span>
+              </span>
             </div>
             <div class="min-h-0 flex-1 overflow-y-auto">
               <div
@@ -406,7 +415,7 @@ function closeTypesDrawer() {
                           :class="
                             selectedNodeTypeUnknown
                               ? 'bg-error/10 text-error'
-                              : 'bg-accent/10 text-accent'
+                              : 'bg-accent/10 text-accent-text'
                           "
                         >
                           <IconAlertTriangle

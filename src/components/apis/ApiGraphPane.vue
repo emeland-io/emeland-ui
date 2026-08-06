@@ -1,29 +1,31 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { IconArrowsExchange } from '@tabler/icons-vue'
 import { useApiStore } from '@/stores/apis'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
+import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
-import { useInstanceContext } from '@/composables/useInstanceContext'
-import { buildComponentGraph } from '@/graph/componentGraph'
+import { buildApiGraph } from '@/graph/apiGraph'
+import { resolveApiContextFlows } from '@/utils/apiContexts'
 import type { GraphNodeClick } from '@/types/graph'
 import FlowGraph from '@/components/graph/FlowGraph.vue'
-import type { Component } from '@/types/component'
+import type { Api, ApiInstance } from '@/types/api'
 
 const props = withDefaults(
   defineProps<{
-    components: Component[]
+    apis: Api[]
     selectedId: string
+    showComponents?: boolean
     showInstances?: boolean
     showUnmapped?: boolean
-    showApis?: boolean
     showControls?: boolean
     matchIds?: Set<string>
   }>(),
   {
+    showComponents: true,
     showInstances: false,
     showUnmapped: true,
-    showApis: true,
     showControls: true,
     matchIds: () => new Set<string>(),
   },
@@ -31,38 +33,56 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   select: [id: string]
+  'open-component': [id: string]
   'open-instance': [id: string]
-  'open-api': [id: string]
 }>()
 
-const store = useComponentStore()
 const apiStore = useApiStore()
+const componentStore = useComponentStore()
 const systemStore = useSystemStore()
+const contextStore = useContextStore()
 const findingsStore = useFindingsStore()
-const { contextForInstance } = useInstanceContext()
+
+function instanceContext(inst: ApiInstance): string | undefined {
+  const ctxId = inst.systemInstance
+    ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
+    : undefined
+  return ctxId ? (contextStore.contextMap.get(ctxId)?.displayName ?? ctxId) : undefined
+}
+
+const contextFlows = computed(() =>
+  resolveApiContextFlows({
+    apis: props.apis,
+    components: componentStore.components,
+    componentInstances: componentStore.componentInstances,
+    systemInstances: systemStore.systemInstances,
+  }),
+)
+
+const anyCrosses = computed(() => [...contextFlows.value.values()].some((f) => f.crosses))
 
 const graphModel = computed(() =>
-  buildComponentGraph({
-    components: props.components,
-    apiName: (id) => apiStore.getApiName(id),
-    apiVersion: (id) => apiStore.apiMap.get(id)?.version?.version || undefined,
-    apiDescription: (id) => apiStore.apiMap.get(id)?.description || undefined,
+  buildApiGraph({
+    apis: props.apis,
+    components: componentStore.components,
     systemName: (id) => systemStore.systemMap.get(id)?.displayName,
     findingCountOf: findingsStore.findingCountFor,
     findingKindsOf: findingsStore.findingKindsFor,
-    instancesOf: (id) => store.getInstancesForComponent(id),
-    instanceContext: (inst) => contextForInstance(inst).name,
+    crossesOf: (id) => contextFlows.value.get(id)?.crosses ?? false,
+    crossCountOf: (id) => contextFlows.value.get(id)?.crossContexts.length ?? 0,
+    instancesOf: (id) => apiStore.getInstancesForApi(id),
+    unmappedInstances: props.showUnmapped ? apiStore.unmappedInstances : [],
+    instanceContext,
     systemInstanceName: (id) => systemStore.systemInstanceMap.get(id)?.displayName,
-    unmappedInstances: props.showUnmapped ? store.unmappedInstances : [],
+    showComponents: props.showComponents,
     showInstances: props.showInstances,
-    showApis: props.showApis,
   }),
 )
 
 function onNodeClick({ id, kind }: GraphNodeClick) {
-  if (kind === 'component') emit('select', id.slice('comp:'.length))
+  if (kind === 'api') emit('select', id.slice('api:'.length))
+  else if (kind === 'component') emit('open-component', id.slice('comp:'.length))
   else if (kind === 'instance') emit('open-instance', id.slice('inst:'.length))
-  else if (kind === 'api') emit('open-api', id.slice('api:'.length))
 }
 
 const graph = ref<InstanceType<typeof FlowGraph> | null>(null)
@@ -84,7 +104,7 @@ defineExpose({
       :match-ids="matchIds"
       :nodes="graphModel.nodes"
       :edges="graphModel.edges"
-      :selected-id="`comp:${selectedId}`"
+      :selected-id="`api:${selectedId}`"
       class="min-h-0 flex-1"
       @node-click="onNodeClick"
     />
@@ -94,6 +114,29 @@ defineExpose({
       <!-- node shapes -->
       <div class="flex flex-col gap-1">
         <div class="flex items-center gap-1.5">
+          <svg
+            width="18"
+            height="11"
+            viewBox="0 0 18 11"
+            class="shrink-0"
+            aria-hidden="true"
+          >
+            <rect
+              x="0.5"
+              y="0.5"
+              width="17"
+              height="10"
+              rx="5"
+              fill="var(--color-bg-1)"
+              stroke="var(--color-border-2)"
+            />
+          </svg>
+          api
+        </div>
+        <div
+          v-if="showComponents"
+          class="flex items-center gap-1.5"
+        >
           <svg
             width="18"
             height="11"
@@ -128,7 +171,7 @@ defineExpose({
           instance
         </div>
         <div
-          v-if="showInstances && showUnmapped && store.unmappedInstances.length > 0"
+          v-if="showInstances && showUnmapped && apiStore.unmappedInstances.length > 0"
           class="flex items-center gap-1.5"
         >
           <svg
@@ -152,33 +195,77 @@ defineExpose({
           unmapped
         </div>
         <div
-          v-if="showApis"
+          v-if="anyCrosses"
           class="flex items-center gap-1.5"
         >
-          <svg
-            width="18"
-            height="11"
-            viewBox="0 0 18 11"
-            class="shrink-0"
-            aria-hidden="true"
-          >
-            <rect
-              x="0.5"
-              y="0.5"
-              width="17"
-              height="10"
-              rx="5"
-              fill="var(--color-bg-1)"
-              stroke="var(--color-border-2)"
-            />
-          </svg>
-          api
+          <IconArrowsExchange
+            :size="11"
+            :stroke-width="2"
+            class="shrink-0 text-text-3"
+          />
+          crosses boundary
         </div>
       </div>
 
       <!-- edges and label prefixes -->
       <div class="flex flex-col gap-1">
-        <div class="flex items-center gap-1.5">
+        <template v-if="showComponents">
+          <div class="flex items-center gap-1.5">
+            <svg
+              width="20"
+              height="8"
+              viewBox="0 0 20 8"
+              class="shrink-0"
+              aria-hidden="true"
+            >
+              <line
+                x1="0"
+                y1="4"
+                x2="13"
+                y2="4"
+                stroke="var(--color-text-3)"
+                stroke-width="1.25"
+              />
+              <path
+                d="M13 1.4 L19 4 L13 6.6 Z"
+                fill="var(--color-text-3)"
+              />
+            </svg>
+            provides
+          </div>
+          <div class="flex items-center gap-1.5">
+            <svg
+              width="20"
+              height="8"
+              viewBox="0 0 20 8"
+              class="shrink-0"
+              aria-hidden="true"
+            >
+              <line
+                x1="0"
+                y1="4"
+                x2="13"
+                y2="4"
+                stroke="var(--color-text-3)"
+                stroke-width="1.25"
+                stroke-dasharray="3 2.5"
+              />
+              <path
+                d="M13 1.4 L19 4 L13 6.6 Z"
+                fill="var(--color-text-3)"
+              />
+            </svg>
+            consumes
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
+            system
+          </div>
+        </template>
+        <div
+          v-else
+          class="flex items-center gap-1.5"
+        >
           <svg
             width="20"
             height="8"
@@ -199,45 +286,7 @@ defineExpose({
               fill="var(--color-text-3)"
             />
           </svg>
-          {{ showApis ? 'provides' : 'depends on' }}
-        </div>
-        <div
-          v-if="showApis"
-          class="flex items-center gap-1.5"
-        >
-          <svg
-            width="20"
-            height="8"
-            viewBox="0 0 20 8"
-            class="shrink-0"
-            aria-hidden="true"
-          >
-            <line
-              x1="0"
-              y1="4"
-              x2="13"
-              y2="4"
-              stroke="var(--color-text-3)"
-              stroke-width="1.25"
-              stroke-dasharray="3 2.5"
-            />
-            <path
-              d="M13 1.4 L19 4 L13 6.6 Z"
-              fill="var(--color-text-3)"
-            />
-          </svg>
-          consumes
-        </div>
-        <div class="flex items-center gap-1.5">
-          <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
-          system
-        </div>
-        <div
-          v-if="showInstances"
-          class="flex items-center gap-1.5"
-        >
-          <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">C</span>
-          context
+          via component
         </div>
       </div>
     </div>

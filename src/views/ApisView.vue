@@ -4,72 +4,92 @@ import {
   IconCircleOff,
   IconLoader2,
   IconChevronRight,
-  IconChevronsDown,
-  IconChevronsUp,
-  IconBinaryTree,
   IconFocusCentered,
   IconZoomScan,
   IconZoomIn,
   IconZoomOut,
   IconArrowsMaximize,
   IconArrowsMinimize,
+  IconBinaryTree,
 } from '@tabler/icons-vue'
+import { useApiStore } from '@/stores/apis'
 import { useSystemStore } from '@/stores/systems'
+import { useComponentStore } from '@/stores/components'
 import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import ListDetail from '@/components/ListDetail.vue'
-import SystemsToolbar from '@/components/systems/SystemsToolbar.vue'
-import SystemsList, { type SystemRow } from '@/components/systems/SystemsList.vue'
-import SystemDetail from '@/components/systems/SystemDetail.vue'
-import SystemInstancesDrawer from '@/components/systems/SystemInstancesDrawer.vue'
-import { useSelectQuery } from '@/composables/useResourceNav'
+import ApisToolbar from '@/components/apis/ApisToolbar.vue'
+import ApisList from '@/components/apis/ApisList.vue'
+import ApiDetail from '@/components/apis/ApiDetail.vue'
+import ApiInstanceDrawer from '@/components/apis/ApiInstanceDrawer.vue'
+import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 import { useResizable } from '@/composables/useResizable'
+import { resolveApiContextFlows } from '@/utils/apiContexts'
+import { endpointUrl } from '@/utils/endpoint'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
-const SystemGraphPane = defineAsyncComponent(
-  () => import('@/components/systems/SystemGraphPane.vue'),
-)
+const ApiGraphPane = defineAsyncComponent(() => import('@/components/apis/ApiGraphPane.vue'))
 
-const store = useSystemStore()
+const store = useApiStore()
+const systemStore = useSystemStore()
+const componentStore = useComponentStore()
 const contextStore = useContextStore()
 const findingsStore = useFindingsStore()
-
-const KINDS = ['Concrete', 'Abstract'] as const
+const { goToResource } = useResourceNav()
 
 const search = ref('')
-const activeKinds = ref<Set<string>>(new Set())
-const activeContexts = ref<Set<string>>(new Set())
+const activeSystems = ref<Set<string>>(new Set())
+const activeTypes = ref<Set<string>>(new Set())
+const crossContextOnly = ref(false)
 
-function contextName(contextId: string | undefined): string | undefined {
-  if (!contextId) return undefined
-  return contextStore.contextMap.get(contextId)?.displayName
+const listCollapsed = ref(false)
+const listCollapsedEffective = computed(() => listCollapsed.value && !search.value.trim())
+
+const TYPE_ORDER = ['OpenAPI', 'GraphQL', 'gRPC', 'Other', 'Unknown']
+
+function systemName(id: string): string {
+  return systemStore.systemMap.get(id)?.displayName ?? id
 }
 
-const chipFilteredSystems = computed(() =>
-  store.systems.filter((s) => {
-    if (activeKinds.value.size > 0 && !activeKinds.value.has(store.getKindForSystem(s)))
-      return false
-    if (
-      activeContexts.value.size > 0 &&
-      !store
-        .getInstancesForSystem(s.systemId)
-        .some((i) => i.context && activeContexts.value.has(i.context))
-    )
-      return false
-    return true
+const contextFlows = computed(() =>
+  resolveApiContextFlows({
+    apis: store.apis,
+    components: componentStore.components,
+    componentInstances: componentStore.componentInstances,
+    systemInstances: systemStore.systemInstances,
   }),
 )
 
-const filteredSystems = computed(() =>
-  chipFilteredSystems.value.filter((s) => {
+const crossings = computed(
+  () =>
+    new Map<string, number>(
+      [...contextFlows.value]
+        .filter(([, f]) => f.crosses)
+        .map(([id, f]) => [id, f.crossContexts.length]),
+    ),
+)
+
+const chipFilteredApis = computed(() =>
+  store.apis.filter(
+    (a) =>
+      (activeSystems.value.size === 0 || activeSystems.value.has(a.system)) &&
+      (activeTypes.value.size === 0 || activeTypes.value.has(a.type)) &&
+      (!crossContextOnly.value || crossings.value.has(a.apiId)),
+  ),
+)
+
+const filteredApis = computed(() =>
+  chipFilteredApis.value.filter((a) => {
     const q = search.value.toLowerCase()
     if (!q) return true
     return (
-      s.displayName.toLowerCase().includes(q) ||
-      (s.description ?? '').toLowerCase().includes(q) ||
-      s.systemId.toLowerCase().includes(q) ||
-      (s.version?.version ?? '').toLowerCase().includes(q) ||
-      Object.entries(s.annotations).some(
+      a.displayName.toLowerCase().includes(q) ||
+      (a.description ?? '').toLowerCase().includes(q) ||
+      a.apiId.toLowerCase().includes(q) ||
+      a.type.toLowerCase().includes(q) ||
+      (a.version?.version ?? '').toLowerCase().includes(q) ||
+      systemName(a.system).toLowerCase().includes(q) ||
+      Object.entries(a.annotations).some(
         ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
       )
     )
@@ -77,209 +97,124 @@ const filteredSystems = computed(() =>
 )
 
 const hasActiveFilters = computed(
-  () => !!search.value || activeKinds.value.size > 0 || activeContexts.value.size > 0,
+  () =>
+    !!search.value ||
+    activeSystems.value.size > 0 ||
+    activeTypes.value.size > 0 ||
+    crossContextOnly.value,
 )
 
-// instances without a resolvable parent system, filtered by the same toolbar filters
+// instances without a resolvable parent API, filtered by the same toolbar filters
 const unmappedFiltered = computed(() => {
   const q = search.value.trim().toLowerCase()
   const base = store.unmappedInstances.filter((i) => {
-    if (activeContexts.value.size > 0 && !(i.context && activeContexts.value.has(i.context)))
-      return false
+    if (activeSystems.value.size > 0) {
+      const system = i.systemInstance
+        ? systemStore.systemInstanceMap.get(i.systemInstance)?.system
+        : undefined
+      if (!system || !activeSystems.value.has(system)) return false
+    }
     if (!q) return true
     return (
       i.displayName.toLowerCase().includes(q) ||
-      i.systemInstanceId.toLowerCase().includes(q) ||
-      (contextName(i.context) ?? '').toLowerCase().includes(q)
+      i.apiInstanceId.toLowerCase().includes(q) ||
+      (endpointUrl(i.annotations) ?? '').toLowerCase().includes(q)
     )
   })
   return [...base].sort(
     (a, b) =>
-      a.displayName.localeCompare(b.displayName) ||
-      a.systemInstanceId.localeCompare(b.systemInstanceId),
+      a.displayName.localeCompare(b.displayName) || a.apiInstanceId.localeCompare(b.apiInstanceId),
   )
 })
 
-const allContexts = computed(() => {
+const filterSystems = computed(() => {
   const seen = new Map<string, string>()
-  for (const inst of store.systemInstances) {
-    if (inst.context && !seen.has(inst.context)) {
-      seen.set(inst.context, contextName(inst.context) ?? inst.context)
-    }
+  for (const a of store.apis) {
+    if (a.system && !seen.has(a.system)) seen.set(a.system, systemName(a.system))
   }
   return [...seen].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
 })
 
-function toggleKind(kind: string) {
-  const s = new Set(activeKinds.value)
-  if (s.has(kind)) s.delete(kind)
-  else s.add(kind)
-  activeKinds.value = s
+function toggleSystem(id: string) {
+  const s = new Set(activeSystems.value)
+  if (s.has(id)) {
+    s.delete(id)
+  } else {
+    s.add(id)
+  }
+  activeSystems.value = s
 }
 
-function toggleContext(id: string) {
-  const s = new Set(activeContexts.value)
-  if (s.has(id)) s.delete(id)
-  else s.add(id)
-  activeContexts.value = s
+function toggleType(type: string) {
+  const s = new Set(activeTypes.value)
+  if (s.has(type)) {
+    s.delete(type)
+  } else {
+    s.add(type)
+  }
+  activeTypes.value = s
 }
 
 function clearFilters() {
   search.value = ''
-  activeKinds.value = new Set()
-  activeContexts.value = new Set()
+  activeSystems.value = new Set()
+  activeTypes.value = new Set()
+  crossContextOnly.value = false
 }
 
-const collapsed = ref<Set<string>>(new Set())
-
-const listCollapsed = ref(false)
-const listCollapsedEffective = computed(() => listCollapsed.value && !search.value.trim())
-
-let defaultCollapseApplied = false
-watch(
-  () => store.systems.length,
-  (count) => {
-    if (defaultCollapseApplied || count === 0) return
-    defaultCollapseApplied = true
-    const depthOf = (id: string): number => {
-      let depth = 0
-      let cursor = store.systems.find((x) => x.systemId === id)?.parent
-      const seen = new Set<string>([id])
-      while (cursor && !seen.has(cursor)) {
-        seen.add(cursor)
-        depth++
-        cursor = store.systems.find((x) => x.systemId === cursor)?.parent
-      }
-      return depth
-    }
-    const shut = new Set<string>()
-    for (const item of store.systems) {
-      const parent = item.parent
-      if (parent && depthOf(parent) >= 1) shut.add(parent)
-    }
-    collapsed.value = shut
-  },
-  { immediate: true },
-)
-
-function toggleCollapse(id: string) {
-  const s = new Set(collapsed.value)
-  if (s.has(id)) s.delete(id)
-  else s.add(id)
-  collapsed.value = s
-}
-
-const parentIds = computed(() => {
-  const present = new Set(filteredSystems.value.map((s) => s.systemId))
-  const ids = new Set<string>()
-  for (const s of filteredSystems.value) {
-    if (s.parent && present.has(s.parent)) ids.add(s.parent)
-  }
-  return ids
+// API types present in the loaded data, in display order
+const filterTypes = computed(() => {
+  const present = new Set(store.apis.map((a) => a.type))
+  return TYPE_ORDER.filter((t) => present.has(t as (typeof store.apis)[number]['type']))
 })
-
-const allCollapsed = computed(
-  () => parentIds.value.size > 0 && [...parentIds.value].every((id) => collapsed.value.has(id)),
-)
-
-function toggleAll() {
-  collapsed.value = allCollapsed.value ? new Set() : new Set(parentIds.value)
-}
-
-const systemRows = computed<SystemRow[]>(() => {
-  const present = new Set(filteredSystems.value.map((s) => s.systemId))
-  const childrenOf = new Map<string, typeof filteredSystems.value>()
-  const roots: typeof filteredSystems.value = []
-  for (const s of filteredSystems.value) {
-    if (s.parent && present.has(s.parent)) {
-      childrenOf.set(s.parent, [...(childrenOf.get(s.parent) ?? []), s])
-    } else {
-      roots.push(s)
-    }
-  }
-  const rows: SystemRow[] = []
-  const walk = (s: (typeof store.systems)[number], depth: number, ancestors: string[]) => {
-    const kids = childrenOf.get(s.systemId) ?? []
-    rows.push({ system: s, depth, childCount: kids.length, ancestors })
-    if (collapsed.value.has(s.systemId)) return
-    for (const child of kids) walk(child, depth + 1, [...ancestors, s.systemId])
-  }
-  for (const r of roots) walk(r, 0, [])
-  return rows
-})
-
-const activeRail = computed(
-  () => store.systems.find((s) => s.systemId === selectedId.value)?.parent ?? '',
-)
 
 const matchIds = computed(() => {
   const q = search.value.trim().toLowerCase()
   if (q.length < 2) return new Set<string>()
   return new Set(
-    store.systems
+    store.apis
       .filter(
         (x) =>
           x.displayName.toLowerCase().includes(q) ||
-          x.systemId.toLowerCase().includes(q) ||
+          x.apiId.toLowerCase().includes(q) ||
           (x.description ?? '').toLowerCase().includes(q),
       )
-      .map((x) => x.systemId),
+      .map((x) => x.apiId),
   )
 })
 
-watch(matchIds, (ids) => {
-  if (ids.size === 0) return
-  const next = new Set(collapsed.value)
-  for (const id of ids) {
-    let cursor: string | undefined = store.systems.find((x) => x.systemId === id)?.parent
-    const seen = new Set<string>()
-    while (cursor && !seen.has(cursor)) {
-      seen.add(cursor)
-      next.delete(cursor)
-      cursor = store.systems.find((x) => x.systemId === cursor)?.parent
-    }
-  }
-  collapsed.value = next
-})
-
 const selectedId = ref('')
-const selectedSystem = computed(() => store.systems.find((s) => s.systemId === selectedId.value))
-const selectedInstances = computed(() =>
-  selectedId.value ? store.getInstancesForSystem(selectedId.value) : [],
+const selectedApi = computed(() => store.apis.find((a) => a.apiId === selectedId.value))
+const selectedFlow = computed(() =>
+  selectedId.value ? contextFlows.value.get(selectedId.value) : undefined,
 )
 
-function selectSystem(id: string) {
+function selectApi(id: string) {
   selectedId.value = id
-  const next = new Set(collapsed.value)
-  let cursor: string | undefined = id
-  const seen = new Set<string>()
-  while (cursor && !seen.has(cursor)) {
-    seen.add(cursor)
-    next.delete(cursor)
-    cursor = store.systems.find((x) => x.systemId === cursor)?.parent
-  }
-  collapsed.value = next
 }
 
-const instancesDrawerOpen = ref(false)
+const instanceDrawerOpen = ref(false)
 const selectedInstanceId = ref('')
 
-function openInstanceInDrawer(id: string) {
+function openInstance(id: string) {
   selectedInstanceId.value = id
-  instancesDrawerOpen.value = true
+  instanceDrawerOpen.value = true
 }
 
 // Graph controls
-const graphPane = ref<InstanceType<typeof SystemGraphPane> | null>(null)
+const graphPane = ref<InstanceType<typeof ApiGraphPane> | null>(null)
 const graphVisible = ref(true)
 const graphFullscreen = ref(false)
-const showInstances = ref(true)
+const showComponents = ref(true)
+const showInstances = ref(false)
 const showUnmapped = ref(true)
-// never show the unmapped toggle as "on" when there is nothing to show —
-// the explicit choice resumes as soon as unmapped instances appear again
 const unmappedOn = computed(
   () => showInstances.value && showUnmapped.value && store.unmappedInstances.length > 0,
 )
+
+function toggleComponents() {
+  showComponents.value = !showComponents.value
+}
 
 function toggleInstances() {
   showInstances.value = !showInstances.value
@@ -335,31 +270,35 @@ function onGraphHandleDown(e: MouseEvent) {
 
 useSelectQuery(
   selectedId,
-  computed(() => store.systems),
-  (s) => s.systemId,
+  computed(() => store.apis),
+  (a) => a.apiId,
 )
 
 watch(
-  filteredSystems,
+  filteredApis,
   (list) => {
     if (list.length === 0) {
       selectedId.value = ''
-    } else if (!list.some((s) => s.systemId === selectedId.value)) {
-      selectSystem(list[0].systemId)
+    } else if (!list.some((a) => a.apiId === selectedId.value)) {
+      selectApi(list[0].apiId)
     }
   },
   { immediate: true },
 )
 
 watch(selectedId, (id) => {
-  if (id) store.loadSystemDetail(id)
+  if (id) store.loadApiDetail(id)
 })
 
 onMounted(async () => {
   findingsStore.load()
+  systemStore.load()
+  systemStore.loadSystemInstances()
   contextStore.ensureHydrated()
-  await store.load()
-  await Promise.all([store.loadAllDetails(), store.loadSystemInstances()])
+  await Promise.all([store.load(), componentStore.load()])
+  await Promise.all([store.loadAllDetails(), componentStore.loadAllDetails()])
+  store.loadApiInstances()
+  componentStore.loadComponentInstances()
 })
 </script>
 
@@ -368,12 +307,12 @@ onMounted(async () => {
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
       <div class="flex min-w-44 items-center gap-3">
-        <h1 class="text-title font-medium text-text-1">Systems</h1>
+        <h1 class="text-title font-medium text-text-1">APIs</h1>
         <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-          {{ store.systems.length }}
+          {{ store.apis.length }}
         </span>
         <span class="font-mono text-label text-text-3">
-          {{ store.systemInstances.length }} instances
+          {{ store.apiInstances.length }} instances
         </span>
         <span
           class="font-mono text-label"
@@ -395,34 +334,36 @@ onMounted(async () => {
           :stroke-width="1.5"
           class="animate-spin"
         />
-        <span class="text-body">Loading systems...</span>
+        <span class="text-body">Loading APIs...</span>
       </div>
     </div>
 
     <!-- Error -->
     <div
-      v-else-if="store.error && store.systems.length === 0"
+      v-else-if="store.error && store.apis.length === 0"
       class="flex flex-1 items-center justify-center"
     >
       <p class="text-body text-error">{{ store.error }}</p>
     </div>
 
     <template v-else>
-      <SystemsToolbar
+      <ApisToolbar
         v-model:search="search"
-        :kinds="[...KINDS]"
-        :active-kinds="activeKinds"
-        :contexts="allContexts"
-        :active-contexts="activeContexts"
+        :systems="filterSystems"
+        :active-systems="activeSystems"
+        :types="filterTypes"
+        :active-types="activeTypes"
+        :cross-context="crossContextOnly"
         :has-active-filters="hasActiveFilters"
-        @toggle-kind="toggleKind"
-        @toggle-context="toggleContext"
+        @toggle-system="toggleSystem"
+        @toggle-type="toggleType"
+        @toggle-cross-context="crossContextOnly = !crossContextOnly"
         @clear="clearFilters"
       />
 
       <!-- Empty state -->
       <div
-        v-if="filteredSystems.length === 0 && unmappedFiltered.length === 0"
+        v-if="filteredApis.length === 0 && unmappedFiltered.length === 0"
         class="flex flex-1 items-center justify-center"
       >
         <div class="text-center">
@@ -431,9 +372,9 @@ onMounted(async () => {
             :stroke-width="1.5"
             class="mx-auto text-text-4"
           />
-          <p class="mt-3 text-body text-text-2">No systems</p>
+          <p class="mt-3 text-body text-text-2">No APIs</p>
           <p class="mt-1 text-label text-text-4">
-            {{ hasActiveFilters ? 'No results for current filters' : 'No systems discovered yet' }}
+            {{ hasActiveFilters ? 'No results for current filters' : 'No APIs discovered yet' }}
           </p>
         </div>
       </div>
@@ -442,9 +383,8 @@ onMounted(async () => {
       <ListDetail v-else>
         <template #list>
           <div class="flex h-full flex-col">
-            <!-- list bar, mirroring the graph bar on the other side -->
             <div
-              class="flex h-9 shrink-0 cursor-pointer select-none items-center justify-between border-b border-border-1 bg-bg-1 px-2"
+              class="flex h-9 shrink-0 cursor-pointer select-none items-center border-b border-border-1 bg-bg-1 px-2"
               :title="
                 listCollapsedEffective ? 'Double-click to expand' : 'Double-click to collapse'
               "
@@ -457,62 +397,39 @@ onMounted(async () => {
                 <span
                   class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3"
                 >
-                  {{ filteredSystems.length }}
+                  {{ filteredApis.length }}
                   <span
-                    v-if="filteredSystems.length !== store.systems.length"
+                    v-if="filteredApis.length !== store.apis.length"
                     class="text-text-4"
                   >
-                    of {{ store.systems.length }}
+                    of {{ store.apis.length }}
                   </span>
                 </span>
               </span>
-              <span class="flex items-center gap-0.5">
-                <button
-                  class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
-                  :disabled="parentIds.size === 0"
-                  :title="
-                    parentIds.size === 0
-                      ? 'Nothing to collapse'
-                      : allCollapsed
-                        ? 'Expand all'
-                        : 'Collapse all'
-                  "
-                  @click.stop="toggleAll"
-                  @dblclick.stop
-                >
-                  <component
-                    :is="allCollapsed ? IconChevronsDown : IconChevronsUp"
-                    :size="14"
-                    :stroke-width="1.75"
-                  />
-                </button>
-                <button
-                  class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                  :title="listCollapsedEffective ? 'Expand' : 'Collapse'"
-                  @click.stop="listCollapsed = !listCollapsed"
-                  @dblclick.stop
-                >
-                  <IconChevronRight
-                    :size="14"
-                    :stroke-width="2"
-                    class="transition-transform"
-                    :class="listCollapsedEffective ? '' : 'rotate-90'"
-                  />
-                </button>
-              </span>
+              <button
+                class="ml-auto rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                :title="listCollapsedEffective ? 'Expand' : 'Collapse'"
+                @click.stop="listCollapsed = !listCollapsed"
+                @dblclick.stop
+              >
+                <IconChevronRight
+                  :size="14"
+                  :stroke-width="2"
+                  class="transition-transform"
+                  :class="listCollapsedEffective ? '' : 'rotate-90'"
+                />
+              </button>
             </div>
             <div class="min-h-0 flex-1 overflow-y-auto">
-              <SystemsList
-                :rows="systemRows"
+              <ApisList
+                :apis="filteredApis"
                 :selected-id="selectedId"
-                :collapsed="collapsed"
-                :active-rail="activeRail"
+                :crossings="crossings"
                 :unmapped="unmappedFiltered"
                 :force-expanded="!!search.trim()"
                 :list-collapsed="listCollapsedEffective"
-                @select="selectSystem"
-                @toggle-collapse="toggleCollapse"
-                @open-instance="openInstanceInDrawer"
+                @select="selectApi"
+                @open-instance="openInstance"
               />
             </div>
           </div>
@@ -577,9 +494,26 @@ onMounted(async () => {
                       :stroke-width="1.75"
                     />
                   </button>
+                  <div class="mx-0.5 h-4 w-px bg-bg-3" />
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Show system instances; when off, the graph shows the system hierarchy"
+                    title="Show providing and consuming components; when off, APIs link directly"
+                    @click.stop="toggleComponents"
+                    @dblclick.stop
+                  >
+                    Components
+                    <span
+                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
+                      :class="
+                        showComponents ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'
+                      "
+                    >
+                      {{ showComponents ? 'on' : 'off' }}
+                    </span>
+                  </button>
+                  <button
+                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                    title="Show API instances as nodes; unmapped ones appear as standalone nodes"
                     @click.stop="toggleInstances"
                     @dblclick.stop
                   >
@@ -663,17 +597,19 @@ onMounted(async () => {
                 />
                 Exit full view
               </button>
-              <SystemGraphPane
+              <ApiGraphPane
                 ref="graphPane"
-                :match-ids="matchIds"
-                :systems="chipFilteredSystems"
+                :match-ids="new Set([...matchIds].map((id) => `api:${id}`))"
+                :apis="chipFilteredApis"
                 :selected-id="selectedId"
+                :show-components="showComponents"
                 :show-instances="showInstances"
                 :show-unmapped="unmappedOn"
                 :show-controls="false"
                 class="h-full"
-                @select="selectSystem"
-                @open-instance="openInstanceInDrawer"
+                @select="selectApi"
+                @open-component="(id) => goToResource('Component', id)"
+                @open-instance="openInstance"
               />
             </div>
 
@@ -690,11 +626,10 @@ onMounted(async () => {
               v-if="!graphFullscreen"
               class="flex min-h-0 flex-1 overflow-hidden border-t border-border-1"
             >
-              <SystemDetail
-                :system="selectedSystem"
-                :instances="selectedInstances"
-                @navigate-parent="selectSystem"
-                @open-instance="openInstanceInDrawer"
+              <ApiDetail
+                :api="selectedApi"
+                :flow="selectedFlow"
+                @open-instance="openInstance"
               />
             </div>
           </div>
@@ -702,16 +637,10 @@ onMounted(async () => {
       </ListDetail>
     </template>
 
-    <SystemInstancesDrawer
-      :open="instancesDrawerOpen"
+    <ApiInstanceDrawer
+      :open="instanceDrawerOpen"
       :selected-instance-id="selectedInstanceId"
-      @close="instancesDrawerOpen = false"
-      @go-to-system="
-        (id) => {
-          instancesDrawerOpen = false
-          selectSystem(id)
-        }
-      "
+      @close="instanceDrawerOpen = false"
     />
   </div>
 </template>

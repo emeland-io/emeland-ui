@@ -238,4 +238,121 @@ export const componentInstances: ComponentInstance[] = [
       'emeland.io/namespace': 'monitoring',
     },
   },
+
+  // Unmapped instances — grouped below by their broken component reference:
+  //   ffffffff-0000-4211-8000-0000000000cc  legacy estate (5)
+  //   ffffffff-0000-4211-8000-0000000000cd  sensor-discovered workloads (4)
+  //   (no component reference at all)       (3)
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a1',
+    displayName: 'Mystery Container',
+    component: '', // no parent component
+    systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (prod-eu)
+    consumes: [],
+    provides: [],
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:25:02Z',
+      'emeland.io/cluster': 'ber-prod',
+      'emeland.io/namespace': 'kong',
+    },
+  },
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a2',
+    displayName: 'Legacy Worker',
+    component: 'ffffffff-0000-4211-8000-0000000000cc', // unresolvable component reference
+    systemInstance: '2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e', // Prometheus (prod)
+    consumes: [],
+    provides: [],
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a3',
+    displayName: 'Legacy Batch Worker',
+    component: 'ffffffff-0000-4211-8000-0000000000cc',
+    systemInstance: '2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e', // Prometheus (prod)
+    consumes: [],
+    provides: [],
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a4',
+    displayName: 'Legacy Scheduler',
+    component: 'ffffffff-0000-4211-8000-0000000000cc',
+    systemInstance: '', // not tracked on any system instance
+    consumes: [],
+    provides: [],
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a5',
+    displayName: 'Legacy File Importer',
+    component: 'ffffffff-0000-4211-8000-0000000000cc',
+    systemInstance: '',
+    consumes: [],
+    provides: [],
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a6',
+    displayName: 'Legacy Mail Relay',
+    component: 'ffffffff-0000-4211-8000-0000000000cc',
+    systemInstance: '',
+    consumes: [],
+    provides: [],
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000b1',
+    displayName: 'Discovered Container (redis)',
+    component: 'ffffffff-0000-4211-8000-0000000000cd', // unresolvable component reference
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
+    consumes: [],
+    provides: [],
+    annotations: { 'emeland.io/cluster': 'ber-prod', 'emeland.io/namespace': 'data' },
+  },
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000b2',
+    displayName: 'Discovered Container (nginx)',
+    component: 'ffffffff-0000-4211-8000-0000000000cd',
+    systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (prod-eu)
+    consumes: [],
+    provides: [],
+    annotations: { 'emeland.io/cluster': 'ber-prod', 'emeland.io/namespace': 'kong' },
+  },
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000b3',
+    displayName: 'Discovered Sidecar (log-shipper)',
+    component: 'ffffffff-0000-4211-8000-0000000000cd',
+    systemInstance: '1a2b3c4d-5e6f-4a7b-8c9d-1e2f3a4b5c6d', // Grafana (prod)
+    consumes: [],
+    provides: [],
+    annotations: { 'emeland.io/cluster': 'ber-prod', 'emeland.io/namespace': 'monitoring' },
+  },
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000b4',
+    displayName: 'Discovered Job (backup)',
+    component: 'ffffffff-0000-4211-8000-0000000000cd',
+    systemInstance: 'e8b9c1d2-0000-4b5c-8d7e-8f9a1b2c3d02', // Application (staging)
+    consumes: [],
+    provides: [],
+    annotations: { 'emeland.io/cluster': 'ber-staging', 'emeland.io/namespace': 'batch' },
+  },
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000c1',
+    displayName: 'Unknown Daemon',
+    component: '', // no parent component
+    systemInstance: '',
+    consumes: [],
+    provides: [],
+    annotations: {},
+  },
+  {
+    componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000c2',
+    displayName: 'Orphan Pod',
+    component: '', // no parent component
+    systemInstance: 'e8b9c1d2-0000-4b5c-8d7e-8f9a1b2c3d02', // Application (staging)
+    consumes: [],
+    provides: [],
+    annotations: { 'emeland.io/cluster': 'ber-staging' },
+  },
 ]

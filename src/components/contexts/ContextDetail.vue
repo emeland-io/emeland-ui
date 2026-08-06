@@ -2,12 +2,14 @@
 import { computed } from 'vue'
 import { IconArrowUpRight, IconAlertTriangle } from '@tabler/icons-vue'
 import { useContextStore } from '@/stores/contexts'
+import { useSystemStore } from '@/stores/systems'
 import { useFindingsStore } from '@/stores/findings'
 import { useResourceNav } from '@/composables/useResourceNav'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import type { Context } from '@/types/context'
+import type { SystemInstance } from '@/types/system'
 
 const props = defineProps<{
   context: Context
@@ -19,13 +21,30 @@ const emit = defineEmits<{
 }>()
 
 const store = useContextStore()
+const systemStore = useSystemStore()
 const findingsStore = useFindingsStore()
-const { goToFinding } = useResourceNav()
+const { goToFinding, goToResource } = useResourceNav()
 
 const typeUnknown = computed(() => store.getTypeName(props.context) === 'Unknown')
 
 const children = computed(() =>
   store.contexts.filter((c) => c.parentId === props.context.contextId),
+)
+
+// system instances living in this context -> the related systems
+function systemNameOf(inst: SystemInstance): string | undefined {
+  if (!inst.system) return undefined
+  return systemStore.systemMap.get(inst.system)?.displayName
+}
+
+const systemInstances = computed(() =>
+  systemStore.systemInstances
+    .filter((i) => i.context === props.context.contextId)
+    .sort(
+      (a, b) =>
+        (systemNameOf(a) ?? '').localeCompare(systemNameOf(b) ?? '') ||
+        a.displayName.localeCompare(b.displayName),
+    ),
 )
 
 const relatedFindings = computed(() =>
@@ -50,7 +69,7 @@ const relatedFindings = computed(() =>
             <button
               v-if="context.contextTypeId"
               class="group inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-label transition-opacity hover:opacity-80"
-              :class="typeUnknown ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent'"
+              :class="typeUnknown ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent-text'"
               title="Show context type"
               @click="emit('open-type', context.contextTypeId)"
             >
@@ -109,6 +128,84 @@ const relatedFindings = computed(() =>
               No description.
             </p>
           </div>
+          <div>
+            <SectionLabel :count="systemInstances.length">Systems</SectionLabel>
+            <p
+              v-if="systemInstances.length === 0"
+              class="text-data leading-snug text-text-4"
+            >
+              No systems in this context.
+            </p>
+            <template
+              v-for="inst in systemInstances"
+              :key="inst.systemInstanceId"
+            >
+              <button
+                v-if="systemNameOf(inst)"
+                class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+                title="Go to system"
+                @click="goToResource('System', inst.system)"
+              >
+                <span class="group/row flex w-full items-center gap-3">
+                  <span
+                    class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
+                  >
+                    System
+                  </span>
+                  <span
+                    class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
+                  >
+                    {{ systemNameOf(inst) }}
+                  </span>
+                  <IconArrowUpRight
+                    :size="16"
+                    :stroke-width="2"
+                    class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
+                  />
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="min-w-0 truncate font-mono text-meta text-text-4">
+                    {{ inst.displayName }}
+                  </span>
+                  <span class="ml-auto shrink-0 font-mono text-meta text-text-4">
+                    {{ inst.system }}
+                  </span>
+                  <CopyButton
+                    :value="inst.system"
+                    :size="12"
+                    @click.stop
+                  />
+                </span>
+              </button>
+              <!-- instance without a resolvable system -->
+              <div
+                v-else
+                class="flex w-full flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
+              >
+                <span class="flex w-full items-center gap-3">
+                  <span
+                    class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
+                  >
+                    System
+                  </span>
+                  <span class="min-w-0 truncate text-body text-error">
+                    {{ inst.system ? 'Unresolved system' : 'No system' }}
+                  </span>
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="min-w-0 truncate font-mono text-meta text-text-4">
+                    {{ inst.displayName }}
+                  </span>
+                  <span
+                    v-if="inst.system"
+                    class="ml-auto shrink-0 font-mono text-meta text-text-4"
+                  >
+                    {{ inst.system }}
+                  </span>
+                </span>
+              </div>
+            </template>
+          </div>
         </div>
         <div class="flex flex-col gap-6">
           <div>
@@ -127,7 +224,7 @@ const relatedFindings = computed(() =>
             >
               <span class="group/row flex w-full items-center gap-3">
                 <span
-                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
                 >
                   Context
                 </span>
@@ -244,7 +341,7 @@ const relatedFindings = computed(() =>
             >
               <span class="group/row flex w-full items-center gap-3">
                 <span
-                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
                 >
                   Context
                 </span>

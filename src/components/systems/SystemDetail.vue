@@ -84,7 +84,7 @@ function versionDates(s: System | undefined): [string, string][] {
           <div class="mt-2 flex items-center gap-2">
             <span
               class="rounded px-2 py-0.5 font-mono text-label"
-              :class="system.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent'"
+              :class="system.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent-text'"
             >
               {{ store.getKindForSystem(system) }}
             </span>
@@ -161,7 +161,7 @@ function versionDates(s: System | undefined): [string, string][] {
                 <span class="group/row flex w-full items-center gap-3">
                   <span
                     v-if="contextType(ctx.id)"
-                    class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+                    class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
                   >
                     {{ contextType(ctx.id) }}
                   </span>
@@ -207,7 +207,7 @@ function versionDates(s: System | undefined): [string, string][] {
               >
                 <span class="group/row flex w-full items-center gap-3">
                   <span
-                    class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+                    class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
                   >
                     System
                   </span>
@@ -321,7 +321,7 @@ function versionDates(s: System | undefined): [string, string][] {
               <span class="group/row flex w-full items-center gap-3">
                 <span
                   class="w-28 shrink-0 rounded px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase"
-                  :class="child.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent'"
+                  :class="child.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent-text'"
                 >
                   {{ store.getKindForSystem(child) }}
                 </span>

@@ -8,7 +8,7 @@
 | --------------- | ---------------------- | ----------------- |
 | `contexts.ts`   | ContextType, Context   | —                 |
 | `systems.ts`    | System, SystemInstance | contexts          |
-| `apis.ts`       | Api                    | systems           |
+| `apis.ts`       | Api, ApiInstance       | systems           |
 | `components.ts` | Component              | systems, apis     |
 | `findings.ts`   | FindingType, Finding   | contexts, systems |
 

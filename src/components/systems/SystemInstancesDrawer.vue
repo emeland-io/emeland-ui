@@ -8,6 +8,8 @@ import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
+import MappingTag from '@/components/MappingTag.vue'
+import { mappingStateOf } from '@/utils/mapping'
 import { useResourceNav } from '@/composables/useResourceNav'
 
 const props = defineProps<{
@@ -42,8 +44,12 @@ function goToContext(id: string) {
   goToResource('Context', id)
 }
 
-const drawerInstance = computed(() =>
-  store.systemInstances.find((i) => i.systemInstanceId === props.selectedInstanceId),
+const drawerInstance = computed(() => store.systemInstanceMap.get(props.selectedInstanceId))
+
+const mappingState = computed(() =>
+  drawerInstance.value
+    ? mappingStateOf(drawerInstance.value.system, store.systemMap.has(drawerInstance.value.system))
+    : undefined,
 )
 </script>
 
@@ -54,6 +60,9 @@ const drawerInstance = computed(() =>
     subtitle="SystemInstance"
     @close="emit('close')"
   >
+    <template #header-tags>
+      <MappingTag :state="mappingState" />
+    </template>
     <div
       v-if="drawerInstance"
       class="flex flex-1 flex-col gap-5 overflow-y-auto px-5 py-4"
@@ -90,7 +99,7 @@ const drawerInstance = computed(() =>
           @click="emit('go-to-system', drawerInstance.system)"
         >
           <span
-            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
           >
             System
           </span>
@@ -125,7 +134,7 @@ const drawerInstance = computed(() =>
         >
           <span
             v-if="contextType(drawerInstance.context)"
-            class="shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent"
+            class="shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
           >
             {{ contextType(drawerInstance.context) }}
           </span>

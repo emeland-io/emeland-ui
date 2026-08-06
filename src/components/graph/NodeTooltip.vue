@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconAlertTriangle, IconBox } from '@tabler/icons-vue'
+import {
+  IconAlertTriangle,
+  IconBox,
+  IconArrowsExchange,
+  IconArrowUp,
+  IconArrowDown,
+} from '@tabler/icons-vue'
 import type { GraphNode, GraphNodeKind } from '@/types/graph'
 
 const props = withDefaults(
@@ -9,12 +15,15 @@ const props = withDefaults(
     incoming: number
     outgoing: number
     instances?: string[]
+    providers?: string[]
+    consumers?: string[]
   }>(),
-  { instances: () => [] },
+  { instances: () => [], providers: () => [], consumers: () => [] },
 )
 
 const MAX_DESCRIPTION = 200
 const MAX_INSTANCES = 5
+const MAX_RELATIONS = 5
 const MAX_FINDING_KINDS = 5
 
 const KIND_LABEL: Record<GraphNodeKind, string> = {
@@ -40,7 +49,10 @@ const data = computed(
       findings?: number
       findingKinds?: string[]
       instances?: number
+      crosses?: boolean
       description?: string
+      unmapped?: boolean
+      unresolved?: boolean
     },
 )
 
@@ -52,6 +64,7 @@ const facts = computed(() => {
   const d = data.value
   const rows: string[] = []
   if (d.abstract !== undefined) rows.push(d.abstract ? 'Abstract' : 'Concrete')
+  if (d.unmapped) rows.push(d.unresolved ? 'Unresolved parent' : 'Unmapped')
   // instance type is already shown in the badge
   if (d.type && props.node.kind !== 'instance') rows.push(d.type)
   if (d.component) rows.push(d.component)
@@ -78,6 +91,11 @@ const description = computed(() => {
 const instanceRows = computed(() => props.instances.slice(0, MAX_INSTANCES))
 const moreInstances = computed(() => Math.max(0, props.instances.length - MAX_INSTANCES))
 
+const providerRows = computed(() => props.providers.slice(0, MAX_RELATIONS))
+const moreProviders = computed(() => Math.max(0, props.providers.length - MAX_RELATIONS))
+const consumerRows = computed(() => props.consumers.slice(0, MAX_RELATIONS))
+const moreConsumers = computed(() => Math.max(0, props.consumers.length - MAX_RELATIONS))
+
 const stats = computed(() => {
   if (props.node.kind !== 'api') return ''
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
@@ -94,7 +112,9 @@ const showStats = computed(() => stats.value !== '')
 <template>
   <div class="w-full rounded-lg border border-border-2 bg-bg-1 p-2.5 shadow-lg">
     <div class="flex items-start gap-2">
-      <span class="mt-px shrink-0 rounded-sm px-1 font-mono text-micro bg-accent/10 text-accent">
+      <span
+        class="mt-px shrink-0 rounded-sm px-1 font-mono text-micro bg-accent/10 text-accent-text"
+      >
         {{ kindLabel }}
       </span>
       <span class="min-w-0 flex-1 break-words text-body font-medium leading-snug text-text-1">
@@ -112,6 +132,17 @@ const showStats = computed(() => stats.value !== '')
       class="mt-1.5 break-words text-micro leading-snug text-text-2"
     >
       {{ description }}
+    </div>
+    <div
+      v-if="data.crosses"
+      class="mt-1.5 flex items-center gap-1.5 border-t border-border-1 pt-1.5 font-mono text-micro text-text-3"
+    >
+      <IconArrowsExchange
+        :size="11"
+        :stroke-width="2"
+        class="shrink-0"
+      />
+      Crosses a context boundary
     </div>
     <div
       v-if="findingKindRows.length || findings"
@@ -167,6 +198,60 @@ const showStats = computed(() => stats.value !== '')
       >
         +{{ moreInstances }} more
       </div>
+    </div>
+    <div
+      v-if="providerRows.length || consumerRows.length"
+      class="mt-1.5 border-t border-border-1 pt-1.5"
+    >
+      <template v-if="providerRows.length">
+        <div class="pb-0.5 text-micro font-medium uppercase tracking-wider text-text-4">
+          Provided by
+        </div>
+        <div
+          v-for="name in providerRows"
+          :key="`provides:${name}`"
+          class="flex items-center gap-1.5 py-px text-micro text-text-2"
+        >
+          <IconArrowUp
+            :size="11"
+            :stroke-width="1.5"
+            class="shrink-0 text-text-3"
+          />
+          <span class="truncate">{{ name }}</span>
+        </div>
+        <div
+          v-if="moreProviders"
+          class="pt-px font-mono text-micro text-text-4"
+        >
+          +{{ moreProviders }} more
+        </div>
+      </template>
+      <template v-if="consumerRows.length">
+        <div
+          class="pb-0.5 text-micro font-medium uppercase tracking-wider text-text-4"
+          :class="providerRows.length ? 'mt-1' : ''"
+        >
+          Consumed by
+        </div>
+        <div
+          v-for="name in consumerRows"
+          :key="`consumes:${name}`"
+          class="flex items-center gap-1.5 py-px text-micro text-text-2"
+        >
+          <IconArrowDown
+            :size="11"
+            :stroke-width="1.5"
+            class="shrink-0 text-text-3"
+          />
+          <span class="truncate">{{ name }}</span>
+        </div>
+        <div
+          v-if="moreConsumers"
+          class="pt-px font-mono text-micro text-text-4"
+        >
+          +{{ moreConsumers }} more
+        </div>
+      </template>
     </div>
     <div
       v-if="instanceCount || showStats"

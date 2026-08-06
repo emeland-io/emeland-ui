@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useContextStore } from '@/stores/contexts'
 import { useSystemStore } from '@/stores/systems'
 import { useFindingsStore } from '@/stores/findings'
-import { buildContextGraph, buildContextInstanceGraph } from '@/graph/contextGraph'
+import { buildContextGraph } from '@/graph/contextGraph'
 import type { GraphNodeClick } from '@/types/graph'
 import FlowGraph from '@/components/graph/FlowGraph.vue'
 import type { Context } from '@/types/context'
@@ -14,42 +14,35 @@ const props = withDefaults(
     selectedId: string
     showControls?: boolean
     matchIds?: Set<string>
-    showInstances?: boolean
   }>(),
-  { showControls: true, showInstances: false, matchIds: () => new Set<string>() },
+  { showControls: true, matchIds: () => new Set<string>() },
 )
 
 const emit = defineEmits<{
   select: [id: string]
-  'open-instance': [id: string]
 }>()
 
 const store = useContextStore()
 const systemStore = useSystemStore()
 const findingsStore = useFindingsStore()
 
-const shared = computed(() => ({
-  contexts: props.contexts,
-  typeName: (c: Context) => {
-    const name = store.getTypeName(c)
-    return name === 'Unknown' ? '' : name
-  },
-  instanceCountOf: (id: string) =>
-    systemStore.systemInstances.filter((i) => i.context === id).length,
-  findingCountOf: findingsStore.findingCountFor,
-  findingKindsOf: findingsStore.findingKindsFor,
-  instancesIn: (id: string) => systemStore.systemInstances.filter((i) => i.context === id),
-  systemName: (id: string | undefined) =>
-    id ? systemStore.systemMap.get(id)?.displayName : undefined,
-}))
-
 const graphModel = computed(() =>
-  props.showInstances ? buildContextInstanceGraph(shared.value) : buildContextGraph(shared.value),
+  buildContextGraph({
+    contexts: props.contexts,
+    typeName: (c: Context) => {
+      const name = store.getTypeName(c)
+      return name === 'Unknown' ? '' : name
+    },
+    instanceCountOf: (id: string) =>
+      systemStore.systemInstances.filter((i) => i.context === id).length,
+    findingCountOf: findingsStore.findingCountFor,
+    findingKindsOf: findingsStore.findingKindsFor,
+    instancesIn: (id: string) => systemStore.systemInstances.filter((i) => i.context === id),
+  }),
 )
 
 function onNodeClick({ id, kind }: GraphNodeClick) {
   if (kind === 'context-node') emit('select', id)
-  else if (kind === 'instance') emit('open-instance', id)
 }
 
 const graph = ref<InstanceType<typeof FlowGraph> | null>(null)
@@ -116,56 +109,6 @@ defineExpose({
           />
         </svg>
         sub-context
-      </div>
-      <div
-        v-if="showInstances"
-        class="flex items-center gap-1.5"
-      >
-        <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
-        system
-      </div>
-      <div
-        v-if="showInstances"
-        class="flex items-center gap-1.5"
-      >
-        <svg
-          width="18"
-          height="11"
-          viewBox="0 0 18 11"
-          class="shrink-0"
-          aria-hidden="true"
-        >
-          <polygon
-            points="0.5,0.5 12.5,0.5 17.5,5 17.5,10.5 0.5,10.5"
-            fill="var(--color-bg-1)"
-            stroke="var(--color-text-4)"
-          />
-        </svg>
-        instance
-      </div>
-      <div
-        v-if="showInstances"
-        class="flex items-center gap-1.5"
-      >
-        <svg
-          width="18"
-          height="11"
-          viewBox="0 0 18 11"
-          class="shrink-0"
-          aria-hidden="true"
-        >
-          <rect
-            x="0.5"
-            y="0.5"
-            width="17"
-            height="10"
-            rx="2"
-            fill="none"
-            stroke="var(--color-border-2)"
-            stroke-dasharray="2.5 2"
-          />
-        </svg>
-        system
       </div>
     </div>
   </div>

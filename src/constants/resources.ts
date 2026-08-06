@@ -25,11 +25,11 @@ const RESOURCES: Partial<Record<ResourceType, ResourceMeta>> = {
   Context: { label: 'Context', route: 'Contexts' },
   System: { label: 'System', route: 'Systems' },
   Component: { label: 'Component', route: 'Components' },
+  API: { label: 'API', route: 'APIs' },
 
   ContextType: { label: 'Context Type', route: null },
   NodeType: { label: 'Node Type', route: null },
   SystemInstance: { label: 'System Instance', route: null },
-  API: { label: 'API', route: null },
   ApiInstance: { label: 'API Instance', route: null },
   ComponentInstance: { label: 'Component Instance', route: null },
   Identity: { label: 'Identity', route: null },

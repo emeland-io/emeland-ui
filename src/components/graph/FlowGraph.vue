@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, useId } from 'vue'
-import { IconAlertTriangle, IconCircleOff } from '@tabler/icons-vue'
+import { computed, ref, watch, nextTick, useId, onScopeDispose } from 'vue'
+import { IconAlertTriangle, IconCircleOff, IconArrowsExchange } from '@tabler/icons-vue'
 import {
   VueFlow,
   useVueFlow,
@@ -18,6 +18,7 @@ import '@vue-flow/controls/dist/style.css'
 import FlowHandles from './FlowHandles.vue'
 import ChannelEdge from './ChannelEdge.vue'
 import NodeTooltip from './NodeTooltip.vue'
+import MappingTag from '@/components/MappingTag.vue'
 import type {
   GraphNode,
   GraphEdge,
@@ -237,6 +238,8 @@ watch(hoveredNodeId, (id) => {
     tooltipTimer = setTimeout(() => (tooltipNodeId.value = id), 250)
   }
 })
+// avoid a dangling timer writing to a detached ref after unmount
+onScopeDispose(() => clearTimeout(tooltipTimer))
 
 const tooltipEl = ref<HTMLElement | null>(null)
 const tooltipSize = ref({ w: 288, h: 80 })
@@ -255,11 +258,15 @@ watch(
 const TOOLTIP_GAP = 10
 const TOOLTIP_MARGIN = 8
 
+// depends only on nodes, so panning/zooming (which drives `tooltip` via viewport)
+// doesn't reallocate this map every frame while a tooltip is open
+const nodeById = computed(() => new Map(props.nodes.map((n) => [n.id, n])))
+
 const tooltip = computed(() => {
   const node = props.nodes.find((n) => n.id === tooltipNodeId.value)
   const geom = nodeGeom.value.get(tooltipNodeId.value)
   if (!node || !geom) return null
-  const byId = new Map(props.nodes.map((n) => [n.id, n]))
+  const byId = nodeById.value
   const embedded = (node.data as { instanceNames?: string[] }).instanceNames
   const instances = (
     embedded ??
@@ -271,6 +278,18 @@ const tooltip = computed(() => {
   )
     .slice()
     .sort((a, b) => a.localeCompare(b))
+
+  // api nodes: names of providing/consuming components, derived from the edges
+  // (mirrors how instance names are derived above)
+  const neighboursOf = (dir: 'in' | 'out') =>
+    props.edges
+      .filter((e) => (dir === 'in' ? e.target : e.source) === node.id)
+      .map((e) => byId.get(dir === 'in' ? e.source : e.target))
+      .filter((n) => n?.kind === 'component')
+      .map((n) => n!.data.label)
+      .sort((a, b) => a.localeCompare(b))
+  const providers = node.kind === 'api' ? neighboursOf('in') : []
+  const consumers = node.kind === 'api' ? neighboursOf('out') : []
 
   // Place the tooltip where it fits: above, below, right or left of the node
   const { x, y, zoom } = viewport.value
@@ -317,6 +336,8 @@ const tooltip = computed(() => {
   return {
     node,
     instances,
+    providers,
+    consumers,
     incoming: edgePlan.value.target.get(node.id)?.length ?? 0,
     outgoing: edgePlan.value.source.get(node.id)?.length ?? 0,
     style: { left: `${left}px`, top: `${top}px` },
@@ -377,6 +398,11 @@ function isOwnedBySelection(data: unknown): boolean {
 }
 
 function onNodeClick({ node }: NodeMouseEvent) {
+  // clicking a frame focuses its group; for the unmapped bucket this doubles as
+  // the triage entry — zoom to the group, then inspect individual unmapped nodes
+  if (node.type === 'context') {
+    fitView({ nodes: [node.id], padding: 0.3, duration: 300, maxZoom: 1.2 })
+  }
   emit('node-click', { id: node.id, kind: node.type as GraphNodeKind })
 }
 </script>
@@ -424,13 +450,34 @@ function onNodeClick({ node }: NodeMouseEvent) {
         <ChannelEdge v-bind="edgeProps" />
       </template>
 
-      <!-- Context frame -->
+      <!-- Context / unmapped frame -->
       <template #node-context="{ data }">
-        <div class="h-full w-full rounded-lg border border-dashed border-border-2 bg-transparent">
+        <div
+          class="frame h-full w-full cursor-pointer"
+          :class="`frame--${(data as ContextNodeData).variant ?? 'context'}`"
+        >
           <div
-            class="truncate px-2.5 pt-1.5 font-mono text-micro font-semibold uppercase tracking-wide text-text-4"
+            class="frame-tab mx-2 mt-2 inline-flex max-w-[calc(100%-16px)] items-center gap-1.5 rounded-sm px-1.5 py-0.5 font-mono text-micro font-semibold uppercase tracking-wide"
+            :title="
+              (data as ContextNodeData).title ??
+              ((data as ContextNodeData).variant === 'unmapped'
+                ? 'Unmapped instances with no resolvable parent — click to focus and inspect'
+                : 'Click to focus this group')
+            "
           >
-            {{ (data as ContextNodeData).label }}
+            <IconAlertTriangle
+              v-if="(data as ContextNodeData).variant === 'unmapped'"
+              :size="11"
+              :stroke-width="2.5"
+              class="shrink-0"
+            />
+            <span class="truncate">{{ (data as ContextNodeData).label }}</span>
+            <span
+              v-if="(data as ContextNodeData).count"
+              class="frame-count shrink-0 rounded-full px-1 py-px tabular-nums"
+            >
+              {{ (data as ContextNodeData).count }}
+            </span>
           </div>
         </div>
       </template>
@@ -447,7 +494,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </span>
             <span
               v-if="(data as ContextItemNodeData).findings"
-              class="ml-auto flex shrink-0 items-center gap-1 rounded-full badge-warning px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
+              class="node-findings ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/40 bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
             >
               <IconAlertTriangle
                 :size="10"
@@ -496,7 +543,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
             </span>
             <span
               v-if="(data as SystemNodeData).findings"
-              class="ml-auto flex shrink-0 items-center gap-1 rounded-full badge-warning px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
+              class="node-findings ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/40 bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
             >
               <IconAlertTriangle
                 :size="10"
@@ -533,7 +580,41 @@ function onNodeClick({ node }: NodeMouseEvent) {
       </template>
 
       <template #node-instance="{ id, data }">
+        <!-- unmapped instance: no resolvable parent, rendered as a standalone node -->
         <div
+          v-if="(data as InstanceNodeData).unmapped"
+          class="node-inst-unmapped flex h-full w-full cursor-pointer flex-col justify-center px-3 py-2"
+          :class="id === selectedId ? 'node-inst-unmapped-selected' : ''"
+        >
+          <div class="flex items-center gap-2">
+            <div class="min-w-0 flex-1 truncate text-body text-text-2">
+              {{ (data as InstanceNodeData).label }}
+            </div>
+            <MappingTag
+              :state="(data as InstanceNodeData).unresolved ? 'unresolved' : 'unmapped'"
+            />
+          </div>
+          <div
+            v-if="(data as InstanceNodeData).systemInstance || (data as InstanceNodeData).context"
+            class="mt-0.5 flex items-center gap-1 overflow-hidden font-mono text-micro text-text-3"
+          >
+            <template v-if="(data as InstanceNodeData).systemInstance">
+              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
+              <span
+                class="min-w-0 shrink truncate"
+                :title="(data as InstanceNodeData).systemInstance"
+              >
+                {{ (data as InstanceNodeData).systemInstance }}
+              </span>
+            </template>
+            <template v-if="(data as InstanceNodeData).context">
+              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">C</span>
+              <span class="min-w-0 flex-1 truncate">{{ (data as InstanceNodeData).context }}</span>
+            </template>
+          </div>
+        </div>
+        <div
+          v-else
           class="node-cut node-inst w-full cursor-pointer"
           :class="
             id === selectedId
@@ -570,11 +651,32 @@ function onNodeClick({ node }: NodeMouseEvent) {
 
       <template #node-api="{ id, data }">
         <div
-          class="flex h-full w-full items-center gap-2 rounded-full border bg-bg-1 px-4 transition-colors"
-          :class="neighbourIds.has(id) ? 'border-accent' : 'border-text-4'"
+          class="flex h-full w-full cursor-pointer items-center gap-2 rounded-full border bg-bg-1 px-4 py-2 transition-colors"
+          :class="id === selectedId || neighbourIds.has(id) ? 'border-accent' : 'border-text-4'"
         >
           <span class="min-w-0 flex-1 truncate text-body text-text-1">
             {{ (data as ApiNodeData).label }}
+          </span>
+          <span
+            v-if="(data as ApiNodeData).findings"
+            class="flex shrink-0 items-center gap-1 rounded-full border border-warning/40 bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
+          >
+            <IconAlertTriangle
+              :size="10"
+              :stroke-width="2"
+            />
+            {{ (data as ApiNodeData).findings }}
+          </span>
+          <span
+            v-if="(data as ApiNodeData).crosses"
+            class="flex shrink-0 items-center gap-1 rounded-full border border-border-2 bg-bg-2 px-1.5 py-0.5 font-mono text-micro tabular-nums text-text-3"
+            title="Crosses a context boundary"
+          >
+            <IconArrowsExchange
+              :size="10"
+              :stroke-width="2"
+            />
+            {{ (data as ApiNodeData).crossCount }}
           </span>
           <span
             v-if="(data as ApiNodeData).version"
@@ -608,7 +710,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
               </span>
               <span
                 v-if="(data as ComponentNodeData).findings"
-                class="badge-warning ml-auto flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning ring-1 ring-warning/40"
+                class="node-findings ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/40 bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
               >
                 <IconAlertTriangle
                   :size="10"
@@ -650,16 +752,14 @@ function onNodeClick({ node }: NodeMouseEvent) {
         :incoming="tooltip.incoming"
         :outgoing="tooltip.outgoing"
         :instances="tooltip.instances"
+        :providers="tooltip.providers"
+        :consumers="tooltip.consumers"
       />
     </div>
   </div>
 </template>
 
 <style scoped>
-.badge-warning {
-  background: color-mix(in srgb, var(--color-bg-0) 88%, var(--color-warning));
-}
-
 .emel-flow :deep(.vue-flow__node.node-match) {
   box-shadow:
     0 0 0 4px var(--color-bg-0),
@@ -677,6 +777,68 @@ function onNodeClick({ node }: NodeMouseEvent) {
 
 .node-cut {
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+}
+
+.frame {
+  border-radius: 8px;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+
+.frame--context {
+  background: color-mix(in srgb, var(--color-text-4) 4%, transparent);
+}
+.frame--context:hover {
+  background: color-mix(in srgb, var(--color-text-4) 7%, transparent);
+}
+
+.frame--unmapped {
+  border: 1.5px dashed color-mix(in srgb, var(--color-warning) 55%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 5%, transparent);
+}
+.frame--unmapped:hover {
+  border-color: color-mix(in srgb, var(--color-warning) 80%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 8%, transparent);
+}
+
+.frame--group {
+  border: 1.5px dashed color-mix(in srgb, var(--color-text-3) 40%, transparent);
+  background: color-mix(in srgb, var(--color-bg-1) 45%, transparent);
+}
+.frame--group:hover {
+  border-color: color-mix(in srgb, var(--color-warning) 75%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 7%, var(--color-bg-1));
+}
+.frame--group .frame-tab:hover {
+  background: color-mix(in srgb, var(--color-warning) 20%, var(--color-bg-0));
+  color: var(--color-text-1);
+}
+
+.frame-tab {
+  background: color-mix(in srgb, var(--color-text-3) 12%, var(--color-bg-0));
+  color: var(--color-text-3);
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+.frame--context .frame-tab:hover {
+  background: color-mix(in srgb, var(--color-text-3) 20%, var(--color-bg-0));
+  color: var(--color-text-2);
+}
+.frame--unmapped .frame-tab {
+  background: color-mix(in srgb, var(--color-warning) 16%, var(--color-bg-0));
+  color: var(--color-warning);
+}
+.frame--unmapped .frame-tab:hover {
+  background: color-mix(in srgb, var(--color-warning) 26%, var(--color-bg-0));
+}
+
+.frame-count {
+  background: color-mix(in srgb, var(--color-text-3) 22%, var(--color-bg-0));
+}
+.frame--unmapped .frame-count {
+  background: color-mix(in srgb, var(--color-warning) 26%, var(--color-bg-0));
 }
 
 .node-cut-inner {
@@ -711,6 +873,11 @@ function onNodeClick({ node }: NodeMouseEvent) {
   background: color-mix(in srgb, var(--node-comp-fill) 45%, var(--color-accent));
 }
 
+.node-comp-selected .node-findings {
+  background-color: var(--color-bg-1);
+  border-color: var(--color-warning);
+}
+
 .node-inst {
   background: var(--color-text-4);
 }
@@ -731,6 +898,25 @@ function onNodeClick({ node }: NodeMouseEvent) {
 }
 .node-inst-selected > .node-cut-inner,
 .node-inst-selected:hover > .node-cut-inner {
+  background: color-mix(in srgb, var(--color-bg-1) 68%, var(--color-accent));
+}
+
+/* unmapped instances */
+.node-inst-unmapped {
+  border: 1.5px dashed var(--color-text-3);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-bg-2) 70%, transparent);
+  transition:
+    border-color 150ms,
+    background-color 150ms;
+}
+.node-inst-unmapped:hover {
+  border-color: var(--color-text-2);
+  background: color-mix(in srgb, var(--color-bg-2) 85%, transparent);
+}
+.node-inst-unmapped-selected,
+.node-inst-unmapped-selected:hover {
+  border-color: var(--color-accent);
   background: color-mix(in srgb, var(--color-bg-1) 68%, var(--color-accent));
 }
 

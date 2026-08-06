@@ -195,4 +195,164 @@ export const systemInstances: SystemInstance[] = [
       'emeland.io/namespace': 'monitoring',
     },
   },
+
+  // Unmapped instances — grouped below by their broken system reference:
+  //   ffffffff-0000-4211-8000-0000000000bb  legacy estate (7)
+  //   ffffffff-0000-4211-8000-0000000000cc  sensor-discovered workloads (6)
+  //   ffffffff-0000-4211-8000-0000000000dd  orphaned infrastructure (5)
+  //   (no system reference at all)          (4)
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a1',
+    displayName: 'Tmp Host',
+    system: '', // no parent system
+    context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
+    annotations: {
+      'eximpl.emeland.io/last-update': '2026-05-28T09:25:11Z',
+      'emeland.io/cluster': 'ber-prod',
+    },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a2',
+    displayName: 'Legacy Runtime',
+    system: 'ffffffff-0000-4211-8000-0000000000bb', // unresolvable system reference
+    context: '0a000000-0000-4211-8000-000000000008', // Altsystem
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a3',
+    displayName: 'Legacy Queue',
+    system: 'ffffffff-0000-4211-8000-0000000000bb',
+    context: '0a000000-0000-4211-8000-000000000008', // Altsystem
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a4',
+    displayName: 'Legacy Scheduler',
+    system: 'ffffffff-0000-4211-8000-0000000000bb',
+    context: '0a000000-0000-4211-8000-000000000008', // Altsystem
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a5',
+    displayName: 'Legacy Batch Runner',
+    system: 'ffffffff-0000-4211-8000-0000000000bb',
+    context: '0a000000-0000-4211-8000-000000000008', // Altsystem
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a6',
+    displayName: 'Legacy File Gateway',
+    system: 'ffffffff-0000-4211-8000-0000000000bb',
+    context: '0a000000-0000-4211-8000-000000000008', // Altsystem
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a7',
+    displayName: 'Legacy Print Service',
+    system: 'ffffffff-0000-4211-8000-0000000000bb',
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a8',
+    displayName: 'Legacy Auth Bridge',
+    system: 'ffffffff-0000-4211-8000-0000000000bb',
+    context: '0a000000-0000-4211-8000-000000000008', // Altsystem
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000b1',
+    displayName: 'Discovered Pod (iot-ingest)',
+    system: 'ffffffff-0000-4211-8000-0000000000cc', // unresolvable system reference
+    context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
+    annotations: { 'emeland.io/cluster': 'ber-prod', 'emeland.io/namespace': 'iot' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000b2',
+    displayName: 'Discovered Pod (mqtt-bridge)',
+    system: 'ffffffff-0000-4211-8000-0000000000cc',
+    context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
+    annotations: { 'emeland.io/cluster': 'ber-prod', 'emeland.io/namespace': 'iot' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000b3',
+    displayName: 'Discovered Pod (edge-relay)',
+    system: 'ffffffff-0000-4211-8000-0000000000cc',
+    context: 'a157790b-33ce-4ca8-9844-32386da44b6c', // Production
+    annotations: { 'emeland.io/cluster': 'ber-prod', 'emeland.io/namespace': 'edge' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000b4',
+    displayName: 'Discovered Service (metrics-exporter)',
+    system: 'ffffffff-0000-4211-8000-0000000000cc',
+    context: 'a157790b-33ce-4ca8-9844-32386da44b6c', // Production
+    annotations: { 'emeland.io/cluster': 'ber-prod', 'emeland.io/namespace': 'monitoring' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000b5',
+    displayName: 'Discovered Pod (firmware-ota)',
+    system: 'ffffffff-0000-4211-8000-0000000000cc',
+    context: 'c82b137d-5e63-471a-8260-032a920be38e', // Staging
+    annotations: { 'emeland.io/cluster': 'ber-staging', 'emeland.io/namespace': 'iot' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000b6',
+    displayName: 'Discovered Cronjob (nightly-sync)',
+    system: 'ffffffff-0000-4211-8000-0000000000cc',
+    context: 'c82b137d-5e63-471a-8260-032a920be38e', // Staging
+    annotations: { 'emeland.io/cluster': 'ber-staging', 'emeland.io/namespace': 'batch' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000c1',
+    displayName: 'Orphan VM (backup-01)',
+    system: 'ffffffff-0000-4211-8000-0000000000dd', // unresolvable system reference
+    context: 'a157790b-33ce-4ca8-9844-32386da44b6c', // Production
+    annotations: { 'eximpl.emeland.io/last-update': '2026-05-28T08:11:44Z' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000c2',
+    displayName: 'Orphan VM (backup-02)',
+    system: 'ffffffff-0000-4211-8000-0000000000dd',
+    context: 'a157790b-33ce-4ca8-9844-32386da44b6c', // Production
+    annotations: { 'eximpl.emeland.io/last-update': '2026-05-28T08:11:44Z' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000c3',
+    displayName: 'Rogue Database',
+    system: 'ffffffff-0000-4211-8000-0000000000dd',
+    context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
+    annotations: { 'eximpl.emeland.io/last-update': '2026-05-28T08:12:03Z' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000c4',
+    displayName: 'Untracked Cache',
+    system: 'ffffffff-0000-4211-8000-0000000000dd',
+    annotations: { 'eximpl.emeland.io/last-update': '2026-05-28T08:12:19Z' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000c5',
+    displayName: 'Shadow API Gateway',
+    system: 'ffffffff-0000-4211-8000-0000000000dd',
+    context: 'a157790b-33ce-4ca8-9844-32386da44b6c', // Production
+    annotations: { 'eximpl.emeland.io/last-update': '2026-05-28T08:12:31Z' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000d1',
+    displayName: 'Sensor Node 7',
+    system: '', // no parent system
+    context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
+    annotations: { 'emeland.io/cluster': 'ber-prod' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000d2',
+    displayName: 'Unknown Workload',
+    system: '', // no parent system
+    context: 'c82b137d-5e63-471a-8260-032a920be38e', // Staging
+    annotations: { 'emeland.io/cluster': 'ber-staging' },
+  },
+  {
+    systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000d3',
+    displayName: 'Rogue Container',
+    system: '', // no parent system
+    annotations: {},
+  },
 ]

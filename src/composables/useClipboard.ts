@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, onScopeDispose } from 'vue'
 
 /**
  * Clipboard composable with "copied" feedback
@@ -35,6 +35,11 @@ export function useClipboard(timeout = 1500) {
   function isCopied(id: string): boolean {
     return copiedId.value === id
   }
+
+  // clear a pending timer if the owning component unmounts within the window
+  onScopeDispose(() => {
+    if (timer) clearTimeout(timer)
+  })
 
   return { copy, copiedId, isCopied }
 }

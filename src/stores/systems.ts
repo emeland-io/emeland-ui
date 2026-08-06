@@ -24,6 +24,10 @@ export const useSystemStore = defineStore('system', () => {
 
   const systemMap = computed(() => new Map(systems.value.map((s) => [s.systemId, s])))
 
+  const systemInstanceMap = computed(
+    () => new Map(systemInstances.value.map((si) => [si.systemInstanceId, si])),
+  )
+
   const instancesBySystem = computed(() => {
     const map = new Map<string, SystemInstance[]>()
     for (const inst of systemInstances.value) {
@@ -46,6 +50,11 @@ export const useSystemStore = defineStore('system', () => {
   function getInstancesForSystem(id: string): SystemInstance[] {
     return instancesBySystem.value.get(id) ?? []
   }
+
+  // Instances without a resolvable parent system
+  const unmappedInstances = computed(() =>
+    systemInstances.value.filter((i) => !i.system || !systemMap.value.has(i.system)),
+  )
 
   function getKindForSystem(s: System): string {
     return s.abstract ? 'Abstract' : 'Concrete'
@@ -125,7 +134,9 @@ export const useSystemStore = defineStore('system', () => {
     selectedInstanceDetail,
     detailsHydrated,
     systemMap,
+    systemInstanceMap,
     instancesBySystem,
+    unmappedInstances,
     getParentName,
     isParentUnresolved,
     getInstancesForSystem,

@@ -92,7 +92,7 @@ function typeName(context: Context): string | undefined {
     <div class="mt-2 flex flex-wrap items-center gap-1.5">
       <span
         v-if="typeName(row.context)"
-        class="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent"
+        class="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent-text"
       >
         {{ typeName(row.context) }}
       </span>

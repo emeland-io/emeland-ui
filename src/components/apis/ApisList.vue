@@ -1,44 +1,44 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import {
+  IconAlertTriangle,
+  IconArrowsExchange,
   IconChevronRight,
   IconChevronsDown,
   IconChevronsUp,
-  IconAlertTriangle,
 } from '@tabler/icons-vue'
+import { useApiStore } from '@/stores/apis'
 import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import MappingTag from '@/components/MappingTag.vue'
+import { endpointUrl } from '@/utils/endpoint'
 import { mappingStateOf, groupByBrokenRef } from '@/utils/mapping'
-import type { System, SystemInstance } from '@/types/system'
-
-export interface SystemRow {
-  system: System
-  depth: number
-  childCount: number
-  ancestors: string[]
-}
+import type { Api, ApiInstance } from '@/types/api'
 
 const props = withDefaults(
   defineProps<{
-    rows: SystemRow[]
+    apis: Api[]
     selectedId: string
-    collapsed: Set<string>
-    activeRail: string
-    /** instances without a resolvable parent system, shown in their own section */
-    unmapped?: SystemInstance[]
+    /** apiId -> number of boundary crossings (contexts consumed in but not provided in) */
+    crossings?: Map<string, number>
+    /** instances without a resolvable parent API, shown in their own section */
+    unmapped?: ApiInstance[]
     /** keep the unmapped section expanded (e.g. while a search is active) */
     forceExpanded?: boolean
     /** fold the main rows away (e.g. to focus on the unmapped section) */
     listCollapsed?: boolean
   }>(),
-  { unmapped: () => [], forceExpanded: false, listCollapsed: false },
+  {
+    crossings: () => new Map<string, number>(),
+    unmapped: () => [],
+    forceExpanded: false,
+    listCollapsed: false,
+  },
 )
 
 const emit = defineEmits<{
   select: [id: string]
-  'toggle-collapse': [id: string]
   'open-instance': [id: string]
 }>()
 const unmappedCollapsed = ref(false)
@@ -49,10 +49,21 @@ function toggleUnmapped() {
   unmappedCollapsed.value = !unmappedCollapsed.value
 }
 
-// group the section by system reference
+// group the section by the system instance
 const unmappedGroups = computed(() =>
-  groupByBrokenRef(props.unmapped, (i) => i.system, 'No system reference'),
+  groupByBrokenRef(
+    props.unmapped,
+    (i) => i.systemInstance,
+    'No system instance',
+    (key) => systemStore.systemInstanceMap.get(key)?.displayName,
+    (key) => systemStore.systemInstanceMap.has(key),
+  ),
 )
+
+function groupTitle(key: string): string {
+  if (!key) return 'No system instance'
+  return systemStore.systemInstanceMap.has(key) ? key : `References missing system instance ${key}`
+}
 
 const collapsedGroups = ref<Set<string>>(new Set())
 
@@ -74,135 +85,106 @@ const allGroupsCollapsed = computed(
 )
 
 function toggleAllGroups() {
-  // reveal the section so the effect is visible even when it was collapsed
   unmappedCollapsed.value = false
   collapsedGroups.value = allGroupsCollapsed.value
     ? new Set()
     : new Set(unmappedGroups.value.map((g) => g.key))
 }
 
-const store = useSystemStore()
+const store = useApiStore()
+const systemStore = useSystemStore()
 const contextStore = useContextStore()
 const findingsStore = useFindingsStore()
 
-function instanceCount(id: string): number {
-  return store.getInstancesForSystem(id).length
+function systemName(id: string): string | undefined {
+  return systemStore.systemMap.get(id)?.displayName
 }
 
 function findingCount(id: string): number {
   return findingsStore.findingCountFor(id)
 }
 
-function instanceContext(inst: SystemInstance): string | undefined {
-  if (!inst.context) return undefined
-  return contextStore.contextMap.get(inst.context)?.displayName ?? inst.context
+function instanceCount(id: string): number {
+  return store.getInstancesForApi(id).length
 }
 
-function mappingState(inst: SystemInstance) {
-  return mappingStateOf(inst.system, store.systemMap.has(inst.system))
+function instanceContext(inst: ApiInstance): string | undefined {
+  const ctxId = inst.systemInstance
+    ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
+    : undefined
+  return ctxId ? contextStore.contextMap.get(ctxId)?.displayName : undefined
+}
+
+function mappingState(inst: ApiInstance) {
+  return mappingStateOf(inst.api, store.apiMap.has(inst.api ?? ''))
 }
 </script>
 
 <template>
   <template v-if="!listCollapsed">
     <div
-      v-for="row in rows"
-      :key="row.system.systemId"
-      class="relative cursor-pointer border-b border-l-2 border-border-1 py-3 pr-4 transition-colors"
+      v-for="api in apis"
+      :key="api.apiId"
+      class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
       :class="[
-        row.system.systemId === selectedId
+        api.apiId === selectedId
           ? 'border-l-accent bg-accent/5'
-          : 'border-l-transparent hover:bg-bg-2',
-        row.childCount > 0 && row.system.systemId !== selectedId ? 'bg-bg-1' : '',
+          : 'border-l-transparent hover:bg-bg-1',
       ]"
-      :style="{ paddingLeft: `${16 + row.depth * 26}px` }"
-      @click="emit('select', row.system.systemId)"
+      @click="emit('select', api.apiId)"
     >
-      <span
-        v-for="level in row.depth"
-        :key="level"
-        class="pointer-events-none absolute inset-y-0 w-px transition-colors"
-        :class="
-          activeRail && row.ancestors[level - 1] === activeRail ? 'bg-border-2' : 'bg-border-1/50'
-        "
-        :style="{ left: `${16 + (level - 1) * 26 + 7}px` }"
-        aria-hidden="true"
-      />
-
-      <div class="flex items-center gap-2">
-        <span
-          class="min-w-0 flex-1 truncate text-body font-medium text-text-1"
-          :title="row.system.displayName"
-        >
-          {{ row.system.displayName }}
-        </span>
-        <button
-          v-if="row.childCount > 0"
-          class="-mr-1 shrink-0 rounded p-0.5 text-text-4 transition-colors hover:bg-bg-2 hover:text-text-2"
-          :title="collapsed.has(row.system.systemId) ? 'Expand' : 'Collapse'"
-          @click.stop="emit('toggle-collapse', row.system.systemId)"
-        >
-          <IconChevronRight
-            :size="14"
-            :stroke-width="2"
-            class="transition-transform"
-            :class="collapsed.has(row.system.systemId) ? '' : 'rotate-90'"
-          />
-        </button>
+      <div
+        class="truncate text-body font-medium text-text-1"
+        :title="api.displayName"
+      >
+        {{ api.displayName }}
       </div>
       <div class="mt-2 flex flex-wrap items-center gap-1.5">
         <span
-          class="rounded px-1.5 py-0.5 font-mono text-meta"
-          :class="row.system.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent-text'"
+          class="rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta"
+          :class="api.type === 'Unknown' ? 'text-text-4' : 'text-text-3'"
         >
-          {{ store.getKindForSystem(row.system) }}
+          {{ api.type }}
         </span>
         <span
-          v-if="row.system.version?.version"
+          v-if="systemName(api.system)"
+          class="rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta text-text-3"
+        >
+          {{ systemName(api.system) }}
+        </span>
+        <span
+          v-if="api.version?.version"
           class="font-mono text-meta text-text-4"
         >
-          v{{ row.system.version.version }}
+          v{{ api.version.version }}
         </span>
         <span class="ml-auto flex shrink-0 items-center gap-1.5">
           <span
-            v-if="row.childCount > 0"
-            class="flex shrink-0 items-center gap-1 font-mono text-micro text-text-3"
-            :title="`${row.childCount} sub-system(s)`"
+            v-if="crossings.has(api.apiId)"
+            class="flex shrink-0 items-center gap-1 rounded-full border border-border-2 bg-bg-2 px-1.5 py-0.5 font-mono text-micro tabular-nums text-text-3"
+            title="Crosses a context boundary"
           >
-            <svg
-              width="13"
-              height="10"
-              viewBox="0 0 13 10"
-              class="shrink-0"
-              aria-hidden="true"
-            >
-              <polygon
-                points="0,0 9,0 13,3 13,4 0,4"
-                fill="var(--color-text-3)"
-              />
-              <polygon
-                points="0,6 9,6 13,9 13,10 0,10"
-                fill="var(--color-text-3)"
-                opacity="0.6"
-              />
-            </svg>
-            {{ row.childCount }}
+            <IconArrowsExchange
+              :size="10"
+              :stroke-width="2"
+            />
+            {{ crossings.get(api.apiId) }}
           </span>
           <span
-            v-if="findingCount(row.system.systemId) > 0"
-            class="flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
-            :title="`${findingCount(row.system.systemId)} finding(s)`"
+            v-if="findingCount(api.apiId) > 0"
+            class="flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
+            :title="`${findingCount(api.apiId)} finding(s)`"
           >
             <IconAlertTriangle
               :size="10"
               :stroke-width="2"
             />
-            {{ findingCount(row.system.systemId) }}
+            {{ findingCount(api.apiId) }}
           </span>
           <span
-            v-if="store.instancesLoaded && instanceCount(row.system.systemId) > 0"
+            v-if="store.instancesLoaded && instanceCount(api.apiId) > 0"
             class="flex shrink-0 items-center gap-1 font-mono text-micro text-text-3"
-            :title="`${instanceCount(row.system.systemId)} instance(s)`"
+            :title="`${instanceCount(api.apiId)} instance(s)`"
           >
             <svg
               width="14"
@@ -216,14 +198,14 @@ function mappingState(inst: SystemInstance) {
                 fill="var(--color-text-3)"
               />
             </svg>
-            {{ instanceCount(row.system.systemId) }}
+            {{ instanceCount(api.apiId) }}
           </span>
         </span>
       </div>
     </div>
   </template>
 
-  <!-- instances without a resolvable parent system -->
+  <!-- instances without a resolvable parent API -->
   <template v-if="unmapped.length > 0">
     <div
       class="flex h-9 shrink-0 cursor-pointer select-none items-center gap-1.5 border-b border-border-1 bg-bg-1 px-2 text-micro font-medium uppercase tracking-wider text-text-4"
@@ -264,12 +246,12 @@ function mappingState(inst: SystemInstance) {
     <template v-if="!sectionCollapsed">
       <div
         v-for="group in unmappedGroups"
-        :key="group.key || 'no-system'"
+        :key="group.key || 'no-system-instance'"
       >
-        <!-- group heade -->
+        <!-- group header -->
         <div
           class="flex h-9 cursor-pointer select-none items-center gap-1.5 border-b border-border-1 pl-4 pr-2 text-micro font-medium uppercase tracking-wider text-text-4 transition-colors hover:bg-bg-2"
-          :title="group.key ? `References missing system ${group.key}` : 'No system reference'"
+          :title="groupTitle(group.key)"
           @click="toggleGroup(group.key)"
         >
           <span class="min-w-0 flex-1 truncate">
@@ -296,11 +278,11 @@ function mappingState(inst: SystemInstance) {
         <template v-if="!groupCollapsed(group.key)">
           <div
             v-for="inst in group.items"
-            :key="inst.systemInstanceId"
-            class="cursor-pointer border-b border-border-1 border-l-2 border-l-transparent py-3 pr-4 transition-colors hover:bg-bg-2"
+            :key="inst.apiInstanceId"
+            class="cursor-pointer border-b border-border-1 border-l-2 border-l-transparent py-3 pr-4 transition-colors hover:bg-bg-1"
             style="padding-left: 42px"
             title="Show instance details"
-            @click="emit('open-instance', inst.systemInstanceId)"
+            @click="emit('open-instance', inst.apiInstanceId)"
           >
             <div
               class="truncate text-body font-medium text-text-1"
@@ -312,9 +294,16 @@ function mappingState(inst: SystemInstance) {
               <MappingTag :state="mappingState(inst)" />
               <span
                 v-if="instanceContext(inst)"
-                class="truncate font-mono text-meta text-text-4"
+                class="shrink-0 font-mono text-meta text-text-4"
               >
                 {{ instanceContext(inst) }}
+              </span>
+              <span
+                v-if="endpointUrl(inst.annotations)"
+                class="ml-auto min-w-0 truncate font-mono text-meta text-text-3"
+                :title="endpointUrl(inst.annotations)"
+              >
+                {{ endpointUrl(inst.annotations) }}
               </span>
             </div>
           </div>

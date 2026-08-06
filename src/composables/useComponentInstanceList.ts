@@ -11,7 +11,7 @@ export function useComponentInstanceList(instances: Ref<ComponentInstance[]>) {
   const search = ref('')
 
   function systemInstanceName(id: string): string | undefined {
-    return systemStore.systemInstances.find((si) => si.systemInstanceId === id)?.displayName
+    return systemStore.systemInstanceMap.get(id)?.displayName
   }
 
   const filtered = computed(() => {

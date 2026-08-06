@@ -35,10 +35,18 @@ export interface InstanceNodeData {
   system?: string
   component?: string
   systemInstance?: string
-  type?: 'SystemInstance' | 'ComponentInstance'
+  type?: 'SystemInstance' | 'ComponentInstance' | 'ApiInstance'
+  unmapped?: boolean
+  unresolved?: boolean
 }
 export interface ContextNodeData {
   label: string
+  /** 'context' = a real grouping column; 'unmapped' = the unmapped-instance bucket; 'group' = a nested group inside it */
+  variant?: 'context' | 'unmapped' | 'group'
+  /** number of members inside the frame, shown as a badge in the tab */
+  count?: number
+  /** tooltip override for the frame tab (e.g. the full unresolved reference) */
+  title?: string
 }
 export interface ContextItemNodeData {
   label: string
@@ -53,6 +61,12 @@ export interface ApiNodeData {
   label: string
   description?: string
   version?: string
+  /** true when the API is consumed in a context it is not provided in */
+  crosses?: boolean
+  /** number of contexts the API is consumed in but not provided in */
+  crossCount?: number
+  findings?: number
+  findingKinds?: string[]
 }
 export interface ComponentNodeData {
   label: string

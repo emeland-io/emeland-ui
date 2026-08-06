@@ -93,6 +93,11 @@ export const useComponentStore = defineStore('component', () => {
     return instancesByComponent.value.get(componentId) ?? []
   }
 
+  // Instances without a resolvable parent component
+  const unmappedInstances = computed(() =>
+    componentInstances.value.filter((i) => !i.component || !componentMap.value.has(i.component)),
+  )
+
   async function loadComponentInstances(): Promise<void> {
     if (instancesLoaded.value || instancesLoading.value) return
     instancesLoading.value = true
@@ -121,6 +126,7 @@ export const useComponentStore = defineStore('component', () => {
     instancesLoaded,
     instancesByComponent,
     getInstancesForComponent,
+    unmappedInstances,
     loadComponentInstances,
     componentMap,
     componentsBySystem,

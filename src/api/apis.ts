@@ -1,6 +1,6 @@
 import { apiFetch } from './fetch'
 import { API } from '@/constants/api'
-import type { Api, ApiType } from '@/types/api'
+import type { Api, ApiInstance, ApiType } from '@/types/api'
 import type { Version } from '@/types/common'
 
 const USE_MOCKS = import.meta.env.VITE_EMEL_DEV_USE_MOCKS === 'true'
@@ -74,4 +74,54 @@ export async function fetchApiById(id: string): Promise<Api> {
   const resp = await apiFetch(API.APIS.byId(id))
   if (!resp.ok) throw new Error(`Failed to load API ${id}: ${resp.status}`)
   return decodeApi(await resp.json())
+}
+
+interface ApiInstanceResponse {
+  apiInstanceId?: string
+  instanceId?: string
+  displayName?: string
+  api?: string
+  systemInstance?: string
+  annotations?: { key: string; value: string }[] | Record<string, string>
+}
+
+function decodeApiInstance(res: ApiInstanceResponse): ApiInstance {
+  return {
+    apiInstanceId: res.apiInstanceId ?? res.instanceId ?? '',
+    displayName: res.displayName ?? '',
+    ...(res.api ? { api: res.api } : {}),
+    ...(res.systemInstance ? { systemInstance: res.systemInstance } : {}),
+    annotations: decodeAnnotations(res.annotations),
+  }
+}
+
+function apiInstanceFromList(item: InstanceListItem): ApiInstance {
+  return {
+    apiInstanceId: item.instanceId,
+    displayName: item.displayName,
+    annotations: {},
+  }
+}
+
+export async function fetchApiInstances(): Promise<ApiInstance[]> {
+  if (USE_MOCKS) {
+    const { apiInstances } = await import('@/mocks/api')
+    return apiInstances
+  }
+  const resp = await apiFetch(API.API_INSTANCES.list)
+  if (!resp.ok) throw new Error(`Failed to load API instances: ${resp.status}`)
+  const data: InstanceListItem[] = await resp.json()
+  return data.map(apiInstanceFromList)
+}
+
+export async function fetchApiInstanceById(id: string): Promise<ApiInstance> {
+  if (USE_MOCKS) {
+    const { apiInstances } = await import('@/mocks/api')
+    const found = apiInstances.find((i) => i.apiInstanceId === id)
+    if (!found) throw new Error(`API instance ${id} not found in mocks`)
+    return found
+  }
+  const resp = await apiFetch(API.API_INSTANCES.byId(id))
+  if (!resp.ok) throw new Error(`Failed to load API instance ${id}: ${resp.status}`)
+  return decodeApiInstance(await resp.json())
 }
