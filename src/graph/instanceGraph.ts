@@ -18,6 +18,7 @@ export interface InstanceGraphInput {
 
 const NO_CONTEXT = 'no-context'
 const UNMAPPED_ROW = 'unmapped'
+const UNMAPPED_FRAME = 'frame:unmapped'
 
 export function buildInstanceGraph({
   systems,
@@ -96,14 +97,52 @@ export function buildInstanceGraph({
     }
   }
 
-  for (const inst of unmapped) {
-    const id = frameOf(inst)
-    if (!frameLabels.has(id)) frameLabels.set(id, ctxLabel(inst))
-  }
-
   const frames: LayoutFrame[] = [...frameLabels]
     .sort((a, b) => a[1].localeCompare(b[1]))
     .map(([id, label], order) => ({ id, kind: 'context', order, data: { label } }))
+
+  // group unmapped instances by their (unresolved) system reference; the
+  // reference does not resolve (that is why the instances are unmapped), so
+  // the truncated id is all there is to show. No-reference instances last.
+  const unmappedOrdered = [...unmapped].sort(
+    (a, b) =>
+      Number(!a.system) - Number(!b.system) ||
+      (a.system || '').localeCompare(b.system || '') ||
+      a.displayName.localeCompare(b.displayName),
+  )
+  const unmappedGroupOf = (key: string) => `${UNMAPPED_FRAME}:${key || 'none'}`
+
+  // unmapped instances get their own dashed frame BEFORE the whole graph
+  // (like the unmapped lanes in the API/component graphs), with one nested
+  // frame per system reference group
+  if (unmapped.length > 0) {
+    frames.push({
+      id: UNMAPPED_FRAME,
+      kind: 'context',
+      order: -1,
+      before: true,
+      data: {
+        label: 'Unmapped',
+        variant: 'unmapped',
+        count: unmapped.length,
+        title: 'Unmapped instances with no resolvable parent — click to focus and inspect',
+      },
+    })
+    const groupKeys = [...new Set(unmappedOrdered.map((i) => i.system || ''))]
+    groupKeys.forEach((key, order) => {
+      frames.push({
+        id: unmappedGroupOf(key),
+        kind: 'context',
+        order,
+        parentId: UNMAPPED_FRAME,
+        data: {
+          label: key ? `${key.slice(0, 8)}…` : 'No system reference',
+          variant: 'group',
+          title: key ? `References missing system ${key}` : 'No system reference',
+        },
+      })
+    })
+  }
 
   const members: LayoutMember[] = []
   const edges: GraphEdge[] = []
@@ -146,15 +185,14 @@ export function buildInstanceGraph({
     }
   }
 
-  const unmappedOrdered = [...unmapped].sort(
-    (a, b) => ctxLabel(a).localeCompare(ctxLabel(b)) || a.displayName.localeCompare(b.displayName),
-  )
   for (const inst of unmappedOrdered) {
     members.push({
       id: inst.systemInstanceId,
       kind: 'instance',
-      frameId: frameOf(inst),
+      frameId: unmappedGroupOf(inst.system || ''),
       rowKey: UNMAPPED_ROW,
+      // unmapped instances have no system anchor; float them from the top of
+      // their group frame, flowing into columns of at most floatMaxRows
       floatTop: true,
       data: {
         label: inst.displayName,

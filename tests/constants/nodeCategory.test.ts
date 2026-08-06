@@ -8,7 +8,7 @@ import {
   categoryColorForName,
   DEFAULT_CATEGORY_COLOR,
   type NodeCategory,
-} from '@/constants/nodeCategory' 
+} from '@/constants/nodeCategory'
 
 function node(typeDisplayName: string | undefined, over: Partial<Node> = {}): Node {
   return {

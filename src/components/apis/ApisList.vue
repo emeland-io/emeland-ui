@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { IconAlertTriangle, IconArrowsExchange, IconChevronRight } from '@tabler/icons-vue'
+import {
+  IconAlertTriangle,
+  IconArrowsExchange,
+  IconChevronRight,
+  IconChevronsDown,
+  IconChevronsUp,
+} from '@tabler/icons-vue'
 import { useApiStore } from '@/stores/apis'
 import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import MappingTag from '@/components/MappingTag.vue'
 import { endpointUrl } from '@/utils/endpoint'
-import { mappingStateOf } from '@/utils/mapping'
+import { mappingStateOf, groupByBrokenRef } from '@/utils/mapping'
 import type { Api, ApiInstance } from '@/types/api'
 
 const props = withDefaults(
@@ -41,6 +47,48 @@ const sectionCollapsed = computed(() => unmappedCollapsed.value && !props.forceE
 
 function toggleUnmapped() {
   unmappedCollapsed.value = !unmappedCollapsed.value
+}
+
+// group the section by the system instance
+const unmappedGroups = computed(() =>
+  groupByBrokenRef(
+    props.unmapped,
+    (i) => i.systemInstance,
+    'No system instance',
+    (key) => systemStore.systemInstanceMap.get(key)?.displayName,
+    (key) => systemStore.systemInstanceMap.has(key),
+  ),
+)
+
+function groupTitle(key: string): string {
+  if (!key) return 'No system instance'
+  return systemStore.systemInstanceMap.has(key) ? key : `References missing system instance ${key}`
+}
+
+const collapsedGroups = ref<Set<string>>(new Set())
+
+function groupCollapsed(key: string): boolean {
+  return collapsedGroups.value.has(key) && !props.forceExpanded
+}
+
+function toggleGroup(key: string) {
+  const s = new Set(collapsedGroups.value)
+  if (s.has(key)) s.delete(key)
+  else s.add(key)
+  collapsedGroups.value = s
+}
+
+const allGroupsCollapsed = computed(
+  () =>
+    unmappedGroups.value.length > 0 &&
+    unmappedGroups.value.every((g) => collapsedGroups.value.has(g.key)),
+)
+
+function toggleAllGroups() {
+  unmappedCollapsed.value = false
+  collapsedGroups.value = allGroupsCollapsed.value
+    ? new Set()
+    : new Set(unmappedGroups.value.map((g) => g.key))
 }
 
 const store = useApiStore()
@@ -168,49 +216,98 @@ function mappingState(inst: ApiInstance) {
       <span class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3">
         {{ unmapped.length }}
       </span>
-      <button
-        class="ml-auto rounded p-1 text-text-4 transition-colors hover:bg-bg-2 hover:text-text-2"
-        :title="sectionCollapsed ? 'Expand' : 'Collapse'"
-        @click.stop="toggleUnmapped"
-      >
-        <IconChevronRight
-          :size="14"
-          :stroke-width="2"
-          class="transition-transform"
-          :class="sectionCollapsed ? '' : 'rotate-90'"
-        />
-      </button>
+      <span class="ml-auto flex items-center gap-0.5">
+        <button
+          class="rounded p-1 text-text-4 transition-colors hover:bg-bg-2 hover:text-text-2"
+          :title="allGroupsCollapsed ? 'Expand all' : 'Collapse all'"
+          @click.stop="toggleAllGroups"
+          @dblclick.stop
+        >
+          <component
+            :is="allGroupsCollapsed ? IconChevronsDown : IconChevronsUp"
+            :size="14"
+            :stroke-width="1.75"
+          />
+        </button>
+        <button
+          class="rounded p-1 text-text-4 transition-colors hover:bg-bg-2 hover:text-text-2"
+          :title="sectionCollapsed ? 'Expand' : 'Collapse'"
+          @click.stop="toggleUnmapped"
+        >
+          <IconChevronRight
+            :size="14"
+            :stroke-width="2"
+            class="transition-transform"
+            :class="sectionCollapsed ? '' : 'rotate-90'"
+          />
+        </button>
+      </span>
     </div>
     <template v-if="!sectionCollapsed">
       <div
-        v-for="inst in unmapped"
-        :key="inst.apiInstanceId"
-        class="cursor-pointer border-b border-border-1 border-l-2 border-l-transparent px-4 py-3 transition-colors hover:bg-bg-1"
-        title="Show instance details"
-        @click="emit('open-instance', inst.apiInstanceId)"
+        v-for="group in unmappedGroups"
+        :key="group.key || 'no-system-instance'"
       >
+        <!-- group header -->
         <div
-          class="truncate text-body font-medium text-text-1"
-          :title="inst.displayName"
+          class="flex h-9 cursor-pointer select-none items-center gap-1.5 border-b border-border-1 pl-4 pr-2 text-micro font-medium uppercase tracking-wider text-text-4 transition-colors hover:bg-bg-2"
+          :title="groupTitle(group.key)"
+          @click="toggleGroup(group.key)"
         >
-          {{ inst.displayName }}
-        </div>
-        <div class="mt-2 flex items-center gap-1.5">
-          <MappingTag :state="mappingState(inst)" />
-          <span
-            v-if="instanceContext(inst)"
-            class="shrink-0 font-mono text-meta text-text-4"
-          >
-            {{ instanceContext(inst) }}
+          <span class="min-w-0 flex-1 truncate">
+            {{ group.label }}
           </span>
           <span
-            v-if="endpointUrl(inst.annotations)"
-            class="ml-auto min-w-0 truncate font-mono text-meta text-text-3"
-            :title="endpointUrl(inst.annotations)"
+            class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3"
           >
-            {{ endpointUrl(inst.annotations) }}
+            {{ group.items.length }}
           </span>
+          <button
+            class="rounded p-1 text-text-4 transition-colors hover:bg-bg-2 hover:text-text-2"
+            :title="groupCollapsed(group.key) ? 'Expand' : 'Collapse'"
+            @click.stop="toggleGroup(group.key)"
+          >
+            <IconChevronRight
+              :size="14"
+              :stroke-width="2"
+              class="transition-transform"
+              :class="groupCollapsed(group.key) ? '' : 'rotate-90'"
+            />
+          </button>
         </div>
+        <template v-if="!groupCollapsed(group.key)">
+          <div
+            v-for="inst in group.items"
+            :key="inst.apiInstanceId"
+            class="cursor-pointer border-b border-border-1 border-l-2 border-l-transparent py-3 pr-4 transition-colors hover:bg-bg-1"
+            style="padding-left: 42px"
+            title="Show instance details"
+            @click="emit('open-instance', inst.apiInstanceId)"
+          >
+            <div
+              class="truncate text-body font-medium text-text-1"
+              :title="inst.displayName"
+            >
+              {{ inst.displayName }}
+            </div>
+            <div class="mt-2 flex items-center gap-1.5">
+              <MappingTag :state="mappingState(inst)" />
+              <span
+                v-if="instanceContext(inst)"
+                class="shrink-0 font-mono text-meta text-text-4"
+              >
+                {{ instanceContext(inst) }}
+              </span>
+              <span
+                v-if="endpointUrl(inst.annotations)"
+                class="ml-auto min-w-0 truncate font-mono text-meta text-text-3"
+                :title="endpointUrl(inst.annotations)"
+              >
+                {{ endpointUrl(inst.annotations) }}
+              </span>
+            </div>
+          </div>
+        </template>
       </div>
     </template>
   </template>

@@ -74,17 +74,23 @@ const filteredComponents = computed(() =>
 
 const hasActiveFilters = computed(() => !!search.value || activeSystems.value.size > 0)
 
-// instances without a resolvable parent component, filtered by the same search text
+// instances without a resolvable parent component, filtered by the same toolbar filters
 const unmappedFiltered = computed(() => {
   const q = search.value.trim().toLowerCase()
-  const base = !q
-    ? store.unmappedInstances
-    : store.unmappedInstances.filter(
-        (i) =>
-          i.displayName.toLowerCase().includes(q) ||
-          i.componentInstanceId.toLowerCase().includes(q) ||
-          (contextForInstance(i).name ?? '').toLowerCase().includes(q),
-      )
+  const base = store.unmappedInstances.filter((i) => {
+    if (activeSystems.value.size > 0) {
+      const system = i.systemInstance
+        ? systemStore.systemInstanceMap.get(i.systemInstance)?.system
+        : undefined
+      if (!system || !activeSystems.value.has(system)) return false
+    }
+    if (!q) return true
+    return (
+      i.displayName.toLowerCase().includes(q) ||
+      i.componentInstanceId.toLowerCase().includes(q) ||
+      (contextForInstance(i).name ?? '').toLowerCase().includes(q)
+    )
+  })
   return [...base].sort(
     (a, b) =>
       a.displayName.localeCompare(b.displayName) ||
@@ -153,6 +159,9 @@ const graphVisible = ref(true)
 const graphFullscreen = ref(false)
 const showInstances = ref(false)
 const showUnmapped = ref(true)
+const unmappedOn = computed(
+  () => showInstances.value && showUnmapped.value && store.unmappedInstances.length > 0,
+)
 const showApis = ref(true)
 
 function toggleInstances() {
@@ -480,13 +489,9 @@ onMounted(async () => {
                     Unmapped
                     <span
                       class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
-                      :class="
-                        showInstances && showUnmapped
-                          ? 'bg-accent/15 text-accent-text'
-                          : 'bg-bg-0 text-text-4'
-                      "
+                      :class="unmappedOn ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'"
                     >
-                      {{ showInstances && showUnmapped ? 'on' : 'off' }}
+                      {{ unmappedOn ? 'on' : 'off' }}
                     </span>
                   </button>
                   <div class="mx-0.5 h-4 w-px bg-bg-3" />
@@ -544,7 +549,7 @@ onMounted(async () => {
                 :components="chipFilteredComponents"
                 :selected-id="selectedId"
                 :show-instances="showInstances"
-                :show-unmapped="showUnmapped"
+                :show-unmapped="unmappedOn"
                 :show-apis="showApis"
                 :show-controls="false"
                 class="h-full"

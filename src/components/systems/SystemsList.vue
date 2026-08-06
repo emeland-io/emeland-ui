@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { IconChevronRight, IconAlertTriangle } from '@tabler/icons-vue'
+import {
+  IconChevronRight,
+  IconChevronsDown,
+  IconChevronsUp,
+  IconAlertTriangle,
+} from '@tabler/icons-vue'
 import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import MappingTag from '@/components/MappingTag.vue'
-import { mappingStateOf } from '@/utils/mapping'
+import { mappingStateOf, groupByBrokenRef } from '@/utils/mapping'
 import type { System, SystemInstance } from '@/types/system'
 
 export interface SystemRow {
@@ -42,6 +47,38 @@ const sectionCollapsed = computed(() => unmappedCollapsed.value && !props.forceE
 
 function toggleUnmapped() {
   unmappedCollapsed.value = !unmappedCollapsed.value
+}
+
+// group the section by system reference
+const unmappedGroups = computed(() =>
+  groupByBrokenRef(props.unmapped, (i) => i.system, 'No system reference'),
+)
+
+const collapsedGroups = ref<Set<string>>(new Set())
+
+function groupCollapsed(key: string): boolean {
+  return collapsedGroups.value.has(key) && !props.forceExpanded
+}
+
+function toggleGroup(key: string) {
+  const s = new Set(collapsedGroups.value)
+  if (s.has(key)) s.delete(key)
+  else s.add(key)
+  collapsedGroups.value = s
+}
+
+const allGroupsCollapsed = computed(
+  () =>
+    unmappedGroups.value.length > 0 &&
+    unmappedGroups.value.every((g) => collapsedGroups.value.has(g.key)),
+)
+
+function toggleAllGroups() {
+  // reveal the section so the effect is visible even when it was collapsed
+  unmappedCollapsed.value = false
+  collapsedGroups.value = allGroupsCollapsed.value
+    ? new Set()
+    : new Set(unmappedGroups.value.map((g) => g.key))
 }
 
 const store = useSystemStore()
@@ -197,42 +234,91 @@ function mappingState(inst: SystemInstance) {
       <span class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3">
         {{ unmapped.length }}
       </span>
-      <button
-        class="ml-auto rounded p-1 text-text-4 transition-colors hover:bg-bg-2 hover:text-text-2"
-        :title="sectionCollapsed ? 'Expand' : 'Collapse'"
-        @click.stop="toggleUnmapped"
-      >
-        <IconChevronRight
-          :size="14"
-          :stroke-width="2"
-          class="transition-transform"
-          :class="sectionCollapsed ? '' : 'rotate-90'"
-        />
-      </button>
+      <span class="ml-auto flex items-center gap-0.5">
+        <button
+          class="rounded p-1 text-text-4 transition-colors hover:bg-bg-2 hover:text-text-2"
+          :title="allGroupsCollapsed ? 'Expand all' : 'Collapse all'"
+          @click.stop="toggleAllGroups"
+          @dblclick.stop
+        >
+          <component
+            :is="allGroupsCollapsed ? IconChevronsDown : IconChevronsUp"
+            :size="14"
+            :stroke-width="1.75"
+          />
+        </button>
+        <button
+          class="rounded p-1 text-text-4 transition-colors hover:bg-bg-2 hover:text-text-2"
+          :title="sectionCollapsed ? 'Expand' : 'Collapse'"
+          @click.stop="toggleUnmapped"
+        >
+          <IconChevronRight
+            :size="14"
+            :stroke-width="2"
+            class="transition-transform"
+            :class="sectionCollapsed ? '' : 'rotate-90'"
+          />
+        </button>
+      </span>
     </div>
     <template v-if="!sectionCollapsed">
       <div
-        v-for="inst in unmapped"
-        :key="inst.systemInstanceId"
-        class="cursor-pointer border-b border-border-1 border-l-2 border-l-transparent px-4 py-3 transition-colors hover:bg-bg-2"
-        title="Show instance details"
-        @click="emit('open-instance', inst.systemInstanceId)"
+        v-for="group in unmappedGroups"
+        :key="group.key || 'no-system'"
       >
+        <!-- group heade -->
         <div
-          class="truncate text-body font-medium text-text-1"
-          :title="inst.displayName"
+          class="flex h-9 cursor-pointer select-none items-center gap-1.5 border-b border-border-1 pl-4 pr-2 text-micro font-medium uppercase tracking-wider text-text-4 transition-colors hover:bg-bg-2"
+          :title="group.key ? `References missing system ${group.key}` : 'No system reference'"
+          @click="toggleGroup(group.key)"
         >
-          {{ inst.displayName }}
-        </div>
-        <div class="mt-2 flex items-center gap-1.5">
-          <MappingTag :state="mappingState(inst)" />
-          <span
-            v-if="instanceContext(inst)"
-            class="truncate font-mono text-meta text-text-4"
-          >
-            {{ instanceContext(inst) }}
+          <span class="min-w-0 flex-1 truncate">
+            {{ group.label }}
           </span>
+          <span
+            class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3"
+          >
+            {{ group.items.length }}
+          </span>
+          <button
+            class="rounded p-1 text-text-4 transition-colors hover:bg-bg-2 hover:text-text-2"
+            :title="groupCollapsed(group.key) ? 'Expand' : 'Collapse'"
+            @click.stop="toggleGroup(group.key)"
+          >
+            <IconChevronRight
+              :size="14"
+              :stroke-width="2"
+              class="transition-transform"
+              :class="groupCollapsed(group.key) ? '' : 'rotate-90'"
+            />
+          </button>
         </div>
+        <template v-if="!groupCollapsed(group.key)">
+          <div
+            v-for="inst in group.items"
+            :key="inst.systemInstanceId"
+            class="cursor-pointer border-b border-border-1 border-l-2 border-l-transparent py-3 pr-4 transition-colors hover:bg-bg-2"
+            style="padding-left: 42px"
+            title="Show instance details"
+            @click="emit('open-instance', inst.systemInstanceId)"
+          >
+            <div
+              class="truncate text-body font-medium text-text-1"
+              :title="inst.displayName"
+            >
+              {{ inst.displayName }}
+            </div>
+            <div class="mt-2 flex items-center gap-1.5">
+              <MappingTag :state="mappingState(inst)" />
+              <span
+                v-if="instanceContext(inst)"
+                class="truncate font-mono text-meta text-text-4"
+              >
+                {{ instanceContext(inst) }}
+              </span>
+            </div>
+          </div>
+        </template>
       </div>
     </template>
   </template>

@@ -5,7 +5,14 @@ import type { Component, ComponentInstance } from '@/types/component'
 import type { SystemInstance } from '@/types/system'
 
 function api(apiId: string): Api {
-  return { apiId, displayName: apiId, version: { version: '' }, type: 'OpenAPI', system: '', annotations: {} }
+  return {
+    apiId,
+    displayName: apiId,
+    version: { version: '' },
+    type: 'OpenAPI',
+    system: '',
+    annotations: {},
+  }
 }
 
 function comp(componentId: string, over: Partial<Component> = {}): Component {
@@ -21,7 +28,11 @@ function comp(componentId: string, over: Partial<Component> = {}): Component {
   }
 }
 
-function compInst(componentInstanceId: string, component: string, systemInstance: string): ComponentInstance {
+function compInst(
+  componentInstanceId: string,
+  component: string,
+  systemInstance: string,
+): ComponentInstance {
   return {
     componentInstanceId,
     displayName: componentInstanceId,
@@ -48,10 +59,7 @@ describe('resolveApiContextFlows', () => {
     const flows = resolveApiContextFlows({
       apis: [api('a1')],
       components: [comp('p', { provides: ['a1'] }), comp('c', { consumes: ['a1'] })],
-      componentInstances: [
-        compInst('pi', 'p', 'si-prod'),
-        compInst('ci', 'c', 'si-staging'),
-      ],
+      componentInstances: [compInst('pi', 'p', 'si-prod'), compInst('ci', 'c', 'si-staging')],
       systemInstances: [sysInst('si-prod', 'prod'), sysInst('si-staging', 'staging')],
     })
     expect(flows.get('a1')).toEqual({

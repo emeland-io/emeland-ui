@@ -41,8 +41,12 @@ export interface InstanceNodeData {
 }
 export interface ContextNodeData {
   label: string
-  variant?: 'context' | 'unmapped'
+  /** 'context' = a real grouping column; 'unmapped' = the unmapped-instance bucket; 'group' = a nested group inside it */
+  variant?: 'context' | 'unmapped' | 'group'
+  /** number of members inside the frame, shown as a badge in the tab */
   count?: number
+  /** tooltip override for the frame tab (e.g. the full unresolved reference) */
+  title?: string
 }
 export interface ContextItemNodeData {
   label: string

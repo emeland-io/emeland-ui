@@ -398,6 +398,8 @@ function isOwnedBySelection(data: unknown): boolean {
 }
 
 function onNodeClick({ node }: NodeMouseEvent) {
+  // clicking a frame focuses its group; for the unmapped bucket this doubles as
+  // the triage entry — zoom to the group, then inspect individual unmapped nodes
   if (node.type === 'context') {
     fitView({ nodes: [node.id], padding: 0.3, duration: 300, maxZoom: 1.2 })
   }
@@ -452,16 +454,15 @@ function onNodeClick({ node }: NodeMouseEvent) {
       <template #node-context="{ data }">
         <div
           class="frame h-full w-full cursor-pointer"
-          :class="
-            (data as ContextNodeData).variant === 'unmapped' ? 'frame--unmapped' : 'frame--context'
-          "
+          :class="`frame--${(data as ContextNodeData).variant ?? 'context'}`"
         >
           <div
             class="frame-tab mx-2 mt-2 inline-flex max-w-[calc(100%-16px)] items-center gap-1.5 rounded-sm px-1.5 py-0.5 font-mono text-micro font-semibold uppercase tracking-wide"
             :title="
-              (data as ContextNodeData).variant === 'unmapped'
+              (data as ContextNodeData).title ??
+              ((data as ContextNodeData).variant === 'unmapped'
                 ? 'Unmapped instances with no resolvable parent — click to focus and inspect'
-                : 'Click to focus this group'
+                : 'Click to focus this group')
             "
           >
             <IconAlertTriangle
@@ -594,11 +595,22 @@ function onNodeClick({ node }: NodeMouseEvent) {
             />
           </div>
           <div
-            v-if="(data as InstanceNodeData).context"
-            class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-3"
+            v-if="(data as InstanceNodeData).systemInstance || (data as InstanceNodeData).context"
+            class="mt-0.5 flex items-center gap-1 overflow-hidden font-mono text-micro text-text-3"
           >
-            <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">C</span>
-            <span class="truncate">{{ (data as InstanceNodeData).context }}</span>
+            <template v-if="(data as InstanceNodeData).systemInstance">
+              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
+              <span
+                class="min-w-0 shrink truncate"
+                :title="(data as InstanceNodeData).systemInstance"
+              >
+                {{ (data as InstanceNodeData).systemInstance }}
+              </span>
+            </template>
+            <template v-if="(data as InstanceNodeData).context">
+              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">C</span>
+              <span class="min-w-0 flex-1 truncate">{{ (data as InstanceNodeData).context }}</span>
+            </template>
           </div>
         </div>
         <div
@@ -788,6 +800,19 @@ function onNodeClick({ node }: NodeMouseEvent) {
 .frame--unmapped:hover {
   border-color: color-mix(in srgb, var(--color-warning) 80%, transparent);
   background: color-mix(in srgb, var(--color-warning) 8%, transparent);
+}
+
+.frame--group {
+  border: 1.5px dashed color-mix(in srgb, var(--color-text-3) 40%, transparent);
+  background: color-mix(in srgb, var(--color-bg-1) 45%, transparent);
+}
+.frame--group:hover {
+  border-color: color-mix(in srgb, var(--color-warning) 75%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 7%, var(--color-bg-1));
+}
+.frame--group .frame-tab:hover {
+  background: color-mix(in srgb, var(--color-warning) 20%, var(--color-bg-0));
+  color: var(--color-text-1);
 }
 
 .frame-tab {

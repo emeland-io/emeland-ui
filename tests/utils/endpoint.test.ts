@@ -22,9 +22,7 @@ describe('endpointUrl', () => {
     expect(endpointUrl({ [ENDPOINT.protocol]: 'https', [ENDPOINT.host]: 'h' })).toBe(
       'https://h:443/',
     )
-    expect(endpointUrl({ [ENDPOINT.protocol]: 'http', [ENDPOINT.host]: 'h' })).toBe(
-      'http://h:80/',
-    )
+    expect(endpointUrl({ [ENDPOINT.protocol]: 'http', [ENDPOINT.host]: 'h' })).toBe('http://h:80/')
   })
 
   it('defaults the path to / and adds a missing leading slash', () => {

@@ -2,6 +2,21 @@ import { describe, it, expect } from 'vitest'
 import { buildApiGraph } from '@/graph/apiGraph'
 import type { Api, ApiInstance } from '@/types/api'
 import type { Component } from '@/types/component'
+import type { GraphModel } from '@/types/graph'
+
+// node positions are relative to their (possibly nested) parent frames
+function absPos(g: GraphModel, id: string): { x: number; y: number } {
+  const byId = new Map(g.nodes.map((n) => [n.id, n]))
+  let x = 0
+  let y = 0
+  let cur = byId.get(id)
+  while (cur) {
+    x += cur.position.x
+    y += cur.position.y
+    cur = cur.parentId ? byId.get(cur.parentId) : undefined
+  }
+  return { x, y }
+}
 
 function api(apiId: string, over: Partial<Api> = {}): Api {
   return {
@@ -53,9 +68,21 @@ describe('buildApiGraph', () => {
     expect(compIds.sort()).toEqual(['comp:c1', 'comp:c2'])
 
     const edge = (id: string) => g.edges.find((e) => e.id === id)
-    expect(edge('prov:c1:a1')).toMatchObject({ source: 'comp:c1', target: 'api:a1', kind: 'provides' })
-    expect(edge('cons:a2:c1')).toMatchObject({ source: 'api:a2', target: 'comp:c1', kind: 'consumes' })
-    expect(edge('cons:a1:c2')).toMatchObject({ source: 'api:a1', target: 'comp:c2', kind: 'consumes' })
+    expect(edge('prov:c1:a1')).toMatchObject({
+      source: 'comp:c1',
+      target: 'api:a1',
+      kind: 'provides',
+    })
+    expect(edge('cons:a2:c1')).toMatchObject({
+      source: 'api:a2',
+      target: 'comp:c1',
+      kind: 'consumes',
+    })
+    expect(edge('cons:a1:c2')).toMatchObject({
+      source: 'api:a1',
+      target: 'comp:c2',
+      kind: 'consumes',
+    })
     expect(g.edges).toHaveLength(3)
   })
 
@@ -107,7 +134,10 @@ describe('buildApiGraph', () => {
       findingKindsOf: (id) => (id === 'a1' ? ['MissingProvider'] : []),
     })
     const byId = new Map(g.nodes.map((n) => [n.id, n]))
-    expect(byId.get('api:a1')!.data).toMatchObject({ findings: 2, findingKinds: ['MissingProvider'] })
+    expect(byId.get('api:a1')!.data).toMatchObject({
+      findings: 2,
+      findingKinds: ['MissingProvider'],
+    })
     const a2 = byId.get('api:a2')!.data as { findings?: number; findingKinds?: string[] }
     expect(a2.findings).toBeUndefined()
     expect(a2.findingKinds).toEqual([])
@@ -166,10 +196,11 @@ describe('buildApiGraph', () => {
     const fh = frame!.size!.height!
     for (const node of unmapped) {
       const gw = node.size!.width
-      expect(node.position.x).toBeGreaterThanOrEqual(fx)
-      expect(node.position.y).toBeGreaterThanOrEqual(fy)
-      expect(node.position.x + gw).toBeLessThanOrEqual(fx + fw)
-      expect(node.position.y).toBeLessThanOrEqual(fy + fh)
+      const pos = absPos(g, node.id)
+      expect(pos.x).toBeGreaterThanOrEqual(fx)
+      expect(pos.y).toBeGreaterThanOrEqual(fy)
+      expect(pos.x + gw).toBeLessThanOrEqual(fx + fw)
+      expect(pos.y).toBeLessThanOrEqual(fy + fh)
     }
     // unresolved parent reference is flagged on the unmapped node data
     const byId = new Map(g.nodes.map((n) => [n.id, n]))
@@ -192,14 +223,19 @@ describe('buildApiGraph', () => {
         .filter((n) => n.kind === 'instance' && (n.data as { unmapped?: boolean }).unmapped)
         .map((n) => n.id),
     )
-    const connected = g.nodes.filter((n) => n.id !== 'frame:unmapped' && !unmappedIds.has(n.id))
+    const laneIds = new Set(
+      g.nodes
+        .filter((n) => unmappedIds.has(n.id) || n.id.startsWith('frame:unmapped'))
+        .map((n) => n.id),
+    )
+    const connected = g.nodes.filter((n) => !laneIds.has(n.id))
     const connectedMinX = Math.min(...connected.map((n) => n.position.x))
 
     // the frame (and therefore the whole lane) ends before the graph begins
     expect(frame.position.x + frame.size!.width).toBeLessThanOrEqual(connectedMinX)
     // every unmapped node sits in that lane, left of the graph
     for (const id of unmappedIds) {
-      expect(g.nodes.find((n) => n.id === id)!.position.x).toBeLessThan(connectedMinX)
+      expect(absPos(g, id).x).toBeLessThan(connectedMinX)
     }
   })
 
@@ -211,6 +247,45 @@ describe('buildApiGraph', () => {
       instancesOf: (id) => (id === 'a1' ? [apiInst('i1')] : []),
     })
     expect(g.nodes.some((n) => n.id === 'frame:unmapped')).toBe(false)
+  })
+
+  it('nests one frame per system instance in the unmapped lane, with columns of at most 5 rows', () => {
+    const g = buildApiGraph({
+      apis: [api('a1')],
+      components: [],
+      showInstances: true,
+      systemInstanceName: (id) => ({ 'si-a': 'Alpha (prod)', 'si-b': 'Beta (prod)' })[id],
+      unmappedInstances: [
+        ...Array.from({ length: 6 }, (_, i) => apiInst(`a${i}`, { systemInstance: 'si-a' })),
+        ...Array.from({ length: 6 }, (_, i) => apiInst(`b${i}`, { systemInstance: 'si-b' })),
+      ],
+    })
+    const byId = new Map(g.nodes.map((n) => [n.id, n]))
+    const innerA = byId.get('frame:unmapped:Alpha (prod)')!
+    const innerB = byId.get('frame:unmapped:Beta (prod)')!
+    const first = byId.get('inst:a0')!
+
+    // one nested frame per system instance, sorted by name, inside the lane frame
+    expect(innerA.parentId).toBe('frame:unmapped')
+    expect(innerB.parentId).toBe('frame:unmapped')
+    expect((innerA.data as { variant?: string }).variant).toBe('group')
+    expect(innerA.position.x).toBeLessThan(innerB.position.x)
+    expect(byId.get('inst:a5')!.parentId).toBe('frame:unmapped:Alpha (prod)')
+    expect(byId.get('inst:b0')!.parentId).toBe('frame:unmapped:Beta (prod)')
+
+    // six instances -> two columns inside the group frame: five rows, then a wrap
+    expect(byId.get('inst:a4')!.position.x).toBe(first.position.x)
+    expect(byId.get('inst:a4')!.position.y).toBe(first.position.y + 4 * 76)
+    const sixth = byId.get('inst:a5')!
+    expect(sixth.position.y).toBe(first.position.y)
+    expect(sixth.position.x).toBe(first.position.x + 200 + 16)
+
+    // the frames size to their content; the lane fits both group frames
+    expect(innerA.size?.width).toBe(2 * 12 + 2 * 200 + 16)
+    expect(byId.get('frame:unmapped')!.size?.width).toBe(2 * 14 + 2 * (2 * 12 + 2 * 200 + 16) + 16)
+
+    // unmapped nodes carry their system instance for the sub-line chip
+    expect((first.data as { systemInstance?: string }).systemInstance).toBe('Alpha (prod)')
   })
 
   it('lays out nodes with positions', () => {

@@ -231,7 +231,10 @@ export const apiInstances: ApiInstance[] = [
     annotations: {},
   },
 
-  // Unmapped instances
+  // Unmapped instances — grouped below by their broken API reference:
+  //   ffffffff-0000-4211-8000-0000000000aa  legacy estate (3)
+  //   ffffffff-0000-4211-8000-0000000000ab  sensor-discovered endpoints (6)
+  //   (no API reference at all)             (4)
   {
     apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000a1',
     displayName: 'Inventory Scrape',
@@ -267,5 +270,94 @@ export const apiInstances: ApiInstance[] = [
     displayName: 'Floating Endpoint',
     // no api, no systemInstance: fully detached
     annotations: {},
+  },
+  {
+    apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000a5',
+    displayName: 'Legacy SOAP Endpoint',
+    api: 'ffffffff-0000-4211-8000-0000000000aa',
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000a6',
+    displayName: 'Legacy Poller',
+    api: 'ffffffff-0000-4211-8000-0000000000aa',
+    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+  },
+  {
+    apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000b1',
+    displayName: 'Discovered REST Endpoint (orders)',
+    api: 'ffffffff-0000-4211-8000-0000000000ab', // unresolvable API reference
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
+    annotations: {
+      'emeland.io/endpoint.protocol': 'https',
+      'emeland.io/endpoint.host': 'orders.prod.internal',
+      'emeland.io/endpoint.path': '/api/v2/orders',
+    },
+  },
+  {
+    apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000b2',
+    displayName: 'Discovered REST Endpoint (billing)',
+    api: 'ffffffff-0000-4211-8000-0000000000ab',
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
+    annotations: {
+      'emeland.io/endpoint.protocol': 'https',
+      'emeland.io/endpoint.host': 'billing.prod.internal',
+      'emeland.io/endpoint.path': '/api/v2/billing',
+    },
+  },
+  {
+    apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000b3',
+    displayName: 'Discovered gRPC Endpoint (telemetry)',
+    api: 'ffffffff-0000-4211-8000-0000000000ab',
+    systemInstance: '2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e', // Prometheus (prod)
+    annotations: {
+      'emeland.io/endpoint.protocol': 'grpc',
+      'emeland.io/endpoint.host': 'telemetry.prod.internal',
+      'emeland.io/endpoint.port': '9091',
+    },
+  },
+  {
+    apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000b4',
+    displayName: 'Discovered REST Endpoint (shipping)',
+    api: 'ffffffff-0000-4211-8000-0000000000ab',
+    systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (prod-eu)
+    annotations: {
+      'emeland.io/endpoint.protocol': 'https',
+      'emeland.io/endpoint.host': 'shipping.prod.internal',
+      'emeland.io/endpoint.path': '/api/v1/shipping',
+    },
+  },
+  {
+    apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000b5',
+    displayName: 'Discovered Webhook (ci-callback)',
+    api: 'ffffffff-0000-4211-8000-0000000000ab',
+    systemInstance: 'e8b9c1d2-0000-4b5c-8d7e-8f9a1b2c3d02', // Application (staging)
+    annotations: {
+      'emeland.io/endpoint.protocol': 'http',
+      'emeland.io/endpoint.host': 'ci-callback.staging.internal',
+      'emeland.io/endpoint.port': '8088',
+      'emeland.io/endpoint.path': '/hooks/ci',
+    },
+  },
+  {
+    apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000b6',
+    displayName: 'Discovered REST Endpoint (auth)',
+    api: 'ffffffff-0000-4211-8000-0000000000ab',
+    annotations: {
+      'emeland.io/endpoint.protocol': 'https',
+      'emeland.io/endpoint.host': 'auth.prod.internal',
+      'emeland.io/endpoint.path': '/oauth2',
+    },
+  },
+  {
+    apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000c1',
+    displayName: 'Metrics Listener (iot)',
+    // no api
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
+    annotations: {
+      'emeland.io/endpoint.protocol': 'http',
+      'emeland.io/endpoint.host': 'iot-metrics.prod.internal',
+      'emeland.io/endpoint.port': '9100',
+    },
   },
 ]
