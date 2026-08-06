@@ -154,7 +154,11 @@ export function layoutFramedColumns(
       position: { x, y: 0 },
       size: { width: o.frameWidth, height: frameHeight },
       selectable: false,
-      data: { variant: 'context', count: memberCount.get(f.id) ?? 0, ...(f.data as ContextNodeData) },
+      data: {
+        variant: 'context',
+        count: memberCount.get(f.id) ?? 0,
+        ...(f.data as ContextNodeData),
+      },
     } as GraphNode)
   })
 
