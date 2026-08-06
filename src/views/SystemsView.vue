@@ -587,13 +587,14 @@ onMounted(async () => {
                     </span>
                   </button>
                   <button
-                    v-if="store.unmappedInstances.length > 0"
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
-                    :disabled="!showInstances"
+                    :disabled="!showInstances || store.unmappedInstances.length === 0"
                     :title="
-                      showInstances
-                        ? 'Show unmapped instances as nodes'
-                        : 'Enable Instances to show unmapped instances'
+                      store.unmappedInstances.length === 0
+                        ? 'No unmapped instances present'
+                        : showInstances
+                          ? 'Show unmapped instances as nodes'
+                          : 'Enable Instances to show unmapped instances'
                     "
                     @click.stop="showUnmapped = !showUnmapped"
                     @dblclick.stop
