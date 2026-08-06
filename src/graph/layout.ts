@@ -1,4 +1,10 @@
-import type { GraphModel, GraphNode, GraphEdge, GraphNodeKind } from '@/types/graph'
+import type {
+  GraphModel,
+  GraphNode,
+  GraphEdge,
+  GraphNodeKind,
+  ContextNodeData,
+} from '@/types/graph'
 
 interface NodeSpec {
   id: string
@@ -15,6 +21,7 @@ export interface LayoutAnchor extends NodeSpec {
 export interface LayoutMember extends NodeSpec {
   frameId: string
   rowKey: string
+  floatTop?: boolean
 }
 
 export interface LayoutFrame {
@@ -68,6 +75,18 @@ export function layoutFramedColumns(
   const nodes: GraphNode[] = []
   const edges: GraphEdge[] = [...(input.edges ?? [])]
 
+  const banded = input.members.filter((m) => !m.floatTop)
+  const floating = input.members.filter((m) => m.floatTop)
+
+  const floatRow = new Map<string, number>()
+  const floatByFrame = new Map<string, number>()
+  for (const m of floating) {
+    const r = floatByFrame.get(m.frameId) ?? 0
+    floatRow.set(m.id, r)
+    floatByFrame.set(m.frameId, r + 1)
+  }
+  const floatRows = Math.max(0, ...floatByFrame.values())
+
   const bandOrder: string[] = []
   const bandMembers = new Map<string, LayoutMember[]>()
   const pushBand = (key: string) => {
@@ -77,7 +96,7 @@ export function layoutFramedColumns(
     }
   }
   for (const a of input.anchors ?? []) pushBand(a.rowKey)
-  for (const m of input.members) {
+  for (const m of banded) {
     pushBand(m.rowKey)
     bandMembers.get(m.rowKey)!.push(m)
   }
@@ -96,7 +115,9 @@ export function layoutFramedColumns(
       bandCentre.set(key, first + (members.length - 1) / 2)
     }
   }
-  const totalRows = row
+
+  const bandBase = floatRows
+  const totalRows = floatRows + row
   const frameHeight = totalRows > 0 ? rowY(totalRows - 1) + o.nodeH + o.pad : o.header + o.pad
 
   for (const a of input.anchors ?? []) {
@@ -105,7 +126,7 @@ export function layoutFramedColumns(
       kind: a.kind,
       position: {
         x: o.anchorX + (a.depth ?? 0) * o.anchorIndent,
-        y: rowY(bandCentre.get(a.rowKey) ?? 0),
+        y: rowY(bandBase + (bandCentre.get(a.rowKey) ?? 0)),
       },
       size: { width: o.anchorWidth },
       selectable: a.selectable ?? false,
@@ -116,6 +137,11 @@ export function layoutFramedColumns(
   const maxDepth = Math.max(0, ...(input.anchors ?? []).map((a) => a.depth ?? 0))
   const anchorsRight = o.anchorX + maxDepth * o.anchorIndent + o.anchorWidth
   const frameStart = Math.max(o.frameX0, anchorsRight + o.columnGap)
+
+  const memberCount = new Map<string, number>()
+  for (const m of input.members) {
+    memberCount.set(m.frameId, (memberCount.get(m.frameId) ?? 0) + 1)
+  }
 
   const frameX = new Map<string, number>()
   const orderedFrames = [...input.frames].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -128,18 +154,19 @@ export function layoutFramedColumns(
       position: { x, y: 0 },
       size: { width: o.frameWidth, height: frameHeight },
       selectable: false,
-      data: f.data,
+      data: { variant: 'context', count: memberCount.get(f.id) ?? 0, ...(f.data as ContextNodeData) },
     } as GraphNode)
   })
 
   const innerX = Math.max(0, (o.frameWidth - o.memberWidth) / 2)
   for (const m of input.members) {
     if (!frameX.has(m.frameId)) continue // unknown frame -> skip
+    const r = m.floatTop ? (floatRow.get(m.id) ?? 0) : bandBase + (memberRow.get(m.id) ?? 0)
     nodes.push({
       id: m.id,
       kind: m.kind,
       parentId: m.frameId,
-      position: { x: innerX, y: rowY(memberRow.get(m.id) ?? 0) },
+      position: { x: innerX, y: rowY(r) },
       size: { width: o.memberWidth },
       selectable: m.selectable ?? true,
       data: m.data,

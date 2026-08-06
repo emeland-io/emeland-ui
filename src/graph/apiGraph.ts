@@ -1,7 +1,7 @@
 import type { Api, ApiInstance } from '@/types/api'
 import type { Component } from '@/types/component'
 import type { GraphModel, GraphEdge } from '@/types/graph'
-import { layoutDag, frameGhostNodes, type DagNode as DagNodeSpec } from './layoutDag'
+import { layoutDag, frameUnmappedNodes, type DagNode as DagNodeSpec } from './layoutDag'
 
 export interface ApiGraphInput {
   apis: Api[]
@@ -49,8 +49,10 @@ export function buildApiGraph({
     },
   }))
   const edges: GraphEdge[] = []
+  // unmapped instances are kept out of the dagre pass and placed in their own lane
+  const unmappedNodes: DagNodeSpec[] = []
 
-  // instances that realize a shown API attach to it; unmapped ones float as ghosts
+  // instances that realize a shown API attach to it; unmapped ones go in the lane
   if (showInstances) {
     for (const a of apis) {
       for (const inst of instancesOf?.(a.apiId) ?? []) {
@@ -76,7 +78,7 @@ export function buildApiGraph({
       }
     }
     for (const inst of unmappedInstances ?? []) {
-      nodes.push({
+      unmappedNodes.push({
         id: `inst:${inst.apiInstanceId}`,
         kind: 'instance',
         data: {
@@ -154,5 +156,5 @@ export function buildApiGraph({
     }
   }
 
-  return frameGhostNodes(layoutDag({ nodes, edges, direction: 'LR' }))
+  return frameUnmappedNodes(layoutDag({ nodes, edges, direction: 'LR' }), unmappedNodes)
 }

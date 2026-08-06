@@ -155,6 +155,7 @@ export function buildInstanceGraph({
       kind: 'instance',
       frameId: frameOf(inst),
       rowKey: UNMAPPED_ROW,
+      floatTop: true,
       data: {
         label: inst.displayName,
         context: ctxLabel(inst),

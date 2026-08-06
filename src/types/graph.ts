@@ -41,6 +41,8 @@ export interface InstanceNodeData {
 }
 export interface ContextNodeData {
   label: string
+  variant?: 'context' | 'unmapped'
+  count?: number
 }
 export interface ContextItemNodeData {
   label: string

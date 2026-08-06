@@ -201,7 +201,7 @@ const graphVisible = ref(true)
 const graphFullscreen = ref(false)
 const showComponents = ref(true)
 const showInstances = ref(false)
-const showUnmappedGhosts = ref(true)
+const showUnmapped = ref(true)
 
 function toggleComponents() {
   showComponents.value = !showComponents.value
@@ -504,7 +504,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Show API instances as nodes; unmapped ones appear as ghost nodes"
+                    title="Show API instances as nodes; unmapped ones appear as standalone nodes"
                     @click.stop="toggleInstances"
                     @dblclick.stop
                   >
@@ -524,22 +524,22 @@ onMounted(async () => {
                     :disabled="!showInstances"
                     :title="
                       showInstances
-                        ? 'Show unmapped instances as ghost nodes'
+                        ? 'Show unmapped instances as nodes'
                         : 'Enable Instances to show unmapped instances'
                     "
-                    @click.stop="showUnmappedGhosts = !showUnmappedGhosts"
+                    @click.stop="showUnmapped = !showUnmapped"
                     @dblclick.stop
                   >
                     Unmapped
                     <span
                       class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
                       :class="
-                        showInstances && showUnmappedGhosts
+                        showInstances && showUnmapped
                           ? 'bg-accent/15 text-accent-text'
                           : 'bg-bg-0 text-text-4'
                       "
                     >
-                      {{ showInstances && showUnmappedGhosts ? 'on' : 'off' }}
+                      {{ showInstances && showUnmapped ? 'on' : 'off' }}
                     </span>
                   </button>
                   <div class="mx-0.5 h-4 w-px bg-bg-3" />
@@ -598,7 +598,7 @@ onMounted(async () => {
                 :selected-id="selectedId"
                 :show-components="showComponents"
                 :show-instances="showInstances"
-                :show-unmapped="showUnmappedGhosts"
+                :show-unmapped="showUnmapped"
                 :show-controls="false"
                 class="h-full"
                 @select="selectApi"

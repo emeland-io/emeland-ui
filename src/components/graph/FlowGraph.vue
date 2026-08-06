@@ -238,7 +238,6 @@ watch(hoveredNodeId, (id) => {
     tooltipTimer = setTimeout(() => (tooltipNodeId.value = id), 250)
   }
 })
-
 // avoid a dangling timer writing to a detached ref after unmount
 onScopeDispose(() => clearTimeout(tooltipTimer))
 
@@ -259,6 +258,8 @@ watch(
 const TOOLTIP_GAP = 10
 const TOOLTIP_MARGIN = 8
 
+// depends only on nodes, so panning/zooming (which drives `tooltip` via viewport)
+// doesn't reallocate this map every frame while a tooltip is open
 const nodeById = computed(() => new Map(props.nodes.map((n) => [n.id, n])))
 
 const tooltip = computed(() => {
@@ -397,6 +398,9 @@ function isOwnedBySelection(data: unknown): boolean {
 }
 
 function onNodeClick({ node }: NodeMouseEvent) {
+  if (node.type === 'context') {
+    fitView({ nodes: [node.id], padding: 0.3, duration: 300, maxZoom: 1.2 })
+  }
   emit('node-click', { id: node.id, kind: node.type as GraphNodeKind })
 }
 </script>
@@ -444,13 +448,35 @@ function onNodeClick({ node }: NodeMouseEvent) {
         <ChannelEdge v-bind="edgeProps" />
       </template>
 
-      <!-- Context frame -->
+      <!-- Context / unmapped frame -->
       <template #node-context="{ data }">
-        <div class="frame-dashed h-full w-full">
+        <div
+          class="frame h-full w-full cursor-pointer"
+          :class="
+            (data as ContextNodeData).variant === 'unmapped' ? 'frame--unmapped' : 'frame--context'
+          "
+        >
           <div
-            class="frame-tab mx-2 mt-2 inline-flex max-w-[calc(100%-16px)] items-center truncate rounded-sm px-1.5 py-0.5 font-mono text-micro font-semibold uppercase tracking-wide text-text-3"
+            class="frame-tab mx-2 mt-2 inline-flex max-w-[calc(100%-16px)] items-center gap-1.5 rounded-sm px-1.5 py-0.5 font-mono text-micro font-semibold uppercase tracking-wide"
+            :title="
+              (data as ContextNodeData).variant === 'unmapped'
+                ? 'Unmapped instances with no resolvable parent — click to focus and inspect'
+                : 'Click to focus this group'
+            "
           >
-            {{ (data as ContextNodeData).label }}
+            <IconAlertTriangle
+              v-if="(data as ContextNodeData).variant === 'unmapped'"
+              :size="11"
+              :stroke-width="2.5"
+              class="shrink-0"
+            />
+            <span class="truncate">{{ (data as ContextNodeData).label }}</span>
+            <span
+              v-if="(data as ContextNodeData).count"
+              class="frame-count shrink-0 rounded-full px-1 py-px tabular-nums"
+            >
+              {{ (data as ContextNodeData).count }}
+            </span>
           </div>
         </div>
       </template>
@@ -553,11 +579,11 @@ function onNodeClick({ node }: NodeMouseEvent) {
       </template>
 
       <template #node-instance="{ id, data }">
-        <!-- unmapped instance: no resolvable parent, rendered as a ghost -->
+        <!-- unmapped instance: no resolvable parent, rendered as a standalone node -->
         <div
           v-if="(data as InstanceNodeData).unmapped"
-          class="node-inst-ghost w-full cursor-pointer px-3 py-2"
-          :class="id === selectedId ? 'node-inst-ghost-selected' : ''"
+          class="node-inst-unmapped flex h-full w-full cursor-pointer flex-col justify-center px-3"
+          :class="id === selectedId ? 'node-inst-unmapped-selected' : ''"
         >
           <div class="flex items-center gap-2">
             <div class="min-w-0 flex-1 truncate text-body text-text-2">
@@ -741,15 +767,53 @@ function onNodeClick({ node }: NodeMouseEvent) {
   clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
 }
 
-.frame-dashed {
-  /* border: 1.5px solid color-mix(in srgb, var(--color-text-3) 60%, transparent); */
+.frame {
   border-radius: 8px;
-  background: color-mix(in srgb, var(--color-accent) 4%, transparent);
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+
+.frame--context {
+  background: color-mix(in srgb, var(--color-text-4) 4%, transparent);
+}
+.frame--context:hover {
+  background: color-mix(in srgb, var(--color-text-4) 7%, transparent);
+}
+
+.frame--unmapped {
+  border: 1.5px dashed color-mix(in srgb, var(--color-warning) 55%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 5%, transparent);
+}
+.frame--unmapped:hover {
+  border-color: color-mix(in srgb, var(--color-warning) 80%, transparent);
+  background: color-mix(in srgb, var(--color-warning) 8%, transparent);
 }
 
 .frame-tab {
   background: color-mix(in srgb, var(--color-text-3) 12%, var(--color-bg-0));
-  /* border: 1px solid color-mix(in srgb, var(--color-text-3) 30%, transparent); */
+  color: var(--color-text-3);
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+.frame--context .frame-tab:hover {
+  background: color-mix(in srgb, var(--color-text-3) 20%, var(--color-bg-0));
+  color: var(--color-text-2);
+}
+.frame--unmapped .frame-tab {
+  background: color-mix(in srgb, var(--color-warning) 16%, var(--color-bg-0));
+  color: var(--color-warning);
+}
+.frame--unmapped .frame-tab:hover {
+  background: color-mix(in srgb, var(--color-warning) 26%, var(--color-bg-0));
+}
+
+.frame-count {
+  background: color-mix(in srgb, var(--color-text-3) 22%, var(--color-bg-0));
+}
+.frame--unmapped .frame-count {
+  background: color-mix(in srgb, var(--color-warning) 26%, var(--color-bg-0));
 }
 
 .node-cut-inner {
@@ -813,7 +877,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
 }
 
 /* unmapped instances */
-.node-inst-ghost {
+.node-inst-unmapped {
   border: 1.5px dashed var(--color-text-3);
   border-radius: 6px;
   background: color-mix(in srgb, var(--color-bg-2) 70%, transparent);
@@ -821,12 +885,12 @@ function onNodeClick({ node }: NodeMouseEvent) {
     border-color 150ms,
     background-color 150ms;
 }
-.node-inst-ghost:hover {
+.node-inst-unmapped:hover {
   border-color: var(--color-text-2);
   background: color-mix(in srgb, var(--color-bg-2) 85%, transparent);
 }
-.node-inst-ghost-selected,
-.node-inst-ghost-selected:hover {
+.node-inst-unmapped-selected,
+.node-inst-unmapped-selected:hover {
   border-color: var(--color-accent);
   background: color-mix(in srgb, var(--color-bg-1) 68%, var(--color-accent));
 }

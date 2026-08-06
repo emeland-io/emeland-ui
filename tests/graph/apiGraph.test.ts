@@ -113,7 +113,7 @@ describe('buildApiGraph', () => {
     expect(a2.findingKinds).toEqual([])
   })
 
-  it('attaches mapped instances to their API and floats unmapped ones as ghosts', () => {
+  it('attaches mapped instances to their API and floats unmapped ones separately', () => {
     const g = buildApiGraph({
       apis: [api('a1')],
       components: [],
@@ -139,7 +139,7 @@ describe('buildApiGraph', () => {
     expect(g.edges).toEqual([])
   })
 
-  it('frames unmapped ghost nodes in a dashed context frame', () => {
+  it('frames unmapped nodes in a dashed context frame', () => {
     const g = buildApiGraph({
       apis: [api('a1')],
       components: [],
@@ -155,26 +155,52 @@ describe('buildApiGraph', () => {
     // the frame comes first so it renders behind the members
     expect(g.nodes[0].id).toBe('frame:unmapped')
 
-    // bbox containment: every ghost sits inside the frame
-    const ghosts = g.nodes.filter(
+    // bbox containment: every unmapped node sits inside the frame
+    const unmapped = g.nodes.filter(
       (n) => n.kind === 'instance' && (n.data as { unmapped?: boolean }).unmapped,
     )
-    expect(ghosts.map((n) => n.id).sort()).toEqual(['inst:i2', 'inst:i3'])
+    expect(unmapped.map((n) => n.id).sort()).toEqual(['inst:i2', 'inst:i3'])
     const fx = frame!.position.x
     const fy = frame!.position.y
     const fw = frame!.size!.width
     const fh = frame!.size!.height!
-    for (const ghost of ghosts) {
-      const gw = ghost.size!.width
-      expect(ghost.position.x).toBeGreaterThanOrEqual(fx)
-      expect(ghost.position.y).toBeGreaterThanOrEqual(fy)
-      expect(ghost.position.x + gw).toBeLessThanOrEqual(fx + fw)
-      expect(ghost.position.y).toBeLessThanOrEqual(fy + fh)
+    for (const node of unmapped) {
+      const gw = node.size!.width
+      expect(node.position.x).toBeGreaterThanOrEqual(fx)
+      expect(node.position.y).toBeGreaterThanOrEqual(fy)
+      expect(node.position.x + gw).toBeLessThanOrEqual(fx + fw)
+      expect(node.position.y).toBeLessThanOrEqual(fy + fh)
     }
-    // unresolved parent reference is flagged on the ghost data
+    // unresolved parent reference is flagged on the unmapped node data
     const byId = new Map(g.nodes.map((n) => [n.id, n]))
     expect((byId.get('inst:i3')!.data as { unresolved?: boolean }).unresolved).toBe(true)
     expect((byId.get('inst:i2')!.data as { unresolved?: boolean }).unresolved).toBeUndefined()
+  })
+
+  it('places the unmapped lane entirely to the left of the connected graph', () => {
+    const g = buildApiGraph({
+      apis: [api('a1')],
+      components: [comp('c1', { provides: ['a1'] })],
+      showComponents: true,
+      showInstances: true,
+      instancesOf: (id) => (id === 'a1' ? [apiInst('i1')] : []),
+      unmappedInstances: [apiInst('i2'), apiInst('i3')],
+    })
+    const frame = g.nodes.find((n) => n.id === 'frame:unmapped')!
+    const unmappedIds = new Set(
+      g.nodes
+        .filter((n) => n.kind === 'instance' && (n.data as { unmapped?: boolean }).unmapped)
+        .map((n) => n.id),
+    )
+    const connected = g.nodes.filter((n) => n.id !== 'frame:unmapped' && !unmappedIds.has(n.id))
+    const connectedMinX = Math.min(...connected.map((n) => n.position.x))
+
+    // the frame (and therefore the whole lane) ends before the graph begins
+    expect(frame.position.x + frame.size!.width).toBeLessThanOrEqual(connectedMinX)
+    // every unmapped node sits in that lane, left of the graph
+    for (const id of unmappedIds) {
+      expect(g.nodes.find((n) => n.id === id)!.position.x).toBeLessThan(connectedMinX)
+    }
   })
 
   it('adds no frame when there are no unmapped instances', () => {

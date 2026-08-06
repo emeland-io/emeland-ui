@@ -272,7 +272,7 @@ const graphPane = ref<InstanceType<typeof SystemGraphPane> | null>(null)
 const graphVisible = ref(true)
 const graphFullscreen = ref(false)
 const showInstances = ref(true)
-const showUnmappedGhosts = ref(true)
+const showUnmapped = ref(true)
 
 function toggleInstances() {
   showInstances.value = !showInstances.value
@@ -592,22 +592,22 @@ onMounted(async () => {
                     :disabled="!showInstances"
                     :title="
                       showInstances
-                        ? 'Show unmapped instances as ghost nodes'
+                        ? 'Show unmapped instances as nodes'
                         : 'Enable Instances to show unmapped instances'
                     "
-                    @click.stop="showUnmappedGhosts = !showUnmappedGhosts"
+                    @click.stop="showUnmapped = !showUnmapped"
                     @dblclick.stop
                   >
                     Unmapped
                     <span
                       class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
                       :class="
-                        showInstances && showUnmappedGhosts
+                        showInstances && showUnmapped
                           ? 'bg-accent/15 text-accent-text'
                           : 'bg-bg-0 text-text-4'
                       "
                     >
-                      {{ showInstances && showUnmappedGhosts ? 'on' : 'off' }}
+                      {{ showInstances && showUnmapped ? 'on' : 'off' }}
                     </span>
                   </button>
                   <div class="mx-0.5 h-4 w-px bg-bg-3" />
@@ -665,7 +665,7 @@ onMounted(async () => {
                 :systems="chipFilteredSystems"
                 :selected-id="selectedId"
                 :show-instances="showInstances"
-                :show-unmapped="showUnmappedGhosts"
+                :show-unmapped="showUnmapped"
                 :show-controls="false"
                 class="h-full"
                 @select="selectSystem"

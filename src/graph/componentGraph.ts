@@ -1,6 +1,6 @@
 import type { Component, ComponentInstance } from '@/types/component'
 import type { GraphModel, GraphEdge } from '@/types/graph'
-import { layoutDag, frameGhostNodes, type DagNode as DagNodeSpec } from './layoutDag'
+import { layoutDag, frameUnmappedNodes, type DagNode as DagNodeSpec } from './layoutDag'
 
 export interface ComponentGraphInput {
   components: Component[]
@@ -35,6 +35,7 @@ export function buildComponentGraph({
 }: ComponentGraphInput): GraphModel {
   const nodes: DagNodeSpec[] = []
   const edges: GraphEdge[] = []
+  const unmappedNodes: DagNodeSpec[] = []
   const apiNodeIds = new Set<string>()
 
   const ensureApiNode = (id: string) => {
@@ -86,21 +87,6 @@ export function buildComponentGraph({
           kind: 'contains',
         })
       }
-      // unmapped instances: ghost nodes without a parent edge
-      for (const inst of unmappedInstances ?? []) {
-        nodes.push({
-          id: `inst:${inst.componentInstanceId}`,
-          kind: 'instance',
-          data: {
-            label: inst.displayName,
-            context: instanceContext?.(inst),
-            systemInstance: systemInstanceName?.(inst.systemInstance),
-            type: 'ComponentInstance',
-            unmapped: true,
-            unresolved: inst.component ? true : undefined,
-          },
-        })
-      }
     }
     if (!showApis) continue
     for (const apiId of c.provides) {
@@ -149,5 +135,22 @@ export function buildComponentGraph({
     }
   }
 
-  return frameGhostNodes(layoutDag({ nodes, edges, direction: 'LR' }))
+  if (showInstances) {
+    for (const inst of unmappedInstances ?? []) {
+      unmappedNodes.push({
+        id: `inst:${inst.componentInstanceId}`,
+        kind: 'instance',
+        data: {
+          label: inst.displayName,
+          context: instanceContext?.(inst),
+          systemInstance: systemInstanceName?.(inst.systemInstance),
+          type: 'ComponentInstance',
+          unmapped: true,
+          unresolved: inst.component ? true : undefined,
+        },
+      })
+    }
+  }
+
+  return frameUnmappedNodes(layoutDag({ nodes, edges, direction: 'LR' }), unmappedNodes)
 }
