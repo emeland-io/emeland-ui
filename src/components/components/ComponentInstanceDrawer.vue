@@ -48,7 +48,7 @@ const componentName = computed(() =>
 const systemInstance = computed(() => {
   const id = instance.value?.systemInstance
   if (!id) return undefined
-  return systemStore.systemInstances.find((si) => si.systemInstanceId === id)
+  return systemStore.systemInstanceMap.get(id)
 })
 
 const context = computed(() => (instance.value ? contextForInstance(instance.value) : undefined))

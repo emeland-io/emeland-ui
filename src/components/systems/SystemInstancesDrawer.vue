@@ -44,9 +44,7 @@ function goToContext(id: string) {
   goToResource('Context', id)
 }
 
-const drawerInstance = computed(() =>
-  store.systemInstances.find((i) => i.systemInstanceId === props.selectedInstanceId),
-)
+const drawerInstance = computed(() => store.systemInstanceMap.get(props.selectedInstanceId))
 
 const mappingState = computed(() =>
   drawerInstance.value

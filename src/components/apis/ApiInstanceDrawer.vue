@@ -50,7 +50,7 @@ const url = computed(() => (instance.value ? endpointUrl(instance.value.annotati
 const systemInstance = computed(() => {
   const id = instance.value?.systemInstance
   if (!id) return undefined
-  return systemStore.systemInstances.find((si) => si.systemInstanceId === id)
+  return systemStore.systemInstanceMap.get(id)
 })
 
 const contextId = computed(() =>

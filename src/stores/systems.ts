@@ -24,6 +24,10 @@ export const useSystemStore = defineStore('system', () => {
 
   const systemMap = computed(() => new Map(systems.value.map((s) => [s.systemId, s])))
 
+  const systemInstanceMap = computed(
+    () => new Map(systemInstances.value.map((si) => [si.systemInstanceId, si])),
+  )
+
   const instancesBySystem = computed(() => {
     const map = new Map<string, SystemInstance[]>()
     for (const inst of systemInstances.value) {
@@ -130,6 +134,7 @@ export const useSystemStore = defineStore('system', () => {
     selectedInstanceDetail,
     detailsHydrated,
     systemMap,
+    systemInstanceMap,
     instancesBySystem,
     unmappedInstances,
     getParentName,

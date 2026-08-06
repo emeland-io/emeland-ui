@@ -21,7 +21,7 @@ const search = ref('')
 const expanded = ref<Set<string>>(new Set())
 
 function systemInstanceName(id: string): string | undefined {
-  return systemStore.systemInstances.find((si) => si.systemInstanceId === id)?.displayName
+  return systemStore.systemInstanceMap.get(id)?.displayName
 }
 
 function ctxName(inst: ComponentInstance): string | undefined {

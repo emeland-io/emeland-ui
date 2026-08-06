@@ -54,13 +54,13 @@ function findingCount(id: string): number {
 
 function systemInstanceName(id: string | undefined): string | undefined {
   if (!id) return undefined
-  return systemStore.systemInstances.find((si) => si.systemInstanceId === id)?.displayName
+  return systemStore.systemInstanceMap.get(id)?.displayName
 }
 
 function instanceContext(inst: ComponentInstance): string | undefined {
-  const ctxId = systemStore.systemInstances.find(
-    (si) => si.systemInstanceId === inst.systemInstance,
-  )?.context
+  const ctxId = inst.systemInstance
+    ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
+    : undefined
   return ctxId ? contextStore.contextMap.get(ctxId)?.displayName : undefined
 }
 

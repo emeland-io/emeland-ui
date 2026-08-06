@@ -44,9 +44,9 @@ const contextStore = useContextStore()
 const findingsStore = useFindingsStore()
 
 function instanceContext(inst: ApiInstance): string | undefined {
-  const ctxId = systemStore.systemInstances.find(
-    (si) => si.systemInstanceId === inst.systemInstance,
-  )?.context
+  const ctxId = inst.systemInstance
+    ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
+    : undefined
   return ctxId ? (contextStore.contextMap.get(ctxId)?.displayName ?? ctxId) : undefined
 }
 
@@ -73,8 +73,7 @@ const graphModel = computed(() =>
     instancesOf: (id) => apiStore.getInstancesForApi(id),
     unmappedInstances: props.showUnmapped ? apiStore.unmappedInstances : [],
     instanceContext,
-    systemInstanceName: (id) =>
-      systemStore.systemInstances.find((si) => si.systemInstanceId === id)?.displayName,
+    systemInstanceName: (id) => systemStore.systemInstanceMap.get(id)?.displayName,
     showComponents: props.showComponents,
     showInstances: props.showInstances,
   }),

@@ -61,9 +61,9 @@ function instanceCount(id: string): number {
 }
 
 function instanceContext(inst: ApiInstance): string | undefined {
-  const ctxId = systemStore.systemInstances.find(
-    (si) => si.systemInstanceId === inst.systemInstance,
-  )?.context
+  const ctxId = inst.systemInstance
+    ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
+    : undefined
   return ctxId ? contextStore.contextMap.get(ctxId)?.displayName : undefined
 }
 

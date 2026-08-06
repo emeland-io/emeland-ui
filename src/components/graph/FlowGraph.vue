@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, nextTick, useId } from 'vue'
+import { computed, ref, watch, nextTick, useId, onScopeDispose } from 'vue'
 import { IconAlertTriangle, IconCircleOff, IconArrowsExchange } from '@tabler/icons-vue'
 import {
   VueFlow,
@@ -239,6 +239,9 @@ watch(hoveredNodeId, (id) => {
   }
 })
 
+// avoid a dangling timer writing to a detached ref after unmount
+onScopeDispose(() => clearTimeout(tooltipTimer))
+
 const tooltipEl = ref<HTMLElement | null>(null)
 const tooltipSize = ref({ w: 288, h: 80 })
 watch(
@@ -256,11 +259,13 @@ watch(
 const TOOLTIP_GAP = 10
 const TOOLTIP_MARGIN = 8
 
+const nodeById = computed(() => new Map(props.nodes.map((n) => [n.id, n])))
+
 const tooltip = computed(() => {
   const node = props.nodes.find((n) => n.id === tooltipNodeId.value)
   const geom = nodeGeom.value.get(tooltipNodeId.value)
   if (!node || !geom) return null
-  const byId = new Map(props.nodes.map((n) => [n.id, n]))
+  const byId = nodeById.value
   const embedded = (node.data as { instanceNames?: string[] }).instanceNames
   const instances = (
     embedded ??

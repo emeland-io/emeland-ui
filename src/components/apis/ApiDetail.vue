@@ -73,13 +73,13 @@ const instances = computed(() => (props.api ? store.getInstancesForApi(props.api
 
 function systemInstanceName(id: string | undefined): string | undefined {
   if (!id) return undefined
-  return systemStore.systemInstances.find((si) => si.systemInstanceId === id)?.displayName
+  return systemStore.systemInstanceMap.get(id)?.displayName
 }
 
 function contextForInstance(inst: ApiInstance): string | undefined {
-  const ctxId = systemStore.systemInstances.find(
-    (si) => si.systemInstanceId === inst.systemInstance,
-  )?.context
+  const ctxId = inst.systemInstance
+    ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
+    : undefined
   return ctxId ? contextStore.contextMap.get(ctxId)?.displayName : undefined
 }
 

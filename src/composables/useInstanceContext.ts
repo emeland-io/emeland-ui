@@ -14,8 +14,7 @@ export function useInstanceContext() {
 
   function contextIdForSystemInstance(systemInstanceId: string | undefined): string | undefined {
     if (!systemInstanceId) return undefined
-    return systemStore.systemInstances.find((si) => si.systemInstanceId === systemInstanceId)
-      ?.context
+    return systemStore.systemInstanceMap.get(systemInstanceId)?.context
   }
 
   function contextForInstance(inst: ComponentInstance): ResolvedContext {
