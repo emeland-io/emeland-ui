@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import {
   IconAlertTriangle,
   IconChevronRight,
   IconChevronsDown,
   IconChevronsUp,
+  IconLayoutSidebarRight,
 } from '@tabler/icons-vue'
 import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
@@ -12,6 +13,7 @@ import { useComponentStore } from '@/stores/components'
 import { useFindingsStore } from '@/stores/findings'
 import MappingTag from '@/components/MappingTag.vue'
 import { mappingStateOf, groupByBrokenRef } from '@/utils/mapping'
+import { scrollRowIntoView } from '@/composables/useListKeyboardNav'
 import type { Component, ComponentInstance } from '@/types/component'
 
 const props = withDefaults(
@@ -24,8 +26,10 @@ const props = withDefaults(
     forceExpanded?: boolean
     /** fold the main rows away (e.g. to focus on the unmapped section) */
     listCollapsed?: boolean
+    /** instance currently shown in the drawer, marked with an accent indicator */
+    activeInstanceId?: string
   }>(),
-  { unmapped: () => [], forceExpanded: false, listCollapsed: false },
+  { unmapped: () => [], forceExpanded: false, listCollapsed: false, activeInstanceId: '' },
 )
 
 const emit = defineEmits<{
@@ -83,6 +87,24 @@ function toggleAllGroups() {
     : new Set(unmappedGroups.value.map((g) => g.key))
 }
 
+watch(
+  () => props.activeInstanceId,
+  async (id) => {
+    if (!id) return
+    const inst = props.unmapped.find((i) => i.componentInstanceId === id)
+    if (!inst) return
+    unmappedCollapsed.value = false
+    const key = inst.systemInstance || ''
+    if (collapsedGroups.value.has(key)) {
+      const s = new Set(collapsedGroups.value)
+      s.delete(key)
+      collapsedGroups.value = s
+    }
+    await nextTick()
+    scrollRowIntoView(id)
+  },
+)
+
 const systemStore = useSystemStore()
 const contextStore = useContextStore()
 const store = useComponentStore()
@@ -122,6 +144,7 @@ function mappingState(inst: ComponentInstance) {
     <div
       v-for="comp in components"
       :key="comp.componentId"
+      :data-row-id="comp.componentId"
       class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
       :class="[
         comp.componentId === selectedId
@@ -259,16 +282,31 @@ function mappingState(inst: ComponentInstance) {
           <div
             v-for="inst in group.items"
             :key="inst.componentInstanceId"
-            class="cursor-pointer border-b border-border-1 border-l-2 border-l-transparent py-3 pr-4 transition-colors hover:bg-bg-1"
+            :data-row-id="inst.componentInstanceId"
+            class="relative cursor-pointer border-b border-border-1 border-l-2 py-3 pr-4 transition-colors"
+            :class="
+              inst.componentInstanceId === activeInstanceId
+                ? 'border-l-text-3 bg-bg-2'
+                : 'border-l-transparent hover:bg-bg-1'
+            "
             style="padding-left: 42px"
             title="Show instance details"
             @click="emit('open-instance', inst.componentInstanceId)"
           >
-            <div
-              class="truncate text-body font-medium text-text-1"
-              :title="inst.displayName"
-            >
-              {{ inst.displayName }}
+            <IconLayoutSidebarRight
+              v-if="inst.componentInstanceId === activeInstanceId"
+              :size="13"
+              :stroke-width="1.75"
+              class="absolute left-4 top-1/2 -translate-y-1/2 text-text-3"
+              aria-label="Shown in drawer"
+            />
+            <div class="flex min-w-0 items-center gap-1.5">
+              <div
+                class="truncate text-body font-medium text-text-1"
+                :title="inst.displayName"
+              >
+                {{ inst.displayName }}
+              </div>
             </div>
             <div class="mt-2 flex items-center gap-1.5">
               <MappingTag :state="mappingState(inst)" />

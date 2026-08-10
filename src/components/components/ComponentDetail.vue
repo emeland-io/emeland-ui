@@ -321,6 +321,7 @@ function versionDates(c: Component | undefined): [string, string][] {
           <ComponentInstancesBoard
             v-if="instances.length > 0"
             :instances="instances"
+            :active-instance-id="drawerOpen ? selectedInstanceId : ''"
             @select="openInstance"
           />
         </div>
@@ -330,7 +331,9 @@ function versionDates(c: Component | undefined): [string, string][] {
     <ComponentInstanceDrawer
       :open="drawerOpen"
       :selected-instance-id="selectedInstanceId"
+      :nav-ids="instances.map((i) => i.componentInstanceId)"
       @close="drawerOpen = false"
+      @navigate="(id) => (selectedInstanceId = id)"
     />
   </div>
   <div

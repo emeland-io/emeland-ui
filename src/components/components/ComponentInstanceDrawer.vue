@@ -18,10 +18,13 @@ import { mappingStateOf } from '@/utils/mapping'
 const props = defineProps<{
   open: boolean
   selectedInstanceId: string
+  navIds?: string[]
 }>()
 
 const emit = defineEmits<{
   close: []
+  navigate: [id: string]
+  'nav-exit': [step: number]
 }>()
 
 const store = useComponentStore()
@@ -73,6 +76,16 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
   emit('close')
   goToResource(type, id)
 }
+
+const navIndex = computed(() => props.navIds?.indexOf(props.selectedInstanceId) ?? -1)
+
+function stepInstance(step: -1 | 1) {
+  const ids = props.navIds
+  if (!ids || navIndex.value < 0) return
+  const next = ids[navIndex.value + step]
+  if (next !== undefined) emit('navigate', next)
+  else emit('nav-exit', step)
+}
 </script>
 
 <template>
@@ -80,7 +93,11 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
     :open="open"
     :title="instance?.displayName ?? 'Instance'"
     subtitle="ComponentInstance"
+    :nav-index="navIndex >= 0 ? navIndex : undefined"
+    :nav-count="navIndex >= 0 ? navIds?.length : undefined"
     @close="emit('close')"
+    @nav-prev="stepInstance(-1)"
+    @nav-next="stepInstance(1)"
   >
     <template #header-tags>
       <MappingTag :state="mappingState" />
@@ -116,7 +133,8 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
       <div v-if="instance.component">
         <SectionLabel>Component</SectionLabel>
         <button
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
+          data-drawer-relation
           title="Go to component"
           @click="navigate('Component', instance.component)"
         >
@@ -151,7 +169,8 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
         <SectionLabel>System instance</SectionLabel>
         <component
           :is="systemInstance?.system ? 'button' : 'div'"
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
+          :data-drawer-relation="systemInstance?.system ? '' : undefined"
           :title="systemInstance?.system ? 'Go to system' : undefined"
           @click="systemInstance?.system && navigate('System', systemInstance.system)"
         >
@@ -187,7 +206,8 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
       <div v-if="context?.id">
         <SectionLabel>Context</SectionLabel>
         <button
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
+          data-drawer-relation
           title="Go to context"
           @click="navigate('Context', context.id)"
         >
@@ -227,9 +247,10 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
             :is="apiStore.apiMap.has(api.id) ? 'button' : 'span'"
             v-for="api in provides"
             :key="api.id"
-            class="flex items-center gap-1 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent-text transition-colors"
+            class="flex items-center gap-1 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent-text transition-colors focus-visible:bg-accent/20 focus-visible:outline-none"
             :class="apiStore.apiMap.has(api.id) ? 'hover:bg-accent/20' : ''"
             :title="apiStore.apiMap.has(api.id) ? `Go to API — ${api.id}` : api.id"
+            :data-drawer-relation="apiStore.apiMap.has(api.id) ? '' : undefined"
             @click="apiStore.apiMap.has(api.id) && navigate('API', api.id)"
           >
             <IconArrowUp
@@ -249,9 +270,10 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
             :is="apiStore.apiMap.has(api.id) ? 'button' : 'span'"
             v-for="api in consumes"
             :key="api.id"
-            class="flex items-center gap-1 rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta text-text-3 transition-colors"
+            class="flex items-center gap-1 rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta text-text-3 transition-colors focus-visible:bg-bg-3 focus-visible:text-text-1 focus-visible:outline-none"
             :class="apiStore.apiMap.has(api.id) ? 'hover:bg-bg-3 hover:text-text-1' : ''"
             :title="apiStore.apiMap.has(api.id) ? `Go to API — ${api.id}` : api.id"
+            :data-drawer-relation="apiStore.apiMap.has(api.id) ? '' : undefined"
             @click="apiStore.apiMap.has(api.id) && navigate('API', api.id)"
           >
             <IconArrowDown

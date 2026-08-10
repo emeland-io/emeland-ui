@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, useId, onScopeDispose } from 'vue'
+import { useWindowKeydown } from '@/composables/useWindowKeydown'
 import { IconAlertTriangle, IconCircleOff, IconArrowsExchange } from '@tabler/icons-vue'
 import {
   VueFlow,
@@ -19,6 +20,7 @@ import FlowHandles from './FlowHandles.vue'
 import ChannelEdge from './ChannelEdge.vue'
 import NodeTooltip from './NodeTooltip.vue'
 import MappingTag from '@/components/MappingTag.vue'
+import TypeChip from '@/components/TypeChip.vue'
 import type {
   GraphNode,
   GraphEdge,
@@ -30,6 +32,8 @@ import type {
   ApiNodeData,
   ComponentNodeData,
 } from '@/types/graph'
+import { ZOOM_IN_KEYS, ZOOM_OUT_KEYS, FIT_VIEW_KEY } from '@/constants/shortcuts'
+import { isEditableTarget } from '@/utils/dom'
 
 const props = withDefaults(
   defineProps<{
@@ -38,8 +42,16 @@ const props = withDefaults(
     selectedId?: string
     showControls?: boolean
     matchIds?: Set<string>
+    cursorId?: string
+    suspendCursorFollow?: boolean
   }>(),
-  { selectedId: '', showControls: true, matchIds: () => new Set<string>() },
+  {
+    selectedId: '',
+    showControls: true,
+    matchIds: () => new Set<string>(),
+    cursorId: '',
+    suspendCursorFollow: false,
+  },
 )
 
 const emit = defineEmits<{
@@ -47,8 +59,68 @@ const emit = defineEmits<{
 }>()
 
 const flowId = `flow-${useId()}`
-const { fitView, zoomIn, zoomOut, onNodesInitialized, viewport, dimensions, findNode } =
-  useVueFlow(flowId)
+const {
+  fitView,
+  zoomIn,
+  zoomOut,
+  onNodesInitialized,
+  viewport,
+  dimensions,
+  findNode,
+  screenToFlowCoordinate,
+  setCenter,
+} = useVueFlow(flowId)
+
+const MAX_ZOOM = 1.5
+const FOCUS_ZOOM_STEP = 1.4
+
+// shift+click focuses the clicked point, zooming progressively deeper
+// (Fit to view is the way back out)
+function focusFlowPoint(x: number, y: number) {
+  const zoom = Math.min(viewport.value.zoom * FOCUS_ZOOM_STEP, MAX_ZOOM)
+  setCenter(x, y, { zoom, duration: 300 })
+}
+
+function onPaneClick(event: MouseEvent) {
+  if (!event.shiftKey) return
+  const point = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
+  focusFlowPoint(point.x, point.y)
+}
+
+// graph keyboard shortcuts: shift+enter focuses the cursor/selected node
+// (keyboard twin of shift+click); +/- zoom in/out, 0 fits to view — like the
+// toolbar buttons
+function onGraphKeys(e: KeyboardEvent) {
+  if (isEditableTarget(e.target)) return
+
+  if (e.key === 'Enter' && e.shiftKey) {
+    const id = props.cursorId || props.selectedId
+    if (!id || !nodeGeom.value.has(id)) return
+    e.preventDefault()
+    e.stopImmediatePropagation()
+    fitView({ nodes: [id], padding: 0.4, duration: 300, maxZoom: MAX_ZOOM })
+    return
+  }
+
+  // ctrl/cmd combos belong to the browser (zoom), not the graph
+  if (e.metaKey || e.ctrlKey || e.altKey) return
+
+  if (ZOOM_IN_KEYS.includes(e.key)) {
+    e.preventDefault()
+    e.stopImmediatePropagation()
+    zoomIn({ duration: 200 })
+  } else if (ZOOM_OUT_KEYS.includes(e.key)) {
+    e.preventDefault()
+    e.stopImmediatePropagation()
+    zoomOut({ duration: 200 })
+  } else if (e.key === FIT_VIEW_KEY) {
+    e.preventDefault()
+    e.stopImmediatePropagation()
+    fit()
+  }
+}
+
+useWindowKeydown(onGraphKeys)
 
 const isEmpty = computed(() => props.nodes.length === 0)
 
@@ -73,6 +145,49 @@ function focusMatches() {
 
 defineExpose({ fit, focusSelected, focusMatches, zoomIn, zoomOut })
 
+// Follow the selection / the instance cursor: pan the node into view only
+// when it is not fully visible — never yank the viewport while the node is
+// already on screen. Pan only, zoom stays.
+const VISIBILITY_MARGIN = 24
+
+function isFullyVisible(id: string): boolean {
+  const geom = nodeGeom.value.get(id)
+  if (!geom) return true // unknown node: nothing to follow
+  const h = findNode(id)?.dimensions.height ?? 60
+  const { x, y, zoom } = viewport.value
+  const W = dimensions.value.width
+  const H = dimensions.value.height
+  if (W === 0 || H === 0) return true // hidden/collapsed graph: stay quiet
+  const left = x + geom.x * zoom
+  const top = y + geom.y * zoom
+  return (
+    left >= VISIBILITY_MARGIN &&
+    top >= VISIBILITY_MARGIN &&
+    left + geom.width * zoom <= W - VISIBILITY_MARGIN &&
+    top + h * zoom <= H - VISIBILITY_MARGIN
+  )
+}
+
+function followNode(id: string) {
+  if (!id || isFullyVisible(id)) return
+  const geom = nodeGeom.value.get(id)
+  if (!geom) return
+  const h = findNode(id)?.dimensions.height ?? 60
+  setCenter(geom.x + geom.width / 2, geom.y + h / 2, { zoom: viewport.value.zoom, duration: 300 })
+}
+
+watch(
+  () => props.selectedId,
+  (id) => nextTick(() => followNode(id)),
+)
+watch(
+  () => props.cursorId,
+  (id) => {
+    if (props.suspendCursorFollow) return
+    nextTick(() => followNode(id))
+  },
+)
+
 onNodesInitialized(fit)
 watch(
   () => props.nodes.map((n) => n.id).join('|'),
@@ -85,7 +200,12 @@ const flowNodes = computed<Node[]>(() =>
     type: n.kind,
     position: n.position,
     parentNode: n.parentId,
-    class: props.matchIds.has(n.id) ? 'node-match' : '',
+    class: [
+      props.matchIds.has(n.id) ? 'node-match' : '',
+      n.id === props.cursorId ? 'node-cursor' : '',
+    ]
+      .filter(Boolean)
+      .join(' '),
     draggable: false,
     selectable: n.selectable ?? true,
     zIndex: n.kind === 'context' ? 0 : 2,
@@ -397,7 +517,13 @@ function isOwnedBySelection(data: unknown): boolean {
   return !!parent && parent === props.selectedId
 }
 
-function onNodeClick({ node }: NodeMouseEvent) {
+function onNodeClick({ event, node }: NodeMouseEvent) {
+  // shift+click really focuses the node/frame: frames fill the view, single
+  // nodes get max zoom — instead of selecting/opening it
+  if (event.shiftKey) {
+    fitView({ nodes: [node.id], padding: 0.4, duration: 300, maxZoom: MAX_ZOOM })
+    return
+  }
   // clicking a frame focuses its group; for the unmapped bucket this doubles as
   // the triage entry — zoom to the group, then inspect individual unmapped nodes
   if (node.type === 'context') {
@@ -425,9 +551,10 @@ function onNodeClick({ node }: NodeMouseEvent) {
       :edges="flowEdges"
       :fit-view-on-init="true"
       :min-zoom="0.2"
-      :max-zoom="1.5"
+      :max-zoom="MAX_ZOOM"
       :nodes-draggable="false"
       :elevate-edges-on-select="false"
+      @pane-click="onPaneClick"
       @node-click="onNodeClick"
       @node-mouse-enter="onNodeMouseEnter"
       @node-mouse-leave="onNodeMouseLeave"
@@ -599,7 +726,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
             class="mt-0.5 flex items-center gap-1 overflow-hidden font-mono text-micro text-text-3"
           >
             <template v-if="(data as InstanceNodeData).systemInstance">
-              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
+              <TypeChip type="SystemInstance" />
               <span
                 class="min-w-0 shrink truncate"
                 :title="(data as InstanceNodeData).systemInstance"
@@ -608,7 +735,7 @@ function onNodeClick({ node }: NodeMouseEvent) {
               </span>
             </template>
             <template v-if="(data as InstanceNodeData).context">
-              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">C</span>
+              <TypeChip type="Context" />
               <span class="min-w-0 flex-1 truncate">{{ (data as InstanceNodeData).context }}</span>
             </template>
           </div>
@@ -630,14 +757,14 @@ function onNodeClick({ node }: NodeMouseEvent) {
               v-if="(data as InstanceNodeData).context"
               class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-3"
             >
-              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">C</span>
+              <TypeChip type="Context" />
               <span class="truncate">{{ (data as InstanceNodeData).context }}</span>
             </div>
             <div
               v-else-if="(data as InstanceNodeData).system"
               class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-3"
             >
-              <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
+              <TypeChip type="System" />
               <span class="truncate">{{ (data as InstanceNodeData).system }}</span>
             </div>
           </div>
@@ -765,6 +892,20 @@ function onNodeClick({ node }: NodeMouseEvent) {
     0 0 0 4px var(--color-bg-0),
     0 0 0 7px var(--color-match);
   border-radius: 4px;
+}
+
+/* instance keyboard cursor: a plain dot in the search-match yellow */
+.emel-flow :deep(.vue-flow__node.node-cursor)::after {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-match);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .emel-flow :deep(.vue-flow__background pattern path),

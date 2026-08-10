@@ -17,6 +17,7 @@ const emit = defineEmits<{
     <div
       v-for="finding in findings"
       :key="finding.findingId"
+      :data-row-id="finding.findingId"
       class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
       :class="
         finding.findingId && finding.findingId === selectedId

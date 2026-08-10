@@ -24,6 +24,11 @@ import ComponentDetail from '@/components/components/ComponentDetail.vue'
 import ComponentInstanceDrawer from '@/components/components/ComponentInstanceDrawer.vue'
 import { useSelectQuery, useResourceNav } from '@/composables/useResourceNav'
 import { useInstanceContext } from '@/composables/useInstanceContext'
+import { groupByBrokenRef } from '@/utils/mapping'
+import { useListKeyboardNav, scrollRowIntoView } from '@/composables/useListKeyboardNav'
+import { useInstanceCursorNav } from '@/composables/useInstanceCursorNav'
+import { useGraphKeyToggles } from '@/composables/useGraphKeyToggles'
+import { LAYER_TOGGLE_KEYS, GRAPH_TOGGLE_KEYS, layerKeyHint, keyHint } from '@/constants/shortcuts'
 import { useResizable } from '@/composables/useResizable'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
@@ -153,6 +158,72 @@ function openInstance(id: string) {
   instanceDrawerOpen.value = true
 }
 
+useListKeyboardNav(
+  computed(() =>
+    listCollapsedEffective.value ? [] : filteredComponents.value.map((c) => c.componentId),
+  ),
+  selectedId,
+  selectComponent,
+  instanceDrawerOpen,
+  () => {
+    const first = unmappedOrderedIds.value[0]
+    if (first) openInstance(first)
+  },
+)
+
+const unmappedOrderedIds = computed(() =>
+  groupByBrokenRef(
+    unmappedFiltered.value,
+    (i) => i.systemInstance,
+    'No system instance',
+    (key) => systemStore.systemInstanceMap.get(key)?.displayName,
+    (key) => systemStore.systemInstanceMap.has(key),
+  ).flatMap((g) => g.items.map((i) => i.componentInstanceId)),
+)
+
+const currentIsUnmapped = computed(() =>
+  unmappedFiltered.value.some((i) => i.componentInstanceId === selectedInstanceId.value),
+)
+
+const drawerNavIds = computed(() => {
+  const inst = store.componentInstances.find(
+    (i) => i.componentInstanceId === selectedInstanceId.value,
+  )
+  if (!inst) return []
+  if (currentIsUnmapped.value) return unmappedOrderedIds.value
+  return store.getInstancesForComponent(inst.component ?? '').map((i) => i.componentInstanceId)
+})
+
+function onDrawerNavExit(step: number) {
+  if (step !== -1 || !currentIsUnmapped.value) return
+  instanceDrawerOpen.value = false
+  const last = filteredComponents.value.at(-1)?.componentId
+  if (last) {
+    selectComponent(last)
+    scrollRowIntoView(last)
+  }
+}
+
+const instanceCursor = ref('')
+
+const cursorInstanceIds = computed(() =>
+  selectedId.value
+    ? store.getInstancesForComponent(selectedId.value).map((i) => i.componentInstanceId)
+    : [],
+)
+
+watch(selectedId, () => {
+  instanceCursor.value = ''
+})
+
+watch(selectedInstanceId, (id) => {
+  if (!instanceDrawerOpen.value) return
+  const inst = store.componentInstances.find((i) => i.componentInstanceId === id)
+  instanceCursor.value = inst && inst.component === selectedId.value ? id : ''
+})
+
+useInstanceCursorNav(cursorInstanceIds, instanceCursor, openInstance, instanceDrawerOpen)
+
 // Graph controls
 const graphPane = ref<InstanceType<typeof ComponentGraphPane> | null>(null)
 const graphVisible = ref(true)
@@ -171,6 +242,19 @@ function toggleInstances() {
 function toggleApis() {
   showApis.value = !showApis.value
 }
+
+function toggleUnmapped() {
+  if (!showInstances.value || store.unmappedInstances.length === 0) return
+  showUnmapped.value = !showUnmapped.value
+}
+
+useGraphKeyToggles({
+  [LAYER_TOGGLE_KEYS.apis]: toggleApis,
+  [LAYER_TOGGLE_KEYS.instances]: toggleInstances,
+  [LAYER_TOGGLE_KEYS.unmapped]: toggleUnmapped,
+  [GRAPH_TOGGLE_KEYS.graph]: toggleGraph,
+  [GRAPH_TOGGLE_KEYS.fullscreen]: toggleFullscreen,
+})
 
 function refitGraph() {
   if (!graphVisible.value) return
@@ -374,6 +458,7 @@ onMounted(async () => {
                 :components="filteredComponents"
                 :selected-id="selectedId"
                 :unmapped="unmappedFiltered"
+                :active-instance-id="instanceDrawerOpen ? selectedInstanceId : ''"
                 :force-expanded="!!search.trim()"
                 :list-collapsed="listCollapsedEffective"
                 @select="selectComponent"
@@ -411,7 +496,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Fit to view"
+                    title="Fit to view (0) — Shift+click focuses an area"
                     @click.stop="graphPane?.fit()"
                     @dblclick.stop
                   >
@@ -422,7 +507,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Zoom out"
+                    title="Zoom out (−)"
                     @click.stop="graphPane?.zoomOut()"
                     @dblclick.stop
                   >
@@ -433,7 +518,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Zoom in"
+                    title="Zoom in (+)"
                     @click.stop="graphPane?.zoomIn()"
                     @dblclick.stop
                   >
@@ -445,7 +530,7 @@ onMounted(async () => {
                   <div class="mx-0.5 h-4 w-px bg-bg-3" />
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Show APIs as nodes; when off, components link directly"
+                    :title="`Show APIs as nodes; when off, components link directly ${layerKeyHint('apis')}`"
                     @click.stop="toggleApis"
                     @dblclick.stop
                   >
@@ -459,7 +544,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Show component instances as nodes"
+                    :title="`Show component instances as nodes ${layerKeyHint('instances')}`"
                     @click.stop="toggleInstances"
                     @dblclick.stop
                   >
@@ -480,10 +565,10 @@ onMounted(async () => {
                       store.unmappedInstances.length === 0
                         ? 'No unmapped instances present'
                         : showInstances
-                          ? 'Show unmapped instances as nodes'
+                          ? `Show unmapped instances as nodes ${layerKeyHint('unmapped')}`
                           : 'Enable Instances to show unmapped instances'
                     "
-                    @click.stop="showUnmapped = !showUnmapped"
+                    @click.stop="toggleUnmapped"
                     @dblclick.stop
                   >
                     Unmapped
@@ -498,6 +583,7 @@ onMounted(async () => {
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta transition-colors hover:bg-bg-3"
                     :class="graphFullscreen ? 'text-accent' : 'text-text-3 hover:text-text-1'"
+                    :title="`Toggle fullscreen graph ${keyHint(GRAPH_TOGGLE_KEYS.fullscreen)}`"
                     @click.stop="toggleFullscreen"
                     @dblclick.stop
                   >
@@ -511,6 +597,7 @@ onMounted(async () => {
                 </template>
                 <button
                   class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                  :title="`Show or hide the graph ${keyHint(GRAPH_TOGGLE_KEYS.graph)}`"
                   @click.stop="toggleGraph"
                   @dblclick.stop
                 >
@@ -548,6 +635,8 @@ onMounted(async () => {
                 :match-ids="new Set([...matchIds].map((id) => `comp:${id}`))"
                 :components="chipFilteredComponents"
                 :selected-id="selectedId"
+                :cursor-id="instanceCursor"
+                :suspend-cursor-follow="instanceDrawerOpen"
                 :show-instances="showInstances"
                 :show-unmapped="unmappedOn"
                 :show-apis="showApis"
@@ -582,7 +671,10 @@ onMounted(async () => {
     <ComponentInstanceDrawer
       :open="instanceDrawerOpen"
       :selected-instance-id="selectedInstanceId"
+      :nav-ids="drawerNavIds"
       @close="instanceDrawerOpen = false"
+      @navigate="(id) => (selectedInstanceId = id)"
+      @nav-exit="onDrawerNavExit"
     />
   </div>
 </template>

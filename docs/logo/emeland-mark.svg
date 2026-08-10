@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="512" height="512">
+  <!-- The EmELand mark. Same geometry as src/components/BrandMark.vue and
+       public/favicon.svg — keep the three in sync.
+       Adapts to the viewer's colour scheme; for a fixed tone use the PNGs
+       beside this file. -->
+  <style>
+    path { fill: #12151a }
+    @media (prefers-color-scheme: dark) { path { fill: #e6e9ef } }
+  </style>
+  <path d="M1.5 19.5 7.6 7.8l6.1 11.7z" opacity=".6"/>
+  <path d="M8.6 19.5 15.4 4.5l7.1 15z"/>
+</svg>

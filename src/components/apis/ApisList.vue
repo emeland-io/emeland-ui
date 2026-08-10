@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import {
   IconAlertTriangle,
   IconArrowsExchange,
   IconChevronRight,
   IconChevronsDown,
   IconChevronsUp,
+  IconLayoutSidebarRight,
 } from '@tabler/icons-vue'
 import { useApiStore } from '@/stores/apis'
 import { useSystemStore } from '@/stores/systems'
@@ -14,6 +15,7 @@ import { useFindingsStore } from '@/stores/findings'
 import MappingTag from '@/components/MappingTag.vue'
 import { endpointUrl } from '@/utils/endpoint'
 import { mappingStateOf, groupByBrokenRef } from '@/utils/mapping'
+import { scrollRowIntoView } from '@/composables/useListKeyboardNav'
 import type { Api, ApiInstance } from '@/types/api'
 
 const props = withDefaults(
@@ -28,12 +30,15 @@ const props = withDefaults(
     forceExpanded?: boolean
     /** fold the main rows away (e.g. to focus on the unmapped section) */
     listCollapsed?: boolean
+    /** instance currently shown in the drawer, marked with an accent indicator */
+    activeInstanceId?: string
   }>(),
   {
     crossings: () => new Map<string, number>(),
     unmapped: () => [],
     forceExpanded: false,
     listCollapsed: false,
+    activeInstanceId: '',
   },
 )
 
@@ -85,11 +90,30 @@ const allGroupsCollapsed = computed(
 )
 
 function toggleAllGroups() {
+  // reveal the section so the effect is visible even when it was collapsed
   unmappedCollapsed.value = false
   collapsedGroups.value = allGroupsCollapsed.value
     ? new Set()
     : new Set(unmappedGroups.value.map((g) => g.key))
 }
+
+watch(
+  () => props.activeInstanceId,
+  async (id) => {
+    if (!id) return
+    const inst = props.unmapped.find((i) => i.apiInstanceId === id)
+    if (!inst) return
+    unmappedCollapsed.value = false
+    const key = inst.systemInstance || ''
+    if (collapsedGroups.value.has(key)) {
+      const s = new Set(collapsedGroups.value)
+      s.delete(key)
+      collapsedGroups.value = s
+    }
+    await nextTick()
+    scrollRowIntoView(id)
+  },
+)
 
 const store = useApiStore()
 const systemStore = useSystemStore()
@@ -125,6 +149,7 @@ function mappingState(inst: ApiInstance) {
     <div
       v-for="api in apis"
       :key="api.apiId"
+      :data-row-id="api.apiId"
       class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
       :class="[
         api.apiId === selectedId
@@ -279,16 +304,31 @@ function mappingState(inst: ApiInstance) {
           <div
             v-for="inst in group.items"
             :key="inst.apiInstanceId"
-            class="cursor-pointer border-b border-border-1 border-l-2 border-l-transparent py-3 pr-4 transition-colors hover:bg-bg-1"
+            :data-row-id="inst.apiInstanceId"
+            class="relative cursor-pointer border-b border-border-1 border-l-2 py-3 pr-4 transition-colors"
+            :class="
+              inst.apiInstanceId === activeInstanceId
+                ? 'border-l-text-3 bg-bg-2'
+                : 'border-l-transparent hover:bg-bg-1'
+            "
             style="padding-left: 42px"
             title="Show instance details"
             @click="emit('open-instance', inst.apiInstanceId)"
           >
-            <div
-              class="truncate text-body font-medium text-text-1"
-              :title="inst.displayName"
-            >
-              {{ inst.displayName }}
+            <IconLayoutSidebarRight
+              v-if="inst.apiInstanceId === activeInstanceId"
+              :size="13"
+              :stroke-width="1.75"
+              class="absolute left-4 top-1/2 -translate-y-1/2 text-text-3"
+              aria-label="Shown in drawer"
+            />
+            <div class="flex min-w-0 items-center gap-1.5">
+              <div
+                class="truncate text-body font-medium text-text-1"
+                :title="inst.displayName"
+              >
+                {{ inst.displayName }}
+              </div>
             </div>
             <div class="mt-2 flex items-center gap-1.5">
               <MappingTag :state="mappingState(inst)" />

@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { IconLayoutGrid, IconList, IconSearch } from '@tabler/icons-vue'
+import { IconLayoutGrid, IconList, IconSearch, IconLayoutSidebarRight } from '@tabler/icons-vue'
 import { useContextStore } from '@/stores/contexts'
 import ViewModeSwitch from '@/components/ViewModeSwitch.vue'
+import TypeChip from '@/components/TypeChip.vue'
 import type { SystemInstance } from '@/types/system'
 
-const props = defineProps<{
-  instances: SystemInstance[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    instances: SystemInstance[]
+    activeInstanceId?: string
+  }>(),
+  { activeInstanceId: '' },
+)
 
 const emit = defineEmits<{
   select: [id: string]
@@ -136,9 +141,17 @@ const columns = computed(() => {
         <button
           v-for="inst in col.items"
           :key="inst.systemInstanceId"
-          class="instance-cut group mt-1 flex w-full items-baseline gap-2 bg-bg-2 px-2 py-1.5 text-left transition-colors first:mt-0 hover:bg-bg-3 focus-visible:bg-accent/10 focus-visible:outline-none"
+          class="instance-cut group mt-1 flex w-full items-baseline gap-2 px-2 py-1.5 text-left transition-colors first:mt-0 focus-visible:bg-accent/10 focus-visible:outline-none"
+          :class="inst.systemInstanceId === activeInstanceId ? 'bg-bg-3' : 'bg-bg-2 hover:bg-bg-3'"
           @click="emit('select', inst.systemInstanceId)"
         >
+          <IconLayoutSidebarRight
+            v-if="inst.systemInstanceId === activeInstanceId"
+            :size="13"
+            :stroke-width="1.75"
+            class="shrink-0 text-text-3"
+            aria-label="Shown in drawer"
+          />
           <span
             class="min-w-0 flex-1 truncate text-data leading-snug text-text-2 transition-colors group-hover:text-text-1"
             :title="inst.displayName"
@@ -157,9 +170,17 @@ const columns = computed(() => {
       <button
         v-for="inst in filtered"
         :key="inst.systemInstanceId"
-        class="instance-cut group mt-1 flex w-full items-center gap-2 bg-bg-2 px-2.5 py-1.5 text-left transition-colors first:mt-0 hover:bg-bg-3 focus-visible:bg-accent/10 focus-visible:outline-none"
+        class="instance-cut group mt-1 flex w-full items-center gap-2 px-2.5 py-1.5 text-left transition-colors first:mt-0 focus-visible:bg-accent/10 focus-visible:outline-none"
+        :class="inst.systemInstanceId === activeInstanceId ? 'bg-bg-3' : 'bg-bg-2 hover:bg-bg-3'"
         @click="emit('select', inst.systemInstanceId)"
       >
+        <IconLayoutSidebarRight
+          v-if="inst.systemInstanceId === activeInstanceId"
+          :size="13"
+          :stroke-width="1.75"
+          class="shrink-0 text-text-3"
+          aria-label="Shown in drawer"
+        />
         <span
           class="min-w-0 flex-1 truncate text-data leading-snug text-text-2 transition-colors group-hover:text-text-1"
           :title="inst.displayName"
@@ -170,7 +191,7 @@ const columns = computed(() => {
           v-if="ctx(inst).name"
           class="flex shrink-0 items-center gap-1 font-mono text-micro text-text-4"
         >
-          <span class="rounded-sm bg-bg-3 px-1 text-text-3">C</span>
+          <TypeChip type="Context" />
           {{ ctx(inst).name }}
         </span>
       </button>

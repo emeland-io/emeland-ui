@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconArrowUpRight, IconArrowsExchange } from '@tabler/icons-vue'
+import { IconArrowUpRight, IconArrowsExchange, IconLayoutSidebarRight } from '@tabler/icons-vue'
 import { useApiStore } from '@/stores/apis'
 import { useSystemStore } from '@/stores/systems'
 import { useComponentStore } from '@/stores/components'
@@ -8,6 +8,7 @@ import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import { useResourceNav } from '@/composables/useResourceNav'
 import CopyButton from '@/components/CopyButton.vue'
+import TypeChip from '@/components/TypeChip.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import { endpointUrl } from '@/utils/endpoint'
@@ -18,6 +19,7 @@ import type { ApiContextFlow } from '@/utils/apiContexts'
 const props = defineProps<{
   api: Api | undefined
   flow?: ApiContextFlow
+  activeInstanceId?: string
 }>()
 
 const emit = defineEmits<{
@@ -533,8 +535,20 @@ function versionDates(a: Api | undefined): [string, string][] {
               @click="emit('open-instance', row.inst.apiInstanceId)"
             >
               <span class="flex w-full items-center gap-3">
+                <IconLayoutSidebarRight
+                  v-if="row.inst.apiInstanceId === activeInstanceId"
+                  :size="13"
+                  :stroke-width="1.75"
+                  class="shrink-0 text-text-3"
+                  aria-label="Shown in drawer"
+                />
                 <span
-                  class="min-w-0 flex-1 truncate text-body text-text-2 transition-colors group-hover:text-accent"
+                  class="min-w-0 flex-1 truncate text-body transition-colors"
+                  :class="
+                    row.inst.apiInstanceId === activeInstanceId
+                      ? 'text-text-1'
+                      : 'text-text-2 group-hover:text-accent'
+                  "
                 >
                   {{ row.inst.displayName }}
                 </span>
@@ -543,7 +557,7 @@ function versionDates(a: Api | undefined): [string, string][] {
                   class="flex shrink-0 items-center gap-1 font-mono text-micro text-text-4"
                   :title="row.systemInstance"
                 >
-                  <span class="rounded-sm bg-bg-3 px-1 text-text-3">C</span>
+                  <TypeChip type="Context" />
                   {{ row.context }}
                 </span>
               </span>

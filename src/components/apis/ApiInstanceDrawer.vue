@@ -18,10 +18,13 @@ import { mappingStateOf } from '@/utils/mapping'
 const props = defineProps<{
   open: boolean
   selectedInstanceId: string
+  navIds?: string[]
 }>()
 
 const emit = defineEmits<{
   close: []
+  navigate: [id: string]
+  'nav-exit': [step: number]
 }>()
 
 const store = useApiStore()
@@ -73,6 +76,16 @@ function navigate(type: 'API' | 'System' | 'Context', id: string) {
   emit('close')
   goToResource(type, id)
 }
+
+const navIndex = computed(() => props.navIds?.indexOf(props.selectedInstanceId) ?? -1)
+
+function stepInstance(step: -1 | 1) {
+  const ids = props.navIds
+  if (!ids || navIndex.value < 0) return
+  const next = ids[navIndex.value + step]
+  if (next !== undefined) emit('navigate', next)
+  else emit('nav-exit', step)
+}
 </script>
 
 <template>
@@ -80,7 +93,11 @@ function navigate(type: 'API' | 'System' | 'Context', id: string) {
     :open="open"
     :title="instance?.displayName ?? 'Instance'"
     subtitle="ApiInstance"
+    :nav-index="navIndex >= 0 ? navIndex : undefined"
+    :nav-count="navIndex >= 0 ? navIds?.length : undefined"
     @close="emit('close')"
+    @nav-prev="stepInstance(-1)"
+    @nav-next="stepInstance(1)"
   >
     <template #header-tags>
       <MappingTag :state="mappingState" />
@@ -143,7 +160,8 @@ function navigate(type: 'API' | 'System' | 'Context', id: string) {
         <SectionLabel>API</SectionLabel>
         <button
           v-if="apiResolvable"
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
+          data-drawer-relation
           title="Go to API"
           @click="navigate('API', instance.api!)"
         >
@@ -196,7 +214,8 @@ function navigate(type: 'API' | 'System' | 'Context', id: string) {
         <SectionLabel>System instance</SectionLabel>
         <component
           :is="systemInstance?.system ? 'button' : 'div'"
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
+          :data-drawer-relation="systemInstance?.system ? '' : undefined"
           :title="systemInstance?.system ? 'Go to system' : undefined"
           @click="systemInstance?.system && navigate('System', systemInstance.system)"
         >
@@ -233,7 +252,8 @@ function navigate(type: 'API' | 'System' | 'Context', id: string) {
         <SectionLabel>Context</SectionLabel>
         <component
           :is="context ? 'button' : 'div'"
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
+          :data-drawer-relation="context ? '' : undefined"
           :title="context ? 'Go to context' : undefined"
           @click="context && navigate('Context', contextId!)"
         >

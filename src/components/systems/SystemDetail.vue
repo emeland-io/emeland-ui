@@ -14,6 +14,7 @@ import type { System, SystemInstance } from '@/types/system'
 const props = defineProps<{
   system: System | undefined
   instances: SystemInstance[]
+  activeInstanceId?: string
 }>()
 
 const emit = defineEmits<{
@@ -367,6 +368,7 @@ function versionDates(s: System | undefined): [string, string][] {
           <SystemInstancesBoard
             v-if="instances.length > 0"
             :instances="instances"
+            :active-instance-id="activeInstanceId"
             @select="emit('open-instance', $event)"
           />
         </div>

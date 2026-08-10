@@ -1,12 +1,12 @@
 import { computed } from 'vue'
-import type { Component } from 'vue'
 import { useFindingsStore } from '@/stores/findings'
-import { IconCube } from '@tabler/icons-vue'
+import type { ResourceType } from '@/types/common'
 
 export interface NavItem {
   label: string
   route: string
-  icon: Component
+  type?: ResourceType
+  chip?: string
   badge?: number
 }
 
@@ -26,7 +26,7 @@ export function useNavigation() {
         {
           label: 'Findings',
           route: '/findings',
-          icon: IconCube,
+          type: 'Finding',
           badge: findingsStore.findings.length > 0 ? findingsStore.findings.length : undefined,
         },
       ],
@@ -34,11 +34,11 @@ export function useNavigation() {
     {
       title: 'Landscape',
       items: [
-        { label: 'Nodes', route: '/nodes', icon: IconCube },
-        { label: 'Graph', route: '/graph', icon: IconCube },
-        { label: 'Sensors', route: '/sensors', icon: IconCube },
-        { label: 'Filters', route: '/filters', icon: IconCube },
-        { label: 'Injectors', route: '/injectors', icon: IconCube },
+        { label: 'Nodes', route: '/nodes', type: 'Node' },
+        { label: 'Graph', route: '/graph', chip: 'Gr' },
+        { label: 'Sensors', route: '/sensors', chip: 'Se' },
+        { label: 'Filters', route: '/filters', chip: 'Fi' },
+        { label: 'Injectors', route: '/injectors', chip: 'In' },
       ],
     },
   ])
@@ -47,44 +47,44 @@ export function useNavigation() {
     {
       title: 'Context',
       phase: 'P0',
-      items: [{ label: 'Contexts', route: '/contexts', icon: IconCube }],
+      items: [{ label: 'Contexts', route: '/contexts', type: 'Context' }],
     },
     {
       title: 'Structure',
       phase: 'P1',
       items: [
-        { label: 'Systems', route: '/systems', icon: IconCube },
-        { label: 'Components', route: '/components', icon: IconCube },
-        { label: 'APIs', route: '/apis', icon: IconCube },
+        { label: 'Systems', route: '/systems', type: 'System' },
+        { label: 'Components', route: '/components', type: 'Component' },
+        { label: 'APIs', route: '/apis', type: 'API' },
       ],
     },
     {
       title: 'Identity',
       phase: 'P2',
       items: [
-        { label: 'Identities', route: '/identities', icon: IconCube },
-        { label: 'OrgUnits', route: '/orgunits', icon: IconCube },
-        { label: 'Groups', route: '/groups', icon: IconCube },
-        { label: 'Permissions', route: '/permissions', icon: IconCube },
+        { label: 'Identities', route: '/identities', type: 'Identity' },
+        { label: 'OrgUnits', route: '/orgunits', type: 'OrgUnit' },
+        { label: 'Groups', route: '/groups', type: 'Group' },
+        { label: 'Permissions', route: '/permissions', chip: 'Pe' },
       ],
     },
     {
       title: 'Capabilities',
       phase: 'P3',
       items: [
-        { label: 'Features', route: '/features', icon: IconCube },
-        { label: 'Orders', route: '/orders', icon: IconCube },
+        { label: 'Features', route: '/features', chip: 'Fe' },
+        { label: 'Orders', route: '/orders', chip: 'Or' },
       ],
     },
     {
       title: 'Observability',
       phase: 'P6',
-      items: [{ label: 'Metrics', route: '/metrics', icon: IconCube }],
+      items: [{ label: 'Metrics', route: '/metrics', chip: 'Me' }],
     },
     {
       title: 'Capacity',
       phase: 'P7',
-      items: [{ label: 'Capacities', route: '/capacities', icon: IconCube }],
+      items: [{ label: 'Capacities', route: '/capacities', chip: 'Ca' }],
     },
   ]
 
