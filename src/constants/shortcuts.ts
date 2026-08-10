@@ -98,7 +98,6 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: 'General',
     shortcuts: [
-      { keys: ['⌘', 'K'], label: 'Jump to anything (command palette; Ctrl+K on Win/Linux)' },
       { keys: ['/'], label: 'Focus the search in the view (Esc to blur)' },
       { keys: [HELP_KEY], label: 'Show this shortcuts panel' },
     ],
