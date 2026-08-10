@@ -43,7 +43,9 @@ const { width, collapsed, isResizing, onResizeStart, toggle } = useSidebarWidth(
     <div
       class="group/handle absolute inset-y-0 -right-1 z-10 w-2 cursor-col-resize"
       :title="
-        collapsed ? 'Drag to expand (double-click)' : 'Drag to resize (double-click to collapse)'
+        collapsed
+          ? 'Drag to expand (double-click, or Shift+B)'
+          : 'Drag to resize (double-click to collapse, or Shift+B)'
       "
       @mousedown.prevent="onResizeStart"
       @dblclick="toggle"

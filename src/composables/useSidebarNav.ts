@@ -4,6 +4,7 @@ import { useNavigation } from '@/composables/useNavigation'
 import { isEditableTarget } from '@/utils/dom'
 import { useWindowKeydown } from '@/composables/useWindowKeydown'
 import { useModalSurfaces } from '@/composables/useModalSurfaces'
+import { useSidebarWidth } from '@/composables/useSidebarWidth'
 
 const ACTIVATE_KEY = 'b'
 
@@ -19,6 +20,7 @@ export function useSidebarNav() {
   const { headerNavigation, phaseNavigation } = useNavigation()
   const route = useRoute()
   const { anyModalOpen } = useModalSurfaces()
+  const { toggle: toggleCollapse } = useSidebarWidth()
 
   const items = computed(() => {
     const flat: { route: string; label: string; section: string; phase?: string }[] = []
@@ -65,9 +67,23 @@ export function useSidebarNav() {
   }
 
   function onKeydown(e: KeyboardEvent) {
+    // Shift+B collapses / expands the sidebar
+    if (
+      e.key.toLowerCase() === ACTIVATE_KEY &&
+      e.shiftKey &&
+      !e.metaKey &&
+      !e.ctrlKey &&
+      !e.altKey
+    ) {
+      if (isEditableTarget(e.target)) return
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      toggleCollapse()
+      return
+    }
     if (!active.value) {
       if (e.key.toLowerCase() !== ACTIVATE_KEY) return
-      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return
       if (isEditableTarget(e.target)) return
       // never pull focus behind an open drawer/palette/help
       if (anyModalOpen.value) return

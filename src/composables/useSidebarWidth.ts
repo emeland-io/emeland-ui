@@ -9,6 +9,7 @@ export const SIDEBAR_MAX_WIDTH = 240
 const STORAGE_KEY = 'emeland-sidebar-width'
 
 function readStored(): number {
+  if (typeof localStorage === 'undefined') return SIDEBAR_DEFAULT_WIDTH
   const raw = Number(localStorage.getItem(STORAGE_KEY))
   if (!Number.isFinite(raw) || raw <= 0) return SIDEBAR_DEFAULT_WIDTH
   if (raw <= SIDEBAR_SNAP_WIDTH) return SIDEBAR_COLLAPSED_WIDTH
@@ -20,6 +21,7 @@ const isResizing = ref(false)
 const lastExpanded = ref(width.value > SIDEBAR_SNAP_WIDTH ? width.value : SIDEBAR_DEFAULT_WIDTH)
 
 function persist() {
+  if (typeof localStorage === 'undefined') return
   localStorage.setItem(STORAGE_KEY, String(width.value))
 }
 

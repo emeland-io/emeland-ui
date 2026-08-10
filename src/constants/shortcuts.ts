@@ -93,6 +93,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: 'Sidebar',
     shortcuts: [
       { keys: ['B'], label: 'Sidebar navigation: walk with ↑/↓, Enter to open, Esc to leave' },
+      { keys: ['Shift', 'B'], label: 'Collapse / expand the sidebar' },
     ],
   },
   {
