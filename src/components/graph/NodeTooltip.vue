@@ -2,12 +2,13 @@
 import { computed } from 'vue'
 import {
   IconAlertTriangle,
-  IconBox,
   IconArrowsExchange,
   IconArrowUp,
   IconArrowDown,
 } from '@tabler/icons-vue'
 import type { GraphNode, GraphNodeKind } from '@/types/graph'
+import type { ResourceType } from '@/types/common'
+import TypeChip from '@/components/TypeChip.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -59,6 +60,21 @@ const data = computed(
 const kindLabel = computed(() =>
   props.node.kind === 'instance' && data.value.type ? data.value.type : KIND_LABEL[props.node.kind],
 )
+
+const parentType = computed<ResourceType | undefined>(() => {
+  switch (props.node.kind) {
+    case 'api':
+      return 'API'
+    case 'component':
+      return 'Component'
+    case 'system':
+    case 'context':
+    case 'context-node':
+      return 'System'
+    default:
+      return undefined
+  }
+})
 
 const facts = computed(() => {
   const d = data.value
@@ -185,10 +201,15 @@ const showStats = computed(() => stats.value !== '')
         :key="name"
         class="flex items-center gap-1.5 py-px text-micro text-text-2"
       >
-        <IconBox
-          :size="11"
-          :stroke-width="1.5"
-          class="shrink-0 text-text-3"
+        <TypeChip
+          v-if="parentType"
+          :type="parentType"
+          instance
+        />
+        <TypeChip
+          v-else
+          letter="I"
+          label="Instance"
         />
         <span class="truncate">{{ name }}</span>
       </div>
