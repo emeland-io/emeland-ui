@@ -69,7 +69,6 @@ const parentType = computed<ResourceType | undefined>(() => {
       return 'Component'
     case 'system':
     case 'context':
-    case 'context-node':
       return 'System'
     default:
       return undefined
