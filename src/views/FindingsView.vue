@@ -11,6 +11,7 @@ import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
+import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
 
 const store = useFindingsStore()
 const { goToResource } = useResourceNav()
@@ -137,6 +138,20 @@ async function openTypeInDrawer(findingTypeId: string) {
 function closeTypesDrawer() {
   typesDrawerOpen.value = false
 }
+
+useListKeyboardNav(
+  computed(() => filteredFindings.value.map((f) => f.findingId)),
+  selectedId,
+  selectFinding,
+  typesDrawerOpen,
+)
+
+useListKeyboardNav(
+  computed(() => store.findingTypes.map((t) => t.findingTypeId)),
+  selectedTypeId,
+  selectTypeInDrawer,
+  computed(() => !typesDrawerOpen.value),
+)
 </script>
 
 <template>
@@ -313,6 +328,7 @@ function closeTypesDrawer() {
           <div
             v-for="type in store.findingTypes"
             :key="type.findingTypeId"
+            :data-row-id="type.findingTypeId"
             class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
             :class="
               type.findingTypeId === selectedTypeId

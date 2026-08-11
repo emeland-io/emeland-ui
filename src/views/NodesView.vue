@@ -16,6 +16,7 @@ import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
+import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
 import { categoryColorForNode, categoryColorForName } from '@/constants/nodeCategory'
 
 const store = useNodesStore()
@@ -145,6 +146,20 @@ async function openTypeInDrawer(nodeTypeId: string) {
 function closeTypesDrawer() {
   typesDrawerOpen.value = false
 }
+
+useListKeyboardNav(
+  computed(() => filteredNodes.value.map((n) => n.nodeId)),
+  selectedId,
+  selectNode,
+  typesDrawerOpen,
+)
+
+useListKeyboardNav(
+  computed(() => store.nodeTypes.map((t) => t.nodeTypeId)),
+  selectedTypeId,
+  selectTypeInDrawer,
+  computed(() => !typesDrawerOpen.value),
+)
 </script>
 
 <template>
@@ -211,7 +226,8 @@ function closeTypesDrawer() {
           <input
             v-model="search"
             type="text"
-            placeholder="Search nodes, annotations..."
+            data-search-input
+            placeholder="Search nodes, annotations... (/)"
             class="w-full bg-transparent font-mono text-label text-text-2 placeholder:text-meta placeholder:text-text-4 outline-none"
           />
           <button
@@ -303,6 +319,7 @@ function closeTypesDrawer() {
               <div
                 v-for="node in filteredNodes"
                 :key="node.nodeId"
+                :data-row-id="node.nodeId"
                 class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
                 :class="
                   node.nodeId === selectedId
@@ -567,6 +584,7 @@ function closeTypesDrawer() {
           <div
             v-for="type in store.nodeTypes"
             :key="type.nodeTypeId"
+            :data-row-id="type.nodeTypeId"
             class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-2.5 transition-colors"
             :class="
               type.nodeTypeId === selectedTypeId

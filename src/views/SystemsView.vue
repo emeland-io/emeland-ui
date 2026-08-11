@@ -23,6 +23,11 @@ import SystemsList, { type SystemRow } from '@/components/systems/SystemsList.vu
 import SystemDetail from '@/components/systems/SystemDetail.vue'
 import SystemInstancesDrawer from '@/components/systems/SystemInstancesDrawer.vue'
 import { useSelectQuery } from '@/composables/useResourceNav'
+import { useListKeyboardNav, scrollRowIntoView } from '@/composables/useListKeyboardNav'
+import { useInstanceCursorNav } from '@/composables/useInstanceCursorNav'
+import { useGraphKeyToggles } from '@/composables/useGraphKeyToggles'
+import { LAYER_TOGGLE_KEYS, GRAPH_TOGGLE_KEYS, layerKeyHint, keyHint } from '@/constants/shortcuts'
+import { groupByBrokenRef } from '@/utils/mapping'
 import { useResizable } from '@/composables/useResizable'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
@@ -269,6 +274,53 @@ function openInstanceInDrawer(id: string) {
   instancesDrawerOpen.value = true
 }
 
+const unmappedOrderedIds = computed(() =>
+  groupByBrokenRef(unmappedFiltered.value, (i) => i.system, 'No system reference').flatMap((g) =>
+    g.items.map((i) => i.systemInstanceId),
+  ),
+)
+
+const currentIsUnmapped = computed(() =>
+  unmappedFiltered.value.some((i) => i.systemInstanceId === selectedInstanceId.value),
+)
+
+const drawerNavIds = computed(() => {
+  const inst = store.systemInstanceMap.get(selectedInstanceId.value)
+  if (!inst) return []
+  if (currentIsUnmapped.value) return unmappedOrderedIds.value
+  return store.getInstancesForSystem(inst.system).map((i) => i.systemInstanceId)
+})
+
+function onDrawerNavExit(step: number) {
+  if (step !== -1 || !currentIsUnmapped.value) return
+  instancesDrawerOpen.value = false
+  const last = systemRows.value.at(-1)?.system.systemId
+  if (last) {
+    selectSystem(last)
+    scrollRowIntoView(last)
+  }
+}
+
+const instanceCursor = ref('')
+
+const cursorInstanceIds = computed(() =>
+  selectedId.value
+    ? store.getInstancesForSystem(selectedId.value).map((i) => i.systemInstanceId)
+    : [],
+)
+
+watch(selectedId, () => {
+  instanceCursor.value = ''
+})
+
+watch(selectedInstanceId, (id) => {
+  if (!instancesDrawerOpen.value) return
+  const inst = store.systemInstanceMap.get(id)
+  instanceCursor.value = inst && inst.system === selectedId.value ? id : ''
+})
+
+useInstanceCursorNav(cursorInstanceIds, instanceCursor, openInstanceInDrawer, instancesDrawerOpen)
+
 // Graph controls
 const graphPane = ref<InstanceType<typeof SystemGraphPane> | null>(null)
 const graphVisible = ref(true)
@@ -284,6 +336,18 @@ const unmappedOn = computed(
 function toggleInstances() {
   showInstances.value = !showInstances.value
 }
+
+function toggleUnmapped() {
+  if (!showInstances.value || store.unmappedInstances.length === 0) return
+  showUnmapped.value = !showUnmapped.value
+}
+
+useGraphKeyToggles({
+  [LAYER_TOGGLE_KEYS.instances]: toggleInstances,
+  [LAYER_TOGGLE_KEYS.unmapped]: toggleUnmapped,
+  [GRAPH_TOGGLE_KEYS.graph]: toggleGraph,
+  [GRAPH_TOGGLE_KEYS.fullscreen]: toggleFullscreen,
+})
 
 function refitGraph() {
   if (!graphVisible.value) return
@@ -337,6 +401,19 @@ useSelectQuery(
   selectedId,
   computed(() => store.systems),
   (s) => s.systemId,
+)
+
+useListKeyboardNav(
+  computed(() =>
+    listCollapsedEffective.value ? [] : systemRows.value.map((r) => r.system.systemId),
+  ),
+  selectedId,
+  selectSystem,
+  instancesDrawerOpen,
+  () => {
+    const first = unmappedOrderedIds.value[0]
+    if (first) openInstanceInDrawer(first)
+  },
 )
 
 watch(
@@ -508,6 +585,7 @@ onMounted(async () => {
                 :collapsed="collapsed"
                 :active-rail="activeRail"
                 :unmapped="unmappedFiltered"
+                :active-instance-id="instancesDrawerOpen ? selectedInstanceId : ''"
                 :force-expanded="!!search.trim()"
                 :list-collapsed="listCollapsedEffective"
                 @select="selectSystem"
@@ -546,7 +624,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Fit to view"
+                    title="Fit to view (0) — Shift+click focuses an area"
                     @click.stop="graphPane?.fit()"
                     @dblclick.stop
                   >
@@ -557,7 +635,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Zoom out"
+                    title="Zoom out (−)"
                     @click.stop="graphPane?.zoomOut()"
                     @dblclick.stop
                   >
@@ -568,7 +646,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Zoom in"
+                    title="Zoom in (+)"
                     @click.stop="graphPane?.zoomIn()"
                     @dblclick.stop
                   >
@@ -579,7 +657,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Show system instances; when off, the graph shows the system hierarchy"
+                    :title="`Show system instances; when off, the graph shows the system hierarchy ${layerKeyHint('instances')}`"
                     @click.stop="toggleInstances"
                     @dblclick.stop
                   >
@@ -600,10 +678,10 @@ onMounted(async () => {
                       store.unmappedInstances.length === 0
                         ? 'No unmapped instances present'
                         : showInstances
-                          ? 'Show unmapped instances as nodes'
+                          ? `Show unmapped instances as nodes ${layerKeyHint('unmapped')}`
                           : 'Enable Instances to show unmapped instances'
                     "
-                    @click.stop="showUnmapped = !showUnmapped"
+                    @click.stop="toggleUnmapped"
                     @dblclick.stop
                   >
                     Unmapped
@@ -618,6 +696,7 @@ onMounted(async () => {
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta transition-colors hover:bg-bg-3"
                     :class="graphFullscreen ? 'text-accent' : 'text-text-3 hover:text-text-1'"
+                    :title="`Toggle fullscreen graph ${keyHint(GRAPH_TOGGLE_KEYS.fullscreen)}`"
                     @click.stop="toggleFullscreen"
                     @dblclick.stop
                   >
@@ -631,6 +710,7 @@ onMounted(async () => {
                 </template>
                 <button
                   class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                  :title="`Show or hide the graph ${keyHint(GRAPH_TOGGLE_KEYS.graph)}`"
                   @click.stop="toggleGraph"
                   @dblclick.stop
                 >
@@ -668,6 +748,8 @@ onMounted(async () => {
                 :match-ids="matchIds"
                 :systems="chipFilteredSystems"
                 :selected-id="selectedId"
+                :cursor-id="instanceCursor"
+                :suspend-cursor-follow="instancesDrawerOpen"
                 :show-instances="showInstances"
                 :show-unmapped="unmappedOn"
                 :show-controls="false"
@@ -693,6 +775,7 @@ onMounted(async () => {
               <SystemDetail
                 :system="selectedSystem"
                 :instances="selectedInstances"
+                :active-instance-id="instancesDrawerOpen ? selectedInstanceId : ''"
                 @navigate-parent="selectSystem"
                 @open-instance="openInstanceInDrawer"
               />
@@ -705,7 +788,10 @@ onMounted(async () => {
     <SystemInstancesDrawer
       :open="instancesDrawerOpen"
       :selected-instance-id="selectedInstanceId"
+      :nav-ids="drawerNavIds"
       @close="instancesDrawerOpen = false"
+      @navigate="(id) => (selectedInstanceId = id)"
+      @nav-exit="onDrawerNavExit"
       @go-to-system="
         (id) => {
           instancesDrawerOpen = false

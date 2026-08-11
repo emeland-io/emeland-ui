@@ -10,6 +10,7 @@ import { buildApiGraph } from '@/graph/apiGraph'
 import { resolveApiContextFlows } from '@/utils/apiContexts'
 import type { GraphNodeClick } from '@/types/graph'
 import FlowGraph from '@/components/graph/FlowGraph.vue'
+import TypeChip from '@/components/TypeChip.vue'
 import type { Api, ApiInstance } from '@/types/api'
 
 const props = withDefaults(
@@ -21,6 +22,8 @@ const props = withDefaults(
     showUnmapped?: boolean
     showControls?: boolean
     matchIds?: Set<string>
+    cursorId?: string
+    suspendCursorFollow?: boolean
   }>(),
   {
     showComponents: true,
@@ -28,6 +31,8 @@ const props = withDefaults(
     showUnmapped: true,
     showControls: true,
     matchIds: () => new Set<string>(),
+    cursorId: '',
+    suspendCursorFollow: false,
   },
 )
 
@@ -105,6 +110,8 @@ defineExpose({
       :nodes="graphModel.nodes"
       :edges="graphModel.edges"
       :selected-id="`api:${selectedId}`"
+      :cursor-id="cursorId ? `inst:${cursorId}` : ''"
+      :suspend-cursor-follow="suspendCursorFollow"
       class="min-h-0 flex-1"
       @node-click="onNodeClick"
     />
@@ -258,7 +265,7 @@ defineExpose({
             consumes
           </div>
           <div class="flex items-center gap-1.5">
-            <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
+            <TypeChip type="System" />
             system
           </div>
         </template>

@@ -71,7 +71,8 @@ onUnmounted(() => window.removeEventListener('click', closeOverflows))
       <input
         :value="search"
         type="text"
-        placeholder="Search summary, description, annotations..."
+        data-search-input
+        placeholder="Search summary, description, annotations... (/)"
         class="w-full bg-transparent font-mono text-label text-text-2 placeholder:text-meta placeholder:text-text-4 outline-none"
         @input="emit('update:search', ($event.target as HTMLInputElement).value)"
       />

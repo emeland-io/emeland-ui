@@ -17,12 +17,16 @@ const props = withDefaults(
     matchIds?: Set<string>
     showInstances?: boolean
     showUnmapped?: boolean
+    cursorId?: string
+    suspendCursorFollow?: boolean
   }>(),
   {
     showControls: true,
     showInstances: true,
     showUnmapped: true,
     matchIds: () => new Set<string>(),
+    cursorId: '',
+    suspendCursorFollow: false,
   },
 )
 
@@ -83,6 +87,8 @@ defineExpose({
       :nodes="graphModel.nodes"
       :edges="graphModel.edges"
       :selected-id="selectedId"
+      :cursor-id="cursorId"
+      :suspend-cursor-follow="suspendCursorFollow"
       class="min-h-0 flex-1"
       @node-click="onNodeClick"
     />

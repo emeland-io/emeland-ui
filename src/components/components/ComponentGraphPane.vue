@@ -8,6 +8,7 @@ import { useInstanceContext } from '@/composables/useInstanceContext'
 import { buildComponentGraph } from '@/graph/componentGraph'
 import type { GraphNodeClick } from '@/types/graph'
 import FlowGraph from '@/components/graph/FlowGraph.vue'
+import TypeChip from '@/components/TypeChip.vue'
 import type { Component } from '@/types/component'
 
 const props = withDefaults(
@@ -19,6 +20,8 @@ const props = withDefaults(
     showApis?: boolean
     showControls?: boolean
     matchIds?: Set<string>
+    cursorId?: string
+    suspendCursorFollow?: boolean
   }>(),
   {
     showInstances: false,
@@ -26,6 +29,8 @@ const props = withDefaults(
     showApis: true,
     showControls: true,
     matchIds: () => new Set<string>(),
+    cursorId: '',
+    suspendCursorFollow: false,
   },
 )
 
@@ -85,6 +90,8 @@ defineExpose({
       :nodes="graphModel.nodes"
       :edges="graphModel.edges"
       :selected-id="`comp:${selectedId}`"
+      :cursor-id="cursorId ? `inst:${cursorId}` : ''"
+      :suspend-cursor-follow="suspendCursorFollow"
       class="min-h-0 flex-1"
       @node-click="onNodeClick"
     />
@@ -229,14 +236,14 @@ defineExpose({
           consumes
         </div>
         <div class="flex items-center gap-1.5">
-          <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">S</span>
+          <TypeChip type="System" />
           system
         </div>
         <div
           v-if="showInstances"
           class="flex items-center gap-1.5"
         >
-          <span class="shrink-0 rounded-sm bg-bg-3 px-1 text-text-3">C</span>
+          <TypeChip type="Context" />
           context
         </div>
       </div>

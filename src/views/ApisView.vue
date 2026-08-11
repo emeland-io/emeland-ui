@@ -26,6 +26,12 @@ import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 import { useResizable } from '@/composables/useResizable'
 import { resolveApiContextFlows } from '@/utils/apiContexts'
 import { endpointUrl } from '@/utils/endpoint'
+import { groupByBrokenRef } from '@/utils/mapping'
+import { useListKeyboardNav, scrollRowIntoView } from '@/composables/useListKeyboardNav'
+import { useInstanceCursorNav } from '@/composables/useInstanceCursorNav'
+import { useGraphKeyToggles } from '@/composables/useGraphKeyToggles'
+import { LAYER_TOGGLE_KEYS, GRAPH_TOGGLE_KEYS, layerKeyHint, keyHint } from '@/constants/shortcuts'
+import type { ApiInstance } from '@/types/api'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
 const ApiGraphPane = defineAsyncComponent(() => import('@/components/apis/ApiGraphPane.vue'))
@@ -201,6 +207,83 @@ function openInstance(id: string) {
   instanceDrawerOpen.value = true
 }
 
+useListKeyboardNav(
+  computed(() => (listCollapsedEffective.value ? [] : filteredApis.value.map((a) => a.apiId))),
+  selectedId,
+  selectApi,
+  instanceDrawerOpen,
+  () => {
+    const first = unmappedOrderedIds.value[0]
+    if (first) openInstance(first)
+  },
+)
+
+const unmappedOrderedIds = computed(() =>
+  groupByBrokenRef(
+    unmappedFiltered.value,
+    (i) => i.systemInstance,
+    'No system instance',
+    (key) => systemStore.systemInstanceMap.get(key)?.displayName,
+    (key) => systemStore.systemInstanceMap.has(key),
+  ).flatMap((g) => g.items.map((i) => i.apiInstanceId)),
+)
+
+const currentIsUnmapped = computed(() =>
+  unmappedFiltered.value.some((i) => i.apiInstanceId === selectedInstanceId.value),
+)
+
+const drawerNavIds = computed(() => {
+  const inst = store.apiInstances.find((i) => i.apiInstanceId === selectedInstanceId.value)
+  if (!inst) return []
+  if (currentIsUnmapped.value) return unmappedOrderedIds.value
+  return byContextThenName(store.getInstancesForApi(inst.api ?? '')).map((i) => i.apiInstanceId)
+})
+
+function byContextThenName(instances: ApiInstance[]): ApiInstance[] {
+  return [...instances].sort(
+    (a, b) =>
+      (instanceContextName(a) ?? '').localeCompare(instanceContextName(b) ?? '') ||
+      a.displayName.localeCompare(b.displayName),
+  )
+}
+
+function instanceContextName(inst: ApiInstance): string | undefined {
+  const ctxId = inst.systemInstance
+    ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
+    : undefined
+  return ctxId ? contextStore.contextMap.get(ctxId)?.displayName : undefined
+}
+
+function onDrawerNavExit(step: number) {
+  if (step !== -1 || !currentIsUnmapped.value) return
+  instanceDrawerOpen.value = false
+  const last = filteredApis.value.at(-1)?.apiId
+  if (last) {
+    selectApi(last)
+    scrollRowIntoView(last)
+  }
+}
+
+const instanceCursor = ref('')
+
+const cursorInstanceIds = computed(() =>
+  selectedId.value
+    ? byContextThenName(store.getInstancesForApi(selectedId.value)).map((i) => i.apiInstanceId)
+    : [],
+)
+
+watch(selectedId, () => {
+  instanceCursor.value = ''
+})
+
+watch(selectedInstanceId, (id) => {
+  if (!instanceDrawerOpen.value) return
+  const inst = store.apiInstances.find((i) => i.apiInstanceId === id)
+  instanceCursor.value = inst && inst.api === selectedId.value ? id : ''
+})
+
+useInstanceCursorNav(cursorInstanceIds, instanceCursor, openInstance, instanceDrawerOpen)
+
 // Graph controls
 const graphPane = ref<InstanceType<typeof ApiGraphPane> | null>(null)
 const graphVisible = ref(true)
@@ -219,6 +302,19 @@ function toggleComponents() {
 function toggleInstances() {
   showInstances.value = !showInstances.value
 }
+
+function toggleUnmapped() {
+  if (!showInstances.value || store.unmappedInstances.length === 0) return
+  showUnmapped.value = !showUnmapped.value
+}
+
+useGraphKeyToggles({
+  [LAYER_TOGGLE_KEYS.components]: toggleComponents,
+  [LAYER_TOGGLE_KEYS.instances]: toggleInstances,
+  [LAYER_TOGGLE_KEYS.unmapped]: toggleUnmapped,
+  [GRAPH_TOGGLE_KEYS.graph]: toggleGraph,
+  [GRAPH_TOGGLE_KEYS.fullscreen]: toggleFullscreen,
+})
 
 function refitGraph() {
   if (!graphVisible.value) return
@@ -426,6 +522,7 @@ onMounted(async () => {
                 :selected-id="selectedId"
                 :crossings="crossings"
                 :unmapped="unmappedFiltered"
+                :active-instance-id="instanceDrawerOpen ? selectedInstanceId : ''"
                 :force-expanded="!!search.trim()"
                 :list-collapsed="listCollapsedEffective"
                 @select="selectApi"
@@ -463,7 +560,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Fit to view"
+                    title="Fit to view (0) — Shift+click focuses an area"
                     @click.stop="graphPane?.fit()"
                     @dblclick.stop
                   >
@@ -474,7 +571,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Zoom out"
+                    title="Zoom out (−)"
                     @click.stop="graphPane?.zoomOut()"
                     @dblclick.stop
                   >
@@ -485,7 +582,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Zoom in"
+                    title="Zoom in (+)"
                     @click.stop="graphPane?.zoomIn()"
                     @dblclick.stop
                   >
@@ -497,7 +594,7 @@ onMounted(async () => {
                   <div class="mx-0.5 h-4 w-px bg-bg-3" />
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Show providing and consuming components; when off, APIs link directly"
+                    :title="`Show providing and consuming components; when off, APIs link directly ${layerKeyHint('components')}`"
                     @click.stop="toggleComponents"
                     @dblclick.stop
                   >
@@ -513,7 +610,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Show API instances as nodes; unmapped ones appear as standalone nodes"
+                    :title="`Show API instances as nodes; unmapped ones appear as standalone nodes ${layerKeyHint('instances')}`"
                     @click.stop="toggleInstances"
                     @dblclick.stop
                   >
@@ -534,10 +631,10 @@ onMounted(async () => {
                       store.unmappedInstances.length === 0
                         ? 'No unmapped instances present'
                         : showInstances
-                          ? 'Show unmapped instances as nodes'
+                          ? `Show unmapped instances as nodes ${layerKeyHint('unmapped')}`
                           : 'Enable Instances to show unmapped instances'
                     "
-                    @click.stop="showUnmapped = !showUnmapped"
+                    @click.stop="toggleUnmapped"
                     @dblclick.stop
                   >
                     Unmapped
@@ -552,6 +649,7 @@ onMounted(async () => {
                   <button
                     class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta transition-colors hover:bg-bg-3"
                     :class="graphFullscreen ? 'text-accent' : 'text-text-3 hover:text-text-1'"
+                    :title="`Toggle fullscreen graph ${keyHint(GRAPH_TOGGLE_KEYS.fullscreen)}`"
                     @click.stop="toggleFullscreen"
                     @dblclick.stop
                   >
@@ -565,6 +663,7 @@ onMounted(async () => {
                 </template>
                 <button
                   class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
+                  :title="`Show or hide the graph ${keyHint(GRAPH_TOGGLE_KEYS.graph)}`"
                   @click.stop="toggleGraph"
                   @dblclick.stop
                 >
@@ -602,6 +701,8 @@ onMounted(async () => {
                 :match-ids="new Set([...matchIds].map((id) => `api:${id}`))"
                 :apis="chipFilteredApis"
                 :selected-id="selectedId"
+                :cursor-id="instanceCursor"
+                :suspend-cursor-follow="instanceDrawerOpen"
                 :show-components="showComponents"
                 :show-instances="showInstances"
                 :show-unmapped="unmappedOn"
@@ -629,6 +730,7 @@ onMounted(async () => {
               <ApiDetail
                 :api="selectedApi"
                 :flow="selectedFlow"
+                :active-instance-id="instanceDrawerOpen ? selectedInstanceId : ''"
                 @open-instance="openInstance"
               />
             </div>
@@ -640,7 +742,10 @@ onMounted(async () => {
     <ApiInstanceDrawer
       :open="instanceDrawerOpen"
       :selected-instance-id="selectedInstanceId"
+      :nav-ids="drawerNavIds"
       @close="instanceDrawerOpen = false"
+      @navigate="(id) => (selectedInstanceId = id)"
+      @nav-exit="onDrawerNavExit"
     />
   </div>
 </template>

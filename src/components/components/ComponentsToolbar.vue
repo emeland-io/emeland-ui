@@ -35,7 +35,8 @@ const searchModel = computed({
       <input
         v-model="searchModel"
         type="text"
-        placeholder="Search components, IDs, annotations..."
+        data-search-input
+        placeholder="Search components, IDs, annotations... (/)"
         class="w-full bg-transparent font-mono text-label text-text-2 outline-none placeholder:text-meta placeholder:text-text-4"
       />
       <button

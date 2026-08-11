@@ -14,7 +14,7 @@ const { copy, isCopied } = useClipboard()
   <span
     role="button"
     tabindex="0"
-    class="group/copy relative inline-flex shrink-0 cursor-pointer items-center text-text-4 transition-colors hover:text-text-2"
+    class="group/copy relative inline-flex shrink-0 cursor-pointer items-center rounded text-text-4 transition-colors hover:text-text-2 focus-visible:bg-bg-2 focus-visible:text-text-2 focus-visible:outline-none"
     aria-label="Copy to clipboard"
     @click.stop="copy(props.value, props.value)"
     @keydown.enter.stop.prevent="copy(props.value, props.value)"

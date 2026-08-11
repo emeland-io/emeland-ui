@@ -15,11 +15,14 @@ import { useResourceNav } from '@/composables/useResourceNav'
 const props = defineProps<{
   open: boolean
   selectedInstanceId: string
+  navIds?: string[]
 }>()
 
 const emit = defineEmits<{
   close: []
   'go-to-system': [id: string]
+  navigate: [id: string]
+  'nav-exit': [step: number]
 }>()
 
 const store = useSystemStore()
@@ -51,6 +54,16 @@ const mappingState = computed(() =>
     ? mappingStateOf(drawerInstance.value.system, store.systemMap.has(drawerInstance.value.system))
     : undefined,
 )
+
+const navIndex = computed(() => props.navIds?.indexOf(props.selectedInstanceId) ?? -1)
+
+function stepInstance(step: -1 | 1) {
+  const ids = props.navIds
+  if (!ids || navIndex.value < 0) return
+  const next = ids[navIndex.value + step]
+  if (next !== undefined) emit('navigate', next)
+  else emit('nav-exit', step)
+}
 </script>
 
 <template>
@@ -58,7 +71,11 @@ const mappingState = computed(() =>
     :open="open"
     :title="drawerInstance?.displayName ?? 'System instance'"
     subtitle="SystemInstance"
+    :nav-index="navIndex >= 0 ? navIndex : undefined"
+    :nav-count="navIndex >= 0 ? navIds?.length : undefined"
     @close="emit('close')"
+    @nav-prev="stepInstance(-1)"
+    @nav-next="stepInstance(1)"
   >
     <template #header-tags>
       <MappingTag :state="mappingState" />
@@ -94,7 +111,8 @@ const mappingState = computed(() =>
       <div v-if="drawerInstance.system">
         <SectionLabel>System</SectionLabel>
         <button
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
+          data-drawer-relation
           title="Go to system"
           @click="emit('go-to-system', drawerInstance.system)"
         >
@@ -128,7 +146,8 @@ const mappingState = computed(() =>
       <div v-if="drawerInstance.context">
         <SectionLabel>Context</SectionLabel>
         <button
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0"
+          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
+          data-drawer-relation
           title="Go to context"
           @click="goToContext(drawerInstance.context)"
         >

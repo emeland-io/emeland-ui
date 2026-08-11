@@ -16,6 +16,9 @@ import {
   IconX,
 } from '@tabler/icons-vue'
 import { useContextStore } from '@/stores/contexts'
+import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
+import { useGraphKeyToggles } from '@/composables/useGraphKeyToggles'
+import { GRAPH_TOGGLE_KEYS } from '@/constants/shortcuts'
 import { useSystemStore } from '@/stores/systems'
 import { useFindingsStore } from '@/stores/findings'
 import ListDetail from '@/components/ListDetail.vue'
@@ -226,6 +229,11 @@ function toggleFullscreen() {
   if (graphFullscreen.value) graphVisible.value = true
 }
 
+useGraphKeyToggles({
+  [GRAPH_TOGGLE_KEYS.graph]: toggleGraph,
+  [GRAPH_TOGGLE_KEYS.fullscreen]: toggleFullscreen,
+})
+
 const SNAP_CLOSE = 100
 const DEFAULT_HEIGHT = 320
 
@@ -309,6 +317,20 @@ function closeTypesDrawer() {
   typesDrawerOpen.value = false
 }
 
+useListKeyboardNav(
+  computed(() => contextRows.value.map((r) => r.context.contextId)),
+  selectedId,
+  selectContext,
+  typesDrawerOpen,
+)
+
+useListKeyboardNav(
+  computed(() => store.contextTypes.map((t) => t.contextTypeId)),
+  selectedTypeId,
+  selectTypeInDrawer,
+  computed(() => !typesDrawerOpen.value),
+)
+
 // Jump to the parent context
 onMounted(async () => {
   findingsStore.load()
@@ -379,7 +401,8 @@ onMounted(async () => {
           <input
             v-model="search"
             type="text"
-            placeholder="Search contexts, IDs, annotations..."
+            data-search-input
+            placeholder="Search contexts, IDs, annotations... (/)"
             class="w-full bg-transparent font-mono text-label text-text-2 outline-none placeholder:text-meta placeholder:text-text-4"
           />
           <button
@@ -533,7 +556,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Fit to view"
+                    title="Fit to view (0) — Shift+click focuses an area"
                     @click.stop="graphPane?.fit()"
                     @dblclick.stop
                   >
@@ -544,7 +567,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Zoom out"
+                    title="Zoom out (−)"
                     @click.stop="graphPane?.zoomOut()"
                     @dblclick.stop
                   >
@@ -555,7 +578,7 @@ onMounted(async () => {
                   </button>
                   <button
                     class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Zoom in"
+                    title="Zoom in (+)"
                     @click.stop="graphPane?.zoomIn()"
                     @dblclick.stop
                   >
@@ -682,6 +705,7 @@ onMounted(async () => {
           <div
             v-for="type in store.contextTypes"
             :key="type.contextTypeId"
+            :data-row-id="type.contextTypeId"
             class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-2.5 transition-colors"
             :class="
               type.contextTypeId === selectedTypeId

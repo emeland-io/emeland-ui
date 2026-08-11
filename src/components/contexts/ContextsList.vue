@@ -47,6 +47,7 @@ function typeName(context: Context): string | undefined {
   <div
     v-for="row in rows"
     :key="row.context.contextId"
+    :data-row-id="row.context.contextId"
     class="relative cursor-pointer border-b border-l-2 border-border-1 py-3 pr-4 transition-colors"
     :class="[
       row.context.contextId === selectedId
