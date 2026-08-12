@@ -69,7 +69,6 @@ const parentType = computed<ResourceType | undefined>(() => {
       return 'Component'
     case 'system':
     case 'context':
-    // instances listed on a context are system instances living in it
     case 'context-node':
       return 'System'
     default:
