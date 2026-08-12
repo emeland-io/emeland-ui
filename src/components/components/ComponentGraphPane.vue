@@ -57,6 +57,7 @@ const graphModel = computed(() =>
     findingKindsOf: findingsStore.findingKindsFor,
     instancesOf: (id) => store.getInstancesForComponent(id),
     instanceContext: (inst) => contextForInstance(inst).name,
+    instanceUnresolved: (inst) => contextForInstance(inst).unresolved,
     systemInstanceName: (id) => systemStore.systemInstanceMap.get(id)?.displayName,
     unmappedInstances: props.showUnmapped ? store.unmappedInstances : [],
     showInstances: props.showInstances,

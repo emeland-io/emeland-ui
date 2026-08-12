@@ -14,6 +14,7 @@ export interface ApiGraphInput {
   instancesOf?: (apiId: string) => ApiInstance[]
   unmappedInstances?: ApiInstance[]
   instanceContext?: (instance: ApiInstance) => string | undefined
+  instanceUnresolved?: (instance: ApiInstance) => boolean
   systemInstanceName?: (systemInstanceId: string) => string | undefined
   showComponents?: boolean
   showInstances?: boolean
@@ -30,24 +31,34 @@ export function buildApiGraph({
   instancesOf,
   unmappedInstances,
   instanceContext,
+  instanceUnresolved,
   systemInstanceName,
   showComponents = true,
   showInstances = false,
 }: ApiGraphInput): GraphModel {
   const presentApis = new Set(apis.map((a) => a.apiId))
-  const nodes: DagNodeSpec[] = apis.map((a) => ({
-    id: `api:${a.apiId}`,
-    kind: 'api' as const,
-    data: {
-      label: a.displayName,
-      description: a.description || undefined,
-      version: a.version?.version || undefined,
-      crosses: crossesOf?.(a.apiId) || undefined,
-      crossCount: crossCountOf?.(a.apiId) || undefined,
-      findings: findingCountOf?.(a.apiId) || undefined,
-      findingKinds: findingKindsOf?.(a.apiId),
-    },
-  }))
+  const nodes: DagNodeSpec[] = apis.map((a) => {
+    const instances = instancesOf?.(a.apiId) ?? []
+    return {
+      id: `api:${a.apiId}`,
+      kind: 'api' as const,
+      data: {
+        label: a.displayName,
+        description: a.description || undefined,
+        version: a.version?.version || undefined,
+        crosses: crossesOf?.(a.apiId) || undefined,
+        crossCount: crossCountOf?.(a.apiId) || undefined,
+        findings: findingCountOf?.(a.apiId) || undefined,
+        findingKinds: findingKindsOf?.(a.apiId),
+        instanceNames: instances.length
+          ? instances.map((i) => ({
+              name: i.displayName,
+              unresolved: instanceUnresolved?.(i) || undefined,
+            }))
+          : undefined,
+      },
+    }
+  })
   const edges: GraphEdge[] = []
   // unmapped instances are kept out of the dagre pass and placed in their own lane
   const unmappedNodes: DagNodeSpec[] = []

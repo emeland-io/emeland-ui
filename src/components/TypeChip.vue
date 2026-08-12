@@ -25,6 +25,7 @@ const props = defineProps<{
   letter?: string
   label?: string
   instance?: boolean
+  tone?: 'default' | 'error'
 }>()
 
 const chip = computed(() => (props.type ? chipLetterFor(props.type) : (props.letter ?? '?')))
@@ -36,8 +37,11 @@ const title = computed(() => {
 
 <template>
   <span
-    class="inline-flex w-5 shrink-0 items-center justify-center bg-bg-3 font-mono text-micro text-text-3"
-    :class="instance ? 'type-chip-instance' : 'rounded-sm'"
+    class="inline-flex w-5 shrink-0 items-center justify-center font-mono text-micro"
+    :class="[
+      instance ? 'type-chip-instance' : 'rounded-sm',
+      tone === 'error' ? 'bg-error/10 text-error' : 'bg-bg-3 text-text-3',
+    ]"
     :title="title"
   >
     {{ chip }}

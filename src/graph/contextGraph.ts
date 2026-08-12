@@ -1,6 +1,6 @@
 import type { Context } from '@/types/context'
 import type { SystemInstance } from '@/types/system'
-import type { GraphModel, GraphEdge } from '@/types/graph'
+import type { GraphModel, GraphEdge, NodeInstanceRef } from '@/types/graph'
 import { layoutFramedColumns, type LayoutAnchor } from './layout'
 
 export interface ContextGraphInput {
@@ -10,6 +10,7 @@ export interface ContextGraphInput {
   findingCountOf?: (contextId: string) => number
   findingKindsOf?: (contextId: string) => string[]
   instancesIn?: (contextId: string) => SystemInstance[]
+  instanceUnresolved?: (instance: SystemInstance) => boolean
 }
 
 export function buildContextGraph({
@@ -19,6 +20,7 @@ export function buildContextGraph({
   findingCountOf,
   findingKindsOf,
   instancesIn,
+  instanceUnresolved,
 }: ContextGraphInput): GraphModel {
   const all = contexts ?? []
   const byId = new Map(all.map((c) => [c.contextId, c]))
@@ -53,12 +55,15 @@ export function buildContextGraph({
   }
   for (const r of roots) visit(r)
 
-  const instanceNamesOf = new Map<string, string[]>()
+  const instanceNamesOf = new Map<string, NodeInstanceRef[]>()
   if (instancesIn) {
     for (const context of ordered) {
       const names = instancesIn(context.contextId)
-        .map((i) => i.displayName)
-        .sort((a, b) => a.localeCompare(b))
+        .map((i) => ({
+          name: i.displayName,
+          unresolved: instanceUnresolved?.(i) || undefined,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name))
       if (names.length) instanceNamesOf.set(context.contextId, names)
     }
   }

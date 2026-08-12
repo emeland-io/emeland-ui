@@ -7,6 +7,7 @@ export interface SystemGraphInput {
   findingCountOf?: (systemId: string) => number
   findingKindsOf?: (systemId: string) => string[]
   instancesOf?: (systemId: string) => SystemInstance[]
+  instanceUnresolved?: (instance: SystemInstance) => boolean
 }
 
 export function buildSystemGraph({
@@ -14,6 +15,7 @@ export function buildSystemGraph({
   findingCountOf,
   findingKindsOf,
   instancesOf,
+  instanceUnresolved,
 }: SystemGraphInput): GraphModel {
   const allSystems = systems ?? []
   const present = new Set(allSystems.map((s) => s.systemId))
@@ -30,7 +32,12 @@ export function buildSystemGraph({
         version: system.version?.version || undefined,
         findings: findingCountOf?.(system.systemId) || undefined,
         findingKinds: findingKindsOf?.(system.systemId),
-        instanceNames: instances.length ? instances.map((i) => i.displayName) : undefined,
+        instanceNames: instances.length
+          ? instances.map((i) => ({
+              name: i.displayName,
+              unresolved: instanceUnresolved?.(i) || undefined,
+            }))
+          : undefined,
       },
     }
   })
