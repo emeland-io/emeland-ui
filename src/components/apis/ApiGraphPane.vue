@@ -76,6 +76,12 @@ const graphModel = computed(() =>
     crossesOf: (id) => contextFlows.value.get(id)?.crosses ?? false,
     crossCountOf: (id) => contextFlows.value.get(id)?.crossContexts.length ?? 0,
     instancesOf: (id) => apiStore.getInstancesForApi(id),
+    instanceUnresolved: (inst) => {
+      const ctxId = inst.systemInstance
+        ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
+        : undefined
+      return !!ctxId && !contextStore.contextMap.has(ctxId)
+    },
     unmappedInstances: props.showUnmapped ? apiStore.unmappedInstances : [],
     instanceContext,
     systemInstanceName: (id) => systemStore.systemInstanceMap.get(id)?.displayName,

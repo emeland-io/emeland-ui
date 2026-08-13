@@ -31,6 +31,7 @@ import type {
   ContextItemNodeData,
   ApiNodeData,
   ComponentNodeData,
+  NodeInstanceRef,
 } from '@/types/graph'
 import { ZOOM_IN_KEYS, ZOOM_OUT_KEYS, FIT_VIEW_KEY } from '@/constants/shortcuts'
 import { isEditableTarget } from '@/utils/dom'
@@ -387,17 +388,17 @@ const tooltip = computed(() => {
   const geom = nodeGeom.value.get(tooltipNodeId.value)
   if (!node || !geom) return null
   const byId = nodeById.value
-  const embedded = (node.data as { instanceNames?: string[] }).instanceNames
+  const embedded = (node.data as { instanceNames?: NodeInstanceRef[] }).instanceNames
   const instances = (
     embedded ??
     props.edges
       .filter((e) => e.source === node.id)
       .map((e) => byId.get(e.target))
       .filter((n) => n?.kind === 'instance')
-      .map((n) => n!.data.label)
+      .map((n) => ({ name: n!.data.label, unresolved: undefined }))
   )
     .slice()
-    .sort((a, b) => a.localeCompare(b))
+    .sort((a, b) => (b.unresolved ? 1 : 0) - (a.unresolved ? 1 : 0) || a.name.localeCompare(b.name))
 
   // api nodes: names of providing/consuming components, derived from the edges
   // (mirrors how instance names are derived above)

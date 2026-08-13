@@ -12,6 +12,7 @@ export interface ComponentGraphInput {
   findingKindsOf?: (componentId: string) => string[]
   instancesOf?: (componentId: string) => ComponentInstance[]
   instanceContext?: (instance: ComponentInstance) => string | undefined
+  instanceUnresolved?: (instance: ComponentInstance) => boolean
   systemInstanceName?: (systemInstanceId: string) => string | undefined
   unmappedInstances?: ComponentInstance[]
   showInstances?: boolean
@@ -28,6 +29,7 @@ export function buildComponentGraph({
   findingKindsOf,
   instancesOf,
   instanceContext,
+  instanceUnresolved,
   systemInstanceName,
   unmappedInstances,
   showInstances = true,
@@ -63,7 +65,12 @@ export function buildComponentGraph({
         system: systemName?.(c.system),
         findings: findingCountOf?.(c.componentId) || undefined,
         findingKinds: findingKindsOf?.(c.componentId),
-        instanceNames: instances.length ? instances.map((inst) => inst.displayName) : undefined,
+        instanceNames: instances.length
+          ? instances.map((inst) => ({
+              name: inst.displayName,
+              unresolved: instanceUnresolved?.(inst) || undefined,
+            }))
+          : undefined,
       },
     })
     if (showInstances) {

@@ -19,6 +19,11 @@ interface BaseGraphNode {
   selectable?: boolean
 }
 
+export interface NodeInstanceRef {
+  name: string
+  unresolved?: boolean
+}
+
 export interface SystemNodeData {
   label: string
   abstract: boolean
@@ -26,7 +31,7 @@ export interface SystemNodeData {
   version?: string
   findings?: number
   findingKinds?: string[]
-  instanceNames?: string[]
+  instanceNames?: NodeInstanceRef[]
 }
 export interface InstanceNodeData {
   label: string
@@ -53,7 +58,7 @@ export interface ContextItemNodeData {
   description?: string
   type?: string
   instances?: number
-  instanceNames?: string[]
+  instanceNames?: NodeInstanceRef[]
   findings?: number
   findingKinds?: string[]
 }
@@ -67,6 +72,7 @@ export interface ApiNodeData {
   crossCount?: number
   findings?: number
   findingKinds?: string[]
+  instanceNames?: NodeInstanceRef[]
 }
 export interface ComponentNodeData {
   label: string
@@ -74,7 +80,7 @@ export interface ComponentNodeData {
   system?: string
   findings?: number
   findingKinds?: string[]
-  instanceNames?: string[]
+  instanceNames?: NodeInstanceRef[]
 }
 
 export interface SystemGraphNode extends BaseGraphNode {
@@ -89,6 +95,10 @@ export interface ContextGraphNode extends BaseGraphNode {
   kind: 'context'
   data: ContextNodeData
 }
+export interface ContextItemGraphNode extends BaseGraphNode {
+  kind: 'context-node'
+  data: ContextItemNodeData
+}
 export interface ApiGraphNode extends BaseGraphNode {
   kind: 'api'
   data: ApiNodeData
@@ -102,6 +112,7 @@ export type GraphNode =
   | SystemGraphNode
   | InstanceGraphNode
   | ContextGraphNode
+  | ContextItemGraphNode
   | ApiGraphNode
   | ComponentGraphNode
 

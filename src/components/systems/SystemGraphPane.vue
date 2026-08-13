@@ -59,6 +59,7 @@ const graphModel = computed(() =>
         findingCountOf: findingsStore.findingCountFor,
         findingKindsOf: findingsStore.findingKindsFor,
         instancesOf: store.getInstancesForSystem,
+        instanceUnresolved: (inst) => !!inst.context && !contextStore.contextMap.has(inst.context),
       }),
 )
 

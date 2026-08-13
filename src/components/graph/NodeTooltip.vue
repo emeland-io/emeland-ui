@@ -6,7 +6,7 @@ import {
   IconArrowUp,
   IconArrowDown,
 } from '@tabler/icons-vue'
-import type { GraphNode, GraphNodeKind } from '@/types/graph'
+import type { GraphNode, GraphNodeKind, NodeInstanceRef } from '@/types/graph'
 import type { ResourceType } from '@/types/common'
 import TypeChip from '@/components/TypeChip.vue'
 
@@ -15,7 +15,7 @@ const props = withDefaults(
     node: GraphNode
     incoming: number
     outgoing: number
-    instances?: string[]
+    instances?: NodeInstanceRef[]
     providers?: string[]
     consumers?: string[]
   }>(),
@@ -69,6 +69,7 @@ const parentType = computed<ResourceType | undefined>(() => {
       return 'Component'
     case 'system':
     case 'context':
+    case 'context-node':
       return 'System'
     default:
       return undefined
@@ -105,6 +106,7 @@ const description = computed(() => {
 
 const instanceRows = computed(() => props.instances.slice(0, MAX_INSTANCES))
 const moreInstances = computed(() => Math.max(0, props.instances.length - MAX_INSTANCES))
+const unresolvedCount = computed(() => props.instances.filter((i) => i.unresolved).length)
 
 const providerRows = computed(() => props.providers.slice(0, MAX_RELATIONS))
 const moreProviders = computed(() => Math.max(0, props.providers.length - MAX_RELATIONS))
@@ -196,21 +198,23 @@ const showStats = computed(() => stats.value !== '')
       class="mt-1.5 border-t border-border-1 pt-1.5"
     >
       <div
-        v-for="name in instanceRows"
-        :key="name"
+        v-for="inst in instanceRows"
+        :key="inst.name"
         class="flex items-center gap-1.5 py-px text-micro text-text-2"
       >
         <TypeChip
           v-if="parentType"
           :type="parentType"
           instance
+          :tone="inst.unresolved ? 'error' : undefined"
         />
         <TypeChip
           v-else
           letter="I"
           label="Instance"
+          :tone="inst.unresolved ? 'error' : undefined"
         />
-        <span class="truncate">{{ name }}</span>
+        <span class="truncate">{{ inst.name }}</span>
       </div>
       <div
         v-if="moreInstances"
@@ -274,10 +278,16 @@ const showStats = computed(() => stats.value !== '')
       </template>
     </div>
     <div
-      v-if="instanceCount || showStats"
+      v-if="instanceCount || unresolvedCount || showStats"
       class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-border-1 pt-1.5 font-mono text-micro text-text-3"
     >
       <span v-if="instanceCount">{{ instanceCount }} inst</span>
+      <span
+        v-if="unresolvedCount"
+        class="text-error"
+      >
+        {{ unresolvedCount }} unresolved
+      </span>
       <span
         v-if="showStats"
         class="ml-auto"

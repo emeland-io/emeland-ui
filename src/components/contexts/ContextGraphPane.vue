@@ -38,6 +38,7 @@ const graphModel = computed(() =>
     findingCountOf: findingsStore.findingCountFor,
     findingKindsOf: findingsStore.findingKindsFor,
     instancesIn: (id: string) => systemStore.systemInstances.filter((i) => i.context === id),
+    instanceUnresolved: (inst) => !inst.system || !systemStore.systemMap.has(inst.system),
   }),
 )
 
