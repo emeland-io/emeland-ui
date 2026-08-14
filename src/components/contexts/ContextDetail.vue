@@ -7,6 +7,7 @@ import { useFindingsStore } from '@/stores/findings'
 import { useResourceNav } from '@/composables/useResourceNav'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import type { Context } from '@/types/context'
 import type { SystemInstance } from '@/types/system'
@@ -147,11 +148,7 @@ const relatedFindings = computed(() =>
                 @click="goToResource('System', inst.system)"
               >
                 <span class="group/row flex w-full items-center gap-3">
-                  <span
-                    class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-                  >
-                    System
-                  </span>
+                  <TypeTag>System</TypeTag>
                   <span
                     class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
                   >
@@ -183,11 +180,7 @@ const relatedFindings = computed(() =>
                 class="flex w-full flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
               >
                 <span class="flex w-full items-center gap-3">
-                  <span
-                    class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
-                  >
-                    System
-                  </span>
+                  <TypeTag tone="error">System</TypeTag>
                   <span class="min-w-0 truncate text-body text-error">
                     {{ inst.system ? 'Unresolved system' : 'No system' }}
                   </span>
@@ -223,11 +216,7 @@ const relatedFindings = computed(() =>
               @click="emit('navigate-parent', context.parentId)"
             >
               <span class="group/row flex w-full items-center gap-3">
-                <span
-                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-                >
-                  Context
-                </span>
+                <TypeTag>Context</TypeTag>
                 <span
                   class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
                 >
@@ -256,15 +245,13 @@ const relatedFindings = computed(() =>
               class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
             >
               <span class="flex w-full items-center gap-3">
-                <span
-                  class="flex w-28 shrink-0 items-center justify-center gap-1 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
-                >
+                <TypeTag tone="error">
                   <IconAlertTriangle
                     :size="12"
                     :stroke-width="2"
                   />
                   Context
-                </span>
+                </TypeTag>
                 <span class="min-w-0 truncate text-body text-error">Unresolved parent</span>
               </span>
               <span class="text-meta text-error/80">
@@ -340,11 +327,7 @@ const relatedFindings = computed(() =>
               @click="emit('navigate-parent', child.contextId)"
             >
               <span class="group/row flex w-full items-center gap-3">
-                <span
-                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-                >
-                  Context
-                </span>
+                <TypeTag>Context</TypeTag>
                 <span
                   class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
                 >

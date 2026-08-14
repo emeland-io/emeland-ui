@@ -10,6 +10,7 @@ import { useResourceNav } from '@/composables/useResourceNav'
 import CopyButton from '@/components/CopyButton.vue'
 import TypeChip from '@/components/TypeChip.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import { endpointUrl } from '@/utils/endpoint'
 import { differingAnnotationKeys } from '@/utils/annotations'
@@ -210,11 +211,7 @@ function versionDates(a: Api | undefined): [string, string][] {
               @click="goToResource('System', api.system)"
             >
               <span class="group/row flex w-full items-center gap-3">
-                <span
-                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-                >
-                  System
-                </span>
+                <TypeTag>System</TypeTag>
                 <span
                   class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
                 >
@@ -240,11 +237,7 @@ function versionDates(a: Api | undefined): [string, string][] {
               class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
             >
               <div class="flex items-center gap-3">
-                <span
-                  class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
-                >
-                  System
-                </span>
+                <TypeTag tone="error">System</TypeTag>
                 <span class="min-w-0 truncate text-body text-error">Unresolved system</span>
               </div>
               <span class="font-mono text-meta text-text-4">{{ api.system }}</span>
@@ -376,11 +369,7 @@ function versionDates(a: Api | undefined): [string, string][] {
               @click="goToResource('Component', c.componentId)"
             >
               <span class="group/row flex w-full items-center gap-3">
-                <span
-                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-                >
-                  Component
-                </span>
+                <TypeTag>Component</TypeTag>
                 <span
                   class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
                 >
@@ -469,11 +458,7 @@ function versionDates(a: Api | undefined): [string, string][] {
               @click="goToResource('Component', c.componentId)"
             >
               <span class="group/row flex w-full items-center gap-3">
-                <span
-                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-                >
-                  Component
-                </span>
+                <TypeTag>Component</TypeTag>
                 <span
                   class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
                 >

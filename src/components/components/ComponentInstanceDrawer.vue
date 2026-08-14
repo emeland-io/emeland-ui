@@ -10,6 +10,7 @@ import { useResourceNav } from '@/composables/useResourceNav'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
 import MappingTag from '@/components/MappingTag.vue'
@@ -138,11 +139,7 @@ function stepInstance(step: -1 | 1) {
           title="Go to component"
           @click="navigate('Component', instance.component)"
         >
-          <span
-            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-          >
-            Component
-          </span>
+          <TypeTag>Component</TypeTag>
           <span
             class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
           >
@@ -174,11 +171,7 @@ function stepInstance(step: -1 | 1) {
           :title="systemInstance?.system ? 'Go to system' : undefined"
           @click="systemInstance?.system && navigate('System', systemInstance.system)"
         >
-          <span
-            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-          >
-            Instance
-          </span>
+          <TypeTag>Instance</TypeTag>
           <span
             class="max-w-full truncate text-body text-text-2 transition-colors"
             :class="systemInstance?.system ? 'group-hover:text-accent' : ''"
@@ -211,12 +204,7 @@ function stepInstance(step: -1 | 1) {
           title="Go to context"
           @click="navigate('Context', context.id)"
         >
-          <span
-            v-if="contextType"
-            class="shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-          >
-            {{ contextType }}
-          </span>
+          <TypeTag v-if="contextType">{{ contextType }}</TypeTag>
           <span
             class="max-w-full truncate text-body transition-colors group-hover:text-accent"
             :class="context.unresolved ? 'text-error' : 'text-text-2'"

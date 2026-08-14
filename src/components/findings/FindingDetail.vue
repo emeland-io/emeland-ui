@@ -4,6 +4,7 @@ import type { Finding } from '@/types/finding'
 import type { ResourceType } from '@/types/common'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import { isResourceNavigable } from '@/constants/resources'
 
@@ -111,11 +112,7 @@ const emit = defineEmits<{
               "
             >
               <span class="group/row flex w-full items-center gap-3">
-                <span
-                  class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-                >
-                  {{ res.resourceType }}
-                </span>
+                <TypeTag>{{ res.resourceType }}</TypeTag>
                 <span
                   class="min-w-0 truncate text-body text-text-2 transition-colors"
                   :class="

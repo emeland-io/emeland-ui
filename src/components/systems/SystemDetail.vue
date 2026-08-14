@@ -7,6 +7,7 @@ import { useFindingsStore } from '@/stores/findings'
 import { useResourceNav } from '@/composables/useResourceNav'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import SystemInstancesBoard from '@/components/systems/SystemInstancesBoard.vue'
 import type { System, SystemInstance } from '@/types/system'
@@ -160,12 +161,9 @@ function versionDates(s: System | undefined): [string, string][] {
                 @click="goToResource('Context', ctx.id)"
               >
                 <span class="group/row flex w-full items-center gap-3">
-                  <span
-                    v-if="contextType(ctx.id)"
-                    class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-                  >
+                  <TypeTag v-if="contextType(ctx.id)">
                     {{ contextType(ctx.id) }}
-                  </span>
+                  </TypeTag>
                   <span
                     class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
                   >
@@ -207,11 +205,7 @@ function versionDates(s: System | undefined): [string, string][] {
                 @click="emit('navigate-parent', system.parent)"
               >
                 <span class="group/row flex w-full items-center gap-3">
-                  <span
-                    class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-                  >
-                    System
-                  </span>
+                  <TypeTag>System</TypeTag>
                   <span
                     class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
                   >
@@ -236,11 +230,7 @@ function versionDates(s: System | undefined): [string, string][] {
                 v-else
                 class="flex items-center gap-3 border-b border-border-1 py-2 last:border-b-0"
               >
-                <span
-                  class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
-                >
-                  System
-                </span>
+                <TypeTag tone="error">System</TypeTag>
                 <div class="min-w-0 flex-1">
                   <div class="truncate text-body text-error">Unresolved parent</div>
                   <div class="mt-0.5 truncate font-mono text-meta text-error/80">
@@ -320,12 +310,9 @@ function versionDates(s: System | undefined): [string, string][] {
               @click="emit('navigate-parent', child.systemId)"
             >
               <span class="group/row flex w-full items-center gap-3">
-                <span
-                  class="w-28 shrink-0 rounded px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase"
-                  :class="child.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent-text'"
-                >
+                <TypeTag :tone="child.abstract ? 'muted' : 'accent'">
                   {{ store.getKindForSystem(child) }}
-                </span>
+                </TypeTag>
                 <span
                   class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
                 >
