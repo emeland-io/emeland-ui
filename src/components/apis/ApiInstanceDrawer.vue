@@ -9,6 +9,7 @@ import { useResourceNav } from '@/composables/useResourceNav'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
 import MappingTag from '@/components/MappingTag.vue'
@@ -165,11 +166,7 @@ function stepInstance(step: -1 | 1) {
           title="Go to API"
           @click="navigate('API', instance.api!)"
         >
-          <span
-            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-          >
-            API
-          </span>
+          <TypeTag>API</TypeTag>
           <span
             class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
           >
@@ -193,11 +190,7 @@ function stepInstance(step: -1 | 1) {
           v-else
           class="flex w-full items-center gap-3 border-b border-border-1 py-2 last:border-b-0"
         >
-          <span
-            class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
-          >
-            API
-          </span>
+          <TypeTag tone="error">API</TypeTag>
           <span class="max-w-full truncate text-body text-error">Unresolved API</span>
           <div class="ml-auto flex shrink-0 items-center gap-1.5">
             <span class="font-mono text-meta text-text-4">{{ instance.api }}</span>
@@ -219,11 +212,7 @@ function stepInstance(step: -1 | 1) {
           :title="systemInstance?.system ? 'Go to system' : undefined"
           @click="systemInstance?.system && navigate('System', systemInstance.system)"
         >
-          <span
-            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-          >
-            Instance
-          </span>
+          <TypeTag>Instance</TypeTag>
           <span
             class="max-w-full truncate text-body text-text-2 transition-colors"
             :class="systemInstance?.system ? 'group-hover:text-accent' : ''"
@@ -257,12 +246,7 @@ function stepInstance(step: -1 | 1) {
           :title="context ? 'Go to context' : undefined"
           @click="context && navigate('Context', contextId!)"
         >
-          <span
-            v-if="contextType"
-            class="shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-          >
-            {{ contextType }}
-          </span>
+          <TypeTag v-if="contextType">{{ contextType }}</TypeTag>
           <span
             class="max-w-full truncate text-body transition-colors"
             :class="[context ? 'text-text-2 group-hover:text-accent' : 'text-error']"

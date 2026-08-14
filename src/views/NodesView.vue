@@ -14,6 +14,7 @@ import ListDetail from '@/components/ListDetail.vue'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
@@ -427,21 +428,14 @@ useListKeyboardNav(
                     <SectionLabel>Node type</SectionLabel>
                     <div class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0">
                       <span class="flex w-full items-center gap-3">
-                        <span
-                          class="flex w-28 shrink-0 items-center justify-center gap-1 rounded px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase"
-                          :class="
-                            selectedNodeTypeUnknown
-                              ? 'bg-error/10 text-error'
-                              : 'bg-accent/10 text-accent-text'
-                          "
-                        >
+                        <TypeTag :tone="selectedNodeTypeUnknown ? 'error' : 'accent'">
                           <IconAlertTriangle
                             v-if="selectedNodeTypeUnknown"
                             :size="12"
                             :stroke-width="2"
                           />
                           NodeType
-                        </span>
+                        </TypeTag>
                         <span
                           class="min-w-0 truncate text-body"
                           :class="selectedNodeTypeUnknown ? 'text-error' : 'text-text-2'"

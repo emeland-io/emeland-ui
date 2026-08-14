@@ -6,6 +6,7 @@ import { useContextStore } from '@/stores/contexts'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
 import MappingTag from '@/components/MappingTag.vue'
@@ -116,11 +117,7 @@ function stepInstance(step: -1 | 1) {
           title="Go to system"
           @click="emit('go-to-system', drawerInstance.system)"
         >
-          <span
-            class="w-28 shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-          >
-            System
-          </span>
+          <TypeTag>System</TypeTag>
           <span
             class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
           >
@@ -151,12 +148,9 @@ function stepInstance(step: -1 | 1) {
           title="Go to context"
           @click="goToContext(drawerInstance.context)"
         >
-          <span
-            v-if="contextType(drawerInstance.context)"
-            class="shrink-0 rounded bg-accent/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-accent-text"
-          >
+          <TypeTag v-if="contextType(drawerInstance.context)">
             {{ contextType(drawerInstance.context) }}
-          </span>
+          </TypeTag>
           <span
             class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
           >
