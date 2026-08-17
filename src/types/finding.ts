@@ -1,11 +1,5 @@
 import type { ResourceType } from './common'
 
-export type FindingKind =
-  | 'ContextTypeMissing'
-  | 'ContextParentNotFound'
-  | 'NodeTypeMissing'
-  | string
-
 export interface FindingTypeRef {
   findingTypeId: string
   displayName: string
