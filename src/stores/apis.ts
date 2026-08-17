@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { fetchApis, fetchApiById, fetchApiInstances, fetchApiInstanceById } from '@/api/apis'
 import type { Api, ApiInstance } from '@/types/api'
 import { useResourceErrors, loadDetailInto } from '@/composables/useResourceErrors'
+import { loadOnce, groupBy } from './support'
 
 export const useApiStore = defineStore('api', () => {
   const apis = ref<Api[]>([])
@@ -26,17 +27,13 @@ export const useApiStore = defineStore('api', () => {
   }
 
   async function load() {
-    if (loaded.value || loading.value) return
-    loading.value = true
-    error.value = null
-    try {
-      apis.value = await fetchApis()
-      loaded.value = true
-    } catch (e) {
-      error.value = (e as Error).message
-    } finally {
-      loading.value = false
-    }
+    await loadOnce(
+      { loading, loaded, error },
+      async () => {
+        apis.value = await fetchApis()
+      },
+      { resetError: true },
+    )
   }
 
   async function loadApiDetail(id: string): Promise<void> {
@@ -64,16 +61,7 @@ export const useApiStore = defineStore('api', () => {
     detailsHydrated.value = true
   }
 
-  const instancesByApi = computed(() => {
-    const map = new Map<string, ApiInstance[]>()
-    for (const i of apiInstances.value) {
-      if (!i.api) continue
-      const list = map.get(i.api) ?? []
-      list.push(i)
-      map.set(i.api, list)
-    }
-    return map
-  })
+  const instancesByApi = computed(() => groupBy(apiInstances.value, (i) => i.api || undefined))
 
   function getInstancesForApi(apiId: string): ApiInstance[] {
     return instancesByApi.value.get(apiId) ?? []
@@ -85,20 +73,13 @@ export const useApiStore = defineStore('api', () => {
   )
 
   async function loadApiInstances(): Promise<void> {
-    if (instancesLoaded.value || instancesLoading.value) return
-    instancesLoading.value = true
-    try {
+    await loadOnce({ loading: instancesLoading, loaded: instancesLoaded, error }, async () => {
       const list = await fetchApiInstances()
       // The list endpoint is minimal, so hydrate each instance by id
       apiInstances.value = await Promise.all(
         list.map((i) => fetchApiInstanceById(i.apiInstanceId).catch(() => i)),
       )
-      instancesLoaded.value = true
-    } catch (e) {
-      error.value = (e as Error).message
-    } finally {
-      instancesLoading.value = false
-    }
+    })
   }
 
   return {

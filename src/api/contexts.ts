@@ -1,8 +1,7 @@
-import { apiFetch } from './fetch'
 import { API } from '@/constants/api'
 import type { Context, ContextType } from '@/types/context'
-
-const USE_MOCKS = import.meta.env.VITE_EMEL_DEV_USE_MOCKS === 'true'
+import { USE_MOCKS, getJson } from './fetch'
+import { decodeAnnotations, type InstanceListItem, type AnnotationsResponse } from './decode'
 
 interface ContextResponse {
   contextId: string
@@ -10,21 +9,7 @@ interface ContextResponse {
   description?: string
   type?: string
   parent?: string
-  annotations?: { key: string; value: string }[] | Record<string, string>
-}
-
-interface InstanceListItem {
-  instanceId: string
-  displayName: string
-  reference: string
-}
-
-function decodeAnnotations(
-  raw: { key: string; value: string }[] | Record<string, string> | undefined,
-): Record<string, string> {
-  if (!raw) return {}
-  if (Array.isArray(raw)) return Object.fromEntries(raw.map((a) => [a.key, a.value]))
-  return raw
+  annotations?: AnnotationsResponse
 }
 
 function decodeContext(res: ContextResponse): Context {
@@ -51,7 +36,7 @@ function decodeContextType(res: Record<string, unknown>): ContextType {
     contextTypeId: (res.contextTypeId as string) ?? (res.instanceId as string) ?? '',
     displayName: (res.displayName as string) ?? '',
     description: (res.description as string) ?? '',
-    annotations: decodeAnnotations(res.annotations as { key: string; value: string }[] | undefined),
+    annotations: decodeAnnotations(res.annotations as AnnotationsResponse | undefined),
   }
 }
 
@@ -68,9 +53,7 @@ export async function fetchContexts(): Promise<Context[]> {
     const { contexts } = await import('@/mocks/contexts')
     return contexts
   }
-  const resp = await apiFetch(API.CONTEXTS.list)
-  if (!resp.ok) throw new Error(`Failed to load contexts: ${resp.status}`)
-  const data: InstanceListItem[] = await resp.json()
+  const data = await getJson<InstanceListItem[]>(API.CONTEXTS.list, 'contexts')
   return data.map(contextFromList)
 }
 
@@ -81,9 +64,7 @@ export async function fetchContextById(id: string): Promise<Context> {
     if (!found) throw new Error(`Context ${id} not found in mocks`)
     return found
   }
-  const resp = await apiFetch(API.CONTEXTS.byId(id))
-  if (!resp.ok) throw new Error(`Failed to load context ${id}: ${resp.status}`)
-  return decodeContext(await resp.json())
+  return decodeContext(await getJson<ContextResponse>(API.CONTEXTS.byId(id), `context ${id}`))
 }
 
 export async function fetchContextTypes(): Promise<ContextType[]> {
@@ -91,9 +72,7 @@ export async function fetchContextTypes(): Promise<ContextType[]> {
     const { contextTypes } = await import('@/mocks/contexts')
     return contextTypes
   }
-  const resp = await apiFetch(API.CONTEXT_TYPES.list)
-  if (!resp.ok) throw new Error(`Failed to load context types: ${resp.status}`)
-  const data: InstanceListItem[] = await resp.json()
+  const data = await getJson<InstanceListItem[]>(API.CONTEXT_TYPES.list, 'context types')
   return data.map(contextTypeFromList)
 }
 
@@ -104,7 +83,7 @@ export async function fetchContextTypeById(id: string): Promise<ContextType> {
     if (!found) throw new Error(`Context type ${id} not found in mocks`)
     return found
   }
-  const resp = await apiFetch(API.CONTEXT_TYPES.byId(id))
-  if (!resp.ok) throw new Error(`Failed to load context type ${id}: ${resp.status}`)
-  return decodeContextType(await resp.json())
+  return decodeContextType(
+    await getJson<Record<string, unknown>>(API.CONTEXT_TYPES.byId(id), `context type ${id}`),
+  )
 }

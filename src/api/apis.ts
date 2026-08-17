@@ -1,15 +1,13 @@
-import { apiFetch } from './fetch'
 import { API } from '@/constants/api'
 import type { Api, ApiInstance, ApiType } from '@/types/api'
 import type { Version } from '@/types/common'
-
-const USE_MOCKS = import.meta.env.VITE_EMEL_DEV_USE_MOCKS === 'true'
-
-interface InstanceListItem {
-  instanceId: string
-  displayName: string
-  reference: string
-}
+import { USE_MOCKS, getJson } from './fetch'
+import {
+  decodeAnnotations,
+  decodeVersion,
+  type InstanceListItem,
+  type AnnotationsResponse,
+} from './decode'
 
 interface ApiResponse {
   apiId?: string
@@ -19,15 +17,7 @@ interface ApiResponse {
   version?: Version
   type?: ApiType
   system?: string
-  annotations?: { key: string; value: string }[] | Record<string, string>
-}
-
-function decodeAnnotations(
-  raw: { key: string; value: string }[] | Record<string, string> | undefined,
-): Record<string, string> {
-  if (!raw) return {}
-  if (Array.isArray(raw)) return Object.fromEntries(raw.map((a) => [a.key, a.value]))
-  return raw
+  annotations?: AnnotationsResponse
 }
 
 function apiFromList(item: InstanceListItem): Api {
@@ -46,7 +36,7 @@ function decodeApi(res: ApiResponse): Api {
     apiId: res.apiId ?? res.instanceId ?? '',
     displayName: res.displayName ?? '',
     description: res.description ?? '',
-    version: { version: res.version?.version ?? '', ...res.version },
+    version: decodeVersion(res.version),
     type: res.type ?? 'Unknown',
     system: res.system ?? '',
     annotations: decodeAnnotations(res.annotations),
@@ -58,9 +48,7 @@ export async function fetchApis(): Promise<Api[]> {
     const { apis } = await import('@/mocks/api')
     return apis
   }
-  const resp = await apiFetch(API.APIS.list)
-  if (!resp.ok) throw new Error(`Failed to load APIs: ${resp.status}`)
-  const data: InstanceListItem[] = await resp.json()
+  const data = await getJson<InstanceListItem[]>(API.APIS.list, 'APIs')
   return data.map(apiFromList)
 }
 
@@ -71,9 +59,7 @@ export async function fetchApiById(id: string): Promise<Api> {
     if (!found) throw new Error(`API ${id} not found in mocks`)
     return found
   }
-  const resp = await apiFetch(API.APIS.byId(id))
-  if (!resp.ok) throw new Error(`Failed to load API ${id}: ${resp.status}`)
-  return decodeApi(await resp.json())
+  return decodeApi(await getJson<ApiResponse>(API.APIS.byId(id), `API ${id}`))
 }
 
 interface ApiInstanceResponse {
@@ -82,7 +68,7 @@ interface ApiInstanceResponse {
   displayName?: string
   api?: string
   systemInstance?: string
-  annotations?: { key: string; value: string }[] | Record<string, string>
+  annotations?: AnnotationsResponse
 }
 
 function decodeApiInstance(res: ApiInstanceResponse): ApiInstance {
@@ -108,9 +94,7 @@ export async function fetchApiInstances(): Promise<ApiInstance[]> {
     const { apiInstances } = await import('@/mocks/api')
     return apiInstances
   }
-  const resp = await apiFetch(API.API_INSTANCES.list)
-  if (!resp.ok) throw new Error(`Failed to load API instances: ${resp.status}`)
-  const data: InstanceListItem[] = await resp.json()
+  const data = await getJson<InstanceListItem[]>(API.API_INSTANCES.list, 'API instances')
   return data.map(apiInstanceFromList)
 }
 
@@ -121,7 +105,7 @@ export async function fetchApiInstanceById(id: string): Promise<ApiInstance> {
     if (!found) throw new Error(`API instance ${id} not found in mocks`)
     return found
   }
-  const resp = await apiFetch(API.API_INSTANCES.byId(id))
-  if (!resp.ok) throw new Error(`Failed to load API instance ${id}: ${resp.status}`)
-  return decodeApiInstance(await resp.json())
+  return decodeApiInstance(
+    await getJson<ApiInstanceResponse>(API.API_INSTANCES.byId(id), `API instance ${id}`),
+  )
 }

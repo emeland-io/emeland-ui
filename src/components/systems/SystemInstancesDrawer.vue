@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconArrowUpRight } from '@tabler/icons-vue'
 import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
-import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
 import MappingTag from '@/components/MappingTag.vue'
+import RelationRow from '@/components/RelationRow.vue'
 import { mappingStateOf } from '@/utils/mapping'
 import { useResourceNav } from '@/composables/useResourceNav'
+import { useDrawerNav } from '@/composables/useDrawerNav'
 
 const props = defineProps<{
   open: boolean
@@ -56,15 +56,12 @@ const mappingState = computed(() =>
     : undefined,
 )
 
-const navIndex = computed(() => props.navIds?.indexOf(props.selectedInstanceId) ?? -1)
-
-function stepInstance(step: -1 | 1) {
-  const ids = props.navIds
-  if (!ids || navIndex.value < 0) return
-  const next = ids[navIndex.value + step]
-  if (next !== undefined) emit('navigate', next)
-  else emit('nav-exit', step)
-}
+const { navIndex, step: stepInstance } = useDrawerNav({
+  navIds: () => props.navIds,
+  current: () => props.selectedInstanceId,
+  onNavigate: (id) => emit('navigate', id),
+  onExit: (step) => emit('nav-exit', step),
+})
 </script>
 
 <template>
@@ -111,65 +108,28 @@ function stepInstance(step: -1 | 1) {
       <!-- owning system -->
       <div v-if="drawerInstance.system">
         <SectionLabel>System</SectionLabel>
-        <button
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
-          data-drawer-relation
+        <RelationRow
+          :id="drawerInstance.system"
+          badge="System"
+          fixed-badge
+          :name="store.systemMap.get(drawerInstance.system)?.displayName ?? drawerInstance.system"
+          clickable
           title="Go to system"
-          @click="emit('go-to-system', drawerInstance.system)"
-        >
-          <TypeTag>System</TypeTag>
-          <span
-            class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
-          >
-            {{ store.systemMap.get(drawerInstance.system)?.displayName ?? drawerInstance.system }}
-          </span>
-          <IconArrowUpRight
-            :size="16"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-          />
-          <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ drawerInstance.system }}</span>
-            <CopyButton
-              :value="drawerInstance.system"
-              :size="12"
-              @click.stop
-            />
-          </div>
-        </button>
+          @click="emit('go-to-system', drawerInstance!.system)"
+        />
       </div>
 
       <!-- context -->
       <div v-if="drawerInstance.context">
         <SectionLabel>Context</SectionLabel>
-        <button
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
-          data-drawer-relation
+        <RelationRow
+          :id="drawerInstance.context"
+          :badge="contextType(drawerInstance.context)"
+          :name="contextName(drawerInstance.context) ?? drawerInstance.context"
+          clickable
           title="Go to context"
-          @click="goToContext(drawerInstance.context)"
-        >
-          <TypeTag v-if="contextType(drawerInstance.context)">
-            {{ contextType(drawerInstance.context) }}
-          </TypeTag>
-          <span
-            class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
-          >
-            {{ contextName(drawerInstance.context) ?? drawerInstance.context }}
-          </span>
-          <IconArrowUpRight
-            :size="16"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-          />
-          <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ drawerInstance.context }}</span>
-            <CopyButton
-              :value="drawerInstance.context"
-              :size="12"
-              @click.stop
-            />
-          </div>
-        </button>
+          @click="goToContext(drawerInstance!.context!)"
+        />
       </div>
 
       <!-- annotations -->

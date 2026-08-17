@@ -1,8 +1,7 @@
-import { apiFetch } from './fetch'
 import { API } from '@/constants/api'
 import type { Finding, FindingResource, FindingType } from '@/types/finding'
-
-const USE_MOCKS = import.meta.env.VITE_EMEL_DEV_USE_MOCKS === 'true'
+import { USE_MOCKS, getJson } from './fetch'
+import { decodeAnnotations, type AnnotationsResponse } from './decode'
 
 interface FindingResponse {
   findingId: string
@@ -12,7 +11,7 @@ interface FindingResponse {
   resources?: ResourceResponse[]
   resource?: ResourceResponse
   reference?: string
-  annotations?: { key: string; value: string }[] | Record<string, string>
+  annotations?: AnnotationsResponse
 }
 
 interface ResourceResponse {
@@ -21,18 +20,11 @@ interface ResourceResponse {
   resourceType: string
 }
 
-interface InstanceListItem {
+// Unlike the other resources, the finding-type list endpoint keys by findingTypeId
+interface FindingTypeListItem {
   findingTypeId: string
   displayName: string
   reference: string
-}
-
-function decodeAnnotations(
-  raw: { key: string; value: string }[] | Record<string, string> | undefined,
-): Record<string, string> {
-  if (!raw) return {}
-  if (Array.isArray(raw)) return Object.fromEntries(raw.map((a) => [a.key, a.value]))
-  return raw
 }
 
 function decodeResources(res: FindingResponse): FindingResource[] {
@@ -60,14 +52,14 @@ function decodeFinding(res: FindingResponse): Finding {
 
 function decodeFindingType(res: Record<string, unknown>): FindingType {
   return {
-    findingTypeId: (res.findingTypeId as string) ?? (res.findingTypeId as string) ?? '',
+    findingTypeId: (res.findingTypeId as string) ?? (res.instanceId as string) ?? '',
     displayName: (res.displayName as string) ?? '',
     description: (res.description as string) ?? '',
-    annotations: decodeAnnotations(res.annotations as { key: string; value: string }[] | undefined),
+    annotations: decodeAnnotations(res.annotations as AnnotationsResponse | undefined),
   }
 }
 
-function findingTypeFromList(item: InstanceListItem): FindingType {
+function findingTypeFromList(item: FindingTypeListItem): FindingType {
   return {
     findingTypeId: item.findingTypeId,
     displayName: item.displayName,
@@ -80,9 +72,7 @@ export async function fetchFindings(): Promise<Finding[]> {
     const { findings } = await import('@/mocks/findings')
     return findings
   }
-  const resp = await apiFetch(API.FINDINGS.list)
-  if (!resp.ok) throw new Error(`Failed to load findings: ${resp.status}`)
-  const data: FindingResponse[] = await resp.json()
+  const data = await getJson<FindingResponse[]>(API.FINDINGS.list, 'findings')
   return data.map(decodeFinding)
 }
 
@@ -93,9 +83,7 @@ export async function fetchFindingById(id: string): Promise<Finding> {
     if (!found) throw new Error(`Finding ${id} not found in mocks`)
     return found
   }
-  const resp = await apiFetch(API.FINDINGS.byId(id))
-  if (!resp.ok) throw new Error(`Failed to load finding ${id}: ${resp.status}`)
-  return decodeFinding(await resp.json())
+  return decodeFinding(await getJson<FindingResponse>(API.FINDINGS.byId(id), `finding ${id}`))
 }
 
 export async function fetchFindingTypes(): Promise<FindingType[]> {
@@ -103,9 +91,7 @@ export async function fetchFindingTypes(): Promise<FindingType[]> {
     const { findingTypes } = await import('@/mocks/findings')
     return findingTypes
   }
-  const resp = await apiFetch(API.FINDING_TYPES.list)
-  if (!resp.ok) throw new Error(`Failed to load finding types: ${resp.status}`)
-  const data: InstanceListItem[] = await resp.json()
+  const data = await getJson<FindingTypeListItem[]>(API.FINDING_TYPES.list, 'finding types')
   return data.map(findingTypeFromList)
 }
 
@@ -116,7 +102,7 @@ export async function fetchFindingTypeById(id: string): Promise<FindingType> {
     if (!found) throw new Error(`Finding type ${id} not found in mocks`)
     return found
   }
-  const resp = await apiFetch(API.FINDING_TYPES.byId(id))
-  if (!resp.ok) throw new Error(`Failed to load finding type ${id}: ${resp.status}`)
-  return decodeFindingType(await resp.json())
+  return decodeFindingType(
+    await getJson<Record<string, unknown>>(API.FINDING_TYPES.byId(id), `finding type ${id}`),
+  )
 }

@@ -8,6 +8,7 @@ import {
 } from '@/api/systems'
 import type { System, SystemInstance } from '@/types/system'
 import { useResourceErrors, loadDetailInto } from '@/composables/useResourceErrors'
+import { loadOnce, loadDetailRef, groupBy } from './support'
 
 export const useSystemStore = defineStore('system', () => {
   const systems = ref<System[]>([])
@@ -28,15 +29,7 @@ export const useSystemStore = defineStore('system', () => {
     () => new Map(systemInstances.value.map((si) => [si.systemInstanceId, si])),
   )
 
-  const instancesBySystem = computed(() => {
-    const map = new Map<string, SystemInstance[]>()
-    for (const inst of systemInstances.value) {
-      const list = map.get(inst.system) ?? []
-      list.push(inst)
-      map.set(inst.system, list)
-    }
-    return map
-  })
+  const instancesBySystem = computed(() => groupBy(systemInstances.value, (i) => i.system))
 
   function getParentName(s: System): string | undefined {
     if (!s.parent) return undefined
@@ -61,17 +54,13 @@ export const useSystemStore = defineStore('system', () => {
   }
 
   async function load() {
-    if (loaded.value || loading.value) return
-    loading.value = true
-    error.value = null
-    try {
-      systems.value = await fetchSystems()
-      loaded.value = true
-    } catch (e) {
-      error.value = (e as Error).message
-    } finally {
-      loading.value = false
-    }
+    await loadOnce(
+      { loading, loaded, error },
+      async () => {
+        systems.value = await fetchSystems()
+      },
+      { resetError: true },
+    )
   }
 
   async function loadSystemDetail(id: string): Promise<void> {
@@ -99,28 +88,16 @@ export const useSystemStore = defineStore('system', () => {
   }
 
   async function loadSystemInstances(): Promise<void> {
-    if (instancesLoaded.value || instancesLoading.value) return
-    instancesLoading.value = true
-    try {
+    await loadOnce({ loading: instancesLoading, loaded: instancesLoaded, error }, async () => {
       const list = await fetchSystemInstances()
       systemInstances.value = await Promise.all(
         list.map((i) => fetchSystemInstanceById(i.systemInstanceId).catch(() => i)),
       )
-      instancesLoaded.value = true
-    } catch (e) {
-      error.value = (e as Error).message
-    } finally {
-      instancesLoading.value = false
-    }
+    })
   }
 
   async function loadSystemInstanceDetail(id: string): Promise<void> {
-    selectedInstanceDetail.value = null
-    try {
-      selectedInstanceDetail.value = await fetchSystemInstanceById(id)
-    } catch {
-      selectedInstanceDetail.value = null
-    }
+    await loadDetailRef(selectedInstanceDetail, () => fetchSystemInstanceById(id))
   }
 
   return {

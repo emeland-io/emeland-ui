@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconArrowUpRight } from '@tabler/icons-vue'
 import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import { useResourceNav } from '@/composables/useResourceNav'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
-import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
+import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
+import FindingCard from '@/components/detail/FindingCard.vue'
+import ResourceLinkCard from '@/components/detail/ResourceLinkCard.vue'
 import SystemInstancesBoard from '@/components/systems/SystemInstancesBoard.vue'
+import { versionDates } from '@/utils/version'
 import type { System, SystemInstance } from '@/types/system'
 
 const props = defineProps<{
@@ -62,16 +64,6 @@ const relatedFindings = computed(() => {
   if (!id) return []
   return findingsStore.findings.filter((f) => f.resources.some((r) => r.resourceId === id))
 })
-
-function versionDates(s: System | undefined): [string, string][] {
-  if (!s?.version) return []
-  const v = s.version
-  const rows: [string, string][] = []
-  if (v.availableFrom) rows.push(['Available from', v.availableFrom])
-  if (v.deprecatedFrom) rows.push(['Deprecated from', v.deprecatedFrom])
-  if (v.terminatedFrom) rows.push(['Terminated from', v.terminatedFrom])
-  return rows
-}
 </script>
 
 <template>
@@ -107,7 +99,7 @@ function versionDates(s: System | undefined): [string, string][] {
             />
           </div>
           <div
-            v-for="[label, value] in versionDates(system)"
+            v-for="[label, value] in versionDates(system.version)"
             :key="label"
             class="mt-1 flex items-baseline justify-end gap-3 font-mono text-micro text-text-4"
           >
@@ -118,18 +110,7 @@ function versionDates(s: System | undefined): [string, string][] {
       </div>
     </div>
     <div class="flex flex-col gap-5 px-6 py-5">
-      <!-- detail load failed -->
-      <div
-        v-if="store.hasDetailError(system.systemId)"
-        class="flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
-      >
-        <div class="min-w-0">
-          <div class="text-body text-error">Could not load full details</div>
-          <div class="mt-0.5 font-mono text-meta text-error/80">
-            Showing basic info only — the detail request failed.
-          </div>
-        </div>
-      </div>
+      <DetailErrorBanner v-if="store.hasDetailError(system.systemId)" />
       <div
         class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3 @3xl:[&>*:nth-child(2)]:border-l @3xl:[&>*:nth-child(2)]:border-border-1/50 @3xl:[&>*:nth-child(2)]:pl-8 @3xl:[&>*:nth-child(3)]:border-l @3xl:[&>*:nth-child(3)]:border-border-1/50 @3xl:[&>*:nth-child(3)]:pl-8"
       >
@@ -153,37 +134,15 @@ function versionDates(s: System | undefined): [string, string][] {
               >
                 No contexts.
               </p>
-              <button
+              <ResourceLinkCard
                 v-for="ctx in contexts"
+                :id="ctx.id"
                 :key="ctx.id"
-                class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+                :badge="contextType(ctx.id)"
+                :name="ctx.name"
                 title="Go to context"
                 @click="goToResource('Context', ctx.id)"
-              >
-                <span class="group/row flex w-full items-center gap-3">
-                  <TypeTag v-if="contextType(ctx.id)">
-                    {{ contextType(ctx.id) }}
-                  </TypeTag>
-                  <span
-                    class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                  >
-                    {{ ctx.name }}
-                  </span>
-                  <IconArrowUpRight
-                    :size="16"
-                    :stroke-width="2"
-                    class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                  />
-                </span>
-                <span class="flex items-center gap-1.5">
-                  <span class="font-mono text-meta text-text-4">{{ ctx.id }}</span>
-                  <CopyButton
-                    :value="ctx.id"
-                    :size="12"
-                    @click.stop
-                  />
-                </span>
-              </button>
+              />
             </div>
           </div>
         </div>
@@ -198,39 +157,23 @@ function versionDates(s: System | undefined): [string, string][] {
               >
                 No parent system.
               </p>
-              <button
+              <ResourceLinkCard
                 v-else-if="!store.isParentUnresolved(system)"
-                class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+                :id="system.parent"
+                badge="System"
+                :name="store.getParentName(system) ?? system.parent"
                 title="Go to parent system"
-                @click="emit('navigate-parent', system.parent)"
-              >
-                <span class="group/row flex w-full items-center gap-3">
-                  <TypeTag>System</TypeTag>
-                  <span
-                    class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                  >
-                    {{ store.getParentName(system) }}
-                  </span>
-                  <IconArrowUpRight
-                    :size="16"
-                    :stroke-width="2"
-                    class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                  />
-                </span>
-                <span class="flex items-center gap-1.5">
-                  <span class="font-mono text-meta text-text-4">{{ system.parent }}</span>
-                  <CopyButton
-                    :value="system.parent"
-                    :size="12"
-                    @click.stop
-                  />
-                </span>
-              </button>
+                @click="emit('navigate-parent', system.parent!)"
+              />
               <div
                 v-else
                 class="flex items-center gap-3 border-b border-border-1 py-2 last:border-b-0"
               >
-                <TypeTag tone="error">System</TypeTag>
+                <span
+                  class="w-28 shrink-0 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
+                >
+                  System
+                </span>
                 <div class="min-w-0 flex-1">
                   <div class="truncate text-body text-error">Unresolved parent</div>
                   <div class="mt-0.5 truncate font-mono text-meta text-error/80">
@@ -256,39 +199,12 @@ function versionDates(s: System | undefined): [string, string][] {
               >
                 No findings.
               </p>
-              <button
+              <FindingCard
                 v-for="f in relatedFindings"
                 :key="f.findingId"
-                class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
-                title="Go to finding"
-                @click="goToFinding(f.findingId)"
-              >
-                <span class="group/row flex w-full items-center gap-2.5">
-                  <span
-                    class="shrink-0 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
-                  >
-                    {{ findingsStore.getKindForFinding(f) }}
-                  </span>
-                  <span
-                    class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                  >
-                    {{ f.displayName }}
-                  </span>
-                  <IconArrowUpRight
-                    :size="15"
-                    :stroke-width="2"
-                    class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                  />
-                </span>
-                <span class="flex items-center gap-1.5">
-                  <span class="font-mono text-meta text-text-4">{{ f.findingId }}</span>
-                  <CopyButton
-                    :value="f.findingId"
-                    :size="12"
-                    @click.stop
-                  />
-                </span>
-              </button>
+                :finding="f"
+                @open="goToFinding"
+              />
             </div>
           </div>
         </div>
@@ -302,37 +218,16 @@ function versionDates(s: System | undefined): [string, string][] {
             >
               No sub-systems.
             </p>
-            <button
+            <ResourceLinkCard
               v-for="child in children"
+              :id="child.systemId"
               :key="child.systemId"
-              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+              :badge="store.getKindForSystem(child)"
+              :badge-muted="child.abstract"
+              :name="child.displayName"
               title="Go to sub-system"
               @click="emit('navigate-parent', child.systemId)"
-            >
-              <span class="group/row flex w-full items-center gap-3">
-                <TypeTag :tone="child.abstract ? 'muted' : 'accent'">
-                  {{ store.getKindForSystem(child) }}
-                </TypeTag>
-                <span
-                  class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                >
-                  {{ child.displayName }}
-                </span>
-                <IconArrowUpRight
-                  :size="16"
-                  :stroke-width="2"
-                  class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                />
-              </span>
-              <span class="flex items-center gap-1.5">
-                <span class="font-mono text-meta text-text-4">{{ child.systemId }}</span>
-                <CopyButton
-                  :value="child.systemId"
-                  :size="12"
-                  @click.stop
-                />
-              </span>
-            </button>
+            />
           </div>
           <div>
             <!-- Annotations -->

@@ -3,7 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
   { path: '/', redirect: '/findings' },
   { path: '/callback', name: 'Callback', component: () => import('@/views/CallbackView.vue') },
-  { path: '/settings', name: 'Settings', component: () => import('@/views/Tmp.vue') },
+  { path: '/settings', name: 'Settings', component: () => import('@/views/PlaceholderView.vue') },
 
   // Model
   { path: '/model', name: 'Model', component: () => import('@/views/ModelView.vue') },
@@ -14,9 +14,9 @@ const routes = [
   // Landscape
   { path: '/nodes', name: 'Nodes', component: () => import('@/views/NodesView.vue') },
   { path: '/graph', name: 'Graph', component: () => import('@/views/NodeGraphView.vue') },
-  { path: '/sensors', name: 'Sensors', component: () => import('@/views/Tmp.vue') },
-  { path: '/filters', name: 'Filters', component: () => import('@/views/Tmp.vue') },
-  { path: '/injectors', name: 'Injectors', component: () => import('@/views/Tmp.vue') },
+  { path: '/sensors', name: 'Sensors', component: () => import('@/views/PlaceholderView.vue') },
+  { path: '/filters', name: 'Filters', component: () => import('@/views/PlaceholderView.vue') },
+  { path: '/injectors', name: 'Injectors', component: () => import('@/views/PlaceholderView.vue') },
 
   // Context P0
   { path: '/contexts', name: 'Contexts', component: () => import('@/views/ContextsView.vue') },
@@ -31,20 +31,32 @@ const routes = [
   { path: '/apis', name: 'APIs', component: () => import('@/views/ApisView.vue') },
 
   // Identity P2
-  { path: '/identities', name: 'Identities', component: () => import('@/views/Tmp.vue') },
-  { path: '/orgunits', name: 'OrgUnits', component: () => import('@/views/Tmp.vue') },
-  { path: '/groups', name: 'Groups', component: () => import('@/views/Tmp.vue') },
-  { path: '/permissions', name: 'Permissions', component: () => import('@/views/Tmp.vue') },
+  {
+    path: '/identities',
+    name: 'Identities',
+    component: () => import('@/views/PlaceholderView.vue'),
+  },
+  { path: '/orgunits', name: 'OrgUnits', component: () => import('@/views/PlaceholderView.vue') },
+  { path: '/groups', name: 'Groups', component: () => import('@/views/PlaceholderView.vue') },
+  {
+    path: '/permissions',
+    name: 'Permissions',
+    component: () => import('@/views/PlaceholderView.vue'),
+  },
 
   // Capabilities P3
-  { path: '/features', name: 'Features', component: () => import('@/views/Tmp.vue') },
-  { path: '/orders', name: 'Orders', component: () => import('@/views/Tmp.vue') },
+  { path: '/features', name: 'Features', component: () => import('@/views/PlaceholderView.vue') },
+  { path: '/orders', name: 'Orders', component: () => import('@/views/PlaceholderView.vue') },
 
   // Observability P6
-  { path: '/metrics', name: 'Metrics', component: () => import('@/views/Tmp.vue') },
+  { path: '/metrics', name: 'Metrics', component: () => import('@/views/PlaceholderView.vue') },
 
   // Capacity P7
-  { path: '/capacities', name: 'Capacities', component: () => import('@/views/Tmp.vue') },
+  {
+    path: '/capacities',
+    name: 'Capacities',
+    component: () => import('@/views/PlaceholderView.vue'),
+  },
 ]
 
 const router = createRouter({

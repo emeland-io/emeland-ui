@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { fetchNodes, fetchNodeById, fetchNodeTypes, fetchNodeTypeById } from '@/api/nodes'
 import type { Node, NodeType } from '@/types/node'
 import { useResourceErrors, loadDetailInto } from '@/composables/useResourceErrors'
+import { loadOnce, loadDetailRef } from './support'
 
 export const useNodesStore = defineStore('nodes', () => {
   const nodes = ref<Node[]>([])
@@ -33,17 +34,13 @@ export const useNodesStore = defineStore('nodes', () => {
   }
 
   async function load() {
-    if (loaded.value || loading.value) return
-    loading.value = true
-    error.value = null
-    try {
-      nodes.value = await fetchNodes()
-      loaded.value = true
-    } catch (e) {
-      error.value = (e as Error).message
-    } finally {
-      loading.value = false
-    }
+    await loadOnce(
+      { loading, loaded, error },
+      async () => {
+        nodes.value = await fetchNodes()
+      },
+      { resetError: true },
+    )
   }
 
   async function loadNodeDetail(id: string): Promise<void> {
@@ -58,25 +55,13 @@ export const useNodesStore = defineStore('nodes', () => {
   }
 
   async function loadNodeTypes(): Promise<void> {
-    if (typesLoaded.value || typesLoading.value) return
-    typesLoading.value = true
-    try {
+    await loadOnce({ loading: typesLoading, loaded: typesLoaded, error }, async () => {
       nodeTypes.value = await fetchNodeTypes()
-      typesLoaded.value = true
-    } catch (e) {
-      error.value = (e as Error).message
-    } finally {
-      typesLoading.value = false
-    }
+    })
   }
 
   async function loadNodeTypeDetail(id: string): Promise<void> {
-    selectedTypeDetail.value = null
-    try {
-      selectedTypeDetail.value = await fetchNodeTypeById(id)
-    } catch {
-      selectedTypeDetail.value = null
-    }
+    await loadDetailRef(selectedTypeDetail, () => fetchNodeTypeById(id))
   }
 
   return {

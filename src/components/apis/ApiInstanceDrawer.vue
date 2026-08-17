@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconArrowUpRight } from '@tabler/icons-vue'
 import { useApiStore } from '@/stores/apis'
 import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import { useInstanceContext } from '@/composables/useInstanceContext'
 import { useResourceNav } from '@/composables/useResourceNav'
+import { useDrawerNav } from '@/composables/useDrawerNav'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
-import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
 import MappingTag from '@/components/MappingTag.vue'
+import RelationRow from '@/components/RelationRow.vue'
 import { endpointUrl } from '@/utils/endpoint'
 import { mappingStateOf } from '@/utils/mapping'
 
@@ -78,15 +78,12 @@ function navigate(type: 'API' | 'System' | 'Context', id: string) {
   goToResource(type, id)
 }
 
-const navIndex = computed(() => props.navIds?.indexOf(props.selectedInstanceId) ?? -1)
-
-function stepInstance(step: -1 | 1) {
-  const ids = props.navIds
-  if (!ids || navIndex.value < 0) return
-  const next = ids[navIndex.value + step]
-  if (next !== undefined) emit('navigate', next)
-  else emit('nav-exit', step)
-}
+const { navIndex, step: stepInstance } = useDrawerNav({
+  navIds: () => props.navIds,
+  current: () => props.selectedInstanceId,
+  onNavigate: (id) => emit('navigate', id),
+  onExit: (step) => emit('nav-exit', step),
+})
 </script>
 
 <template>
@@ -159,115 +156,45 @@ function stepInstance(step: -1 | 1) {
       <!-- owning API -->
       <div v-if="instance.api">
         <SectionLabel>API</SectionLabel>
-        <button
-          v-if="apiResolvable"
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
-          data-drawer-relation
+        <RelationRow
+          :id="instance.api"
+          badge="API"
+          fixed-badge
+          :badge-tone="apiResolvable ? 'accent' : 'error'"
+          :name="apiResolvable ? (apiName ?? instance.api) : 'Unresolved API'"
+          :name-tone="apiResolvable ? 'default' : 'error'"
+          :clickable="apiResolvable"
           title="Go to API"
           @click="navigate('API', instance.api!)"
-        >
-          <TypeTag>API</TypeTag>
-          <span
-            class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
-          >
-            {{ apiName ?? instance.api }}
-          </span>
-          <IconArrowUpRight
-            :size="16"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-          />
-          <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ instance.api }}</span>
-            <CopyButton
-              :value="instance.api!"
-              :size="12"
-              @click.stop
-            />
-          </div>
-        </button>
-        <div
-          v-else
-          class="flex w-full items-center gap-3 border-b border-border-1 py-2 last:border-b-0"
-        >
-          <TypeTag tone="error">API</TypeTag>
-          <span class="max-w-full truncate text-body text-error">Unresolved API</span>
-          <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ instance.api }}</span>
-            <CopyButton
-              :value="instance.api!"
-              :size="12"
-            />
-          </div>
-        </div>
+        />
       </div>
 
       <!-- system instance -->
       <div v-if="instance.systemInstance">
         <SectionLabel>System instance</SectionLabel>
-        <component
-          :is="systemInstance?.system ? 'button' : 'div'"
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
-          :data-drawer-relation="systemInstance?.system ? '' : undefined"
-          :title="systemInstance?.system ? 'Go to system' : undefined"
-          @click="systemInstance?.system && navigate('System', systemInstance.system)"
-        >
-          <TypeTag>Instance</TypeTag>
-          <span
-            class="max-w-full truncate text-body text-text-2 transition-colors"
-            :class="systemInstance?.system ? 'group-hover:text-accent' : ''"
-          >
-            {{ systemInstance?.displayName ?? instance.systemInstance }}
-          </span>
-          <IconArrowUpRight
-            v-if="systemInstance?.system"
-            :size="16"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-          />
-          <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ instance.systemInstance }}</span>
-            <CopyButton
-              :value="instance.systemInstance"
-              :size="12"
-              @click.stop
-            />
-          </div>
-        </component>
+        <RelationRow
+          :id="instance.systemInstance"
+          badge="Instance"
+          fixed-badge
+          :name="systemInstance?.displayName ?? instance.systemInstance"
+          :clickable="!!systemInstance?.system"
+          title="Go to system"
+          @click="navigate('System', systemInstance!.system)"
+        />
       </div>
 
       <!-- context -->
       <div v-if="contextId">
         <SectionLabel>Context</SectionLabel>
-        <component
-          :is="context ? 'button' : 'div'"
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
-          :data-drawer-relation="context ? '' : undefined"
-          :title="context ? 'Go to context' : undefined"
-          @click="context && navigate('Context', contextId!)"
-        >
-          <TypeTag v-if="contextType">{{ contextType }}</TypeTag>
-          <span
-            class="max-w-full truncate text-body transition-colors"
-            :class="[context ? 'text-text-2 group-hover:text-accent' : 'text-error']"
-          >
-            {{ context?.displayName ?? 'Unresolved context' }}
-          </span>
-          <IconArrowUpRight
-            v-if="context"
-            :size="16"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-          />
-          <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ contextId }}</span>
-            <CopyButton
-              :value="contextId!"
-              :size="12"
-              @click.stop
-            />
-          </div>
-        </component>
+        <RelationRow
+          :id="contextId"
+          :badge="contextType"
+          :name="context?.displayName ?? 'Unresolved context'"
+          :name-tone="context ? 'default' : 'error'"
+          :clickable="!!context"
+          title="Go to context"
+          @click="navigate('Context', contextId!)"
+        />
       </div>
 
       <!-- annotations -->

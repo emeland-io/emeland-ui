@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { IconArrowsExchange } from '@tabler/icons-vue'
 import { useApiStore } from '@/stores/apis'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
@@ -10,7 +9,13 @@ import { buildApiGraph } from '@/graph/apiGraph'
 import { resolveApiContextFlows } from '@/utils/apiContexts'
 import type { GraphNodeClick } from '@/types/graph'
 import FlowGraph from '@/components/graph/FlowGraph.vue'
-import TypeChip from '@/components/TypeChip.vue'
+import GraphLegend, { type LegendItem } from '@/components/graph/GraphLegend.vue'
+import {
+  API_PILL,
+  COMPONENT_PENTAGON,
+  INSTANCE_PENTAGON,
+  UNMAPPED_RECT,
+} from '@/components/graph/legendSwatches'
 import type { Api, ApiInstance } from '@/types/api'
 
 const props = withDefaults(
@@ -90,6 +95,25 @@ const graphModel = computed(() =>
   }),
 )
 
+const legendColumns = computed<LegendItem[][]>(() => {
+  const nodes: LegendItem[] = [{ swatch: API_PILL, label: 'api' }]
+  if (props.showComponents) nodes.push({ swatch: COMPONENT_PENTAGON, label: 'component' })
+  if (props.showInstances) nodes.push({ swatch: INSTANCE_PENTAGON, label: 'instance' })
+  if (props.showInstances && props.showUnmapped && apiStore.unmappedInstances.length > 0)
+    nodes.push({ swatch: UNMAPPED_RECT, label: 'unmapped' })
+  if (anyCrosses.value) nodes.push({ swatch: { shape: 'crossing' }, label: 'crosses boundary' })
+
+  const edges: LegendItem[] = props.showComponents
+    ? [
+        { swatch: { shape: 'arrow' }, label: 'provides' },
+        { swatch: { shape: 'arrow', dashed: true }, label: 'consumes' },
+        { swatch: { shape: 'chip', type: 'System' }, label: 'system' },
+      ]
+    : [{ swatch: { shape: 'arrow' }, label: 'via component' }]
+
+  return [nodes, edges]
+})
+
 function onNodeClick({ id, kind }: GraphNodeClick) {
   if (kind === 'api') emit('select', id.slice('api:'.length))
   else if (kind === 'component') emit('open-component', id.slice('comp:'.length))
@@ -121,187 +145,6 @@ defineExpose({
       class="min-h-0 flex-1"
       @node-click="onNodeClick"
     />
-    <div
-      class="absolute right-3 top-3 z-10 flex gap-4 rounded border border-border-1 bg-bg-1/90 px-2.5 py-2 font-mono text-micro text-text-4 opacity-50 transition-opacity hover:opacity-100"
-    >
-      <!-- node shapes -->
-      <div class="flex flex-col gap-1">
-        <div class="flex items-center gap-1.5">
-          <svg
-            width="18"
-            height="11"
-            viewBox="0 0 18 11"
-            class="shrink-0"
-            aria-hidden="true"
-          >
-            <rect
-              x="0.5"
-              y="0.5"
-              width="17"
-              height="10"
-              rx="5"
-              fill="var(--color-bg-1)"
-              stroke="var(--color-border-2)"
-            />
-          </svg>
-          api
-        </div>
-        <div
-          v-if="showComponents"
-          class="flex items-center gap-1.5"
-        >
-          <svg
-            width="18"
-            height="11"
-            viewBox="0 0 18 11"
-            class="shrink-0"
-            aria-hidden="true"
-          >
-            <polygon
-              points="0.5,0.5 12.5,0.5 17.5,5 17.5,10.5 0.5,10.5"
-              fill="var(--color-bg-2)"
-              stroke="var(--color-border-2)"
-            />
-          </svg>
-          component
-        </div>
-        <div
-          v-if="showInstances"
-          class="flex items-center gap-1.5"
-        >
-          <svg
-            width="18"
-            height="11"
-            viewBox="0 0 18 11"
-            class="shrink-0"
-            aria-hidden="true"
-          >
-            <polygon
-              points="0,0 13,0 18,5 18,11 0,11"
-              fill="var(--color-bg-3)"
-            />
-          </svg>
-          instance
-        </div>
-        <div
-          v-if="showInstances && showUnmapped && apiStore.unmappedInstances.length > 0"
-          class="flex items-center gap-1.5"
-        >
-          <svg
-            width="18"
-            height="11"
-            viewBox="0 0 18 11"
-            class="shrink-0"
-            aria-hidden="true"
-          >
-            <rect
-              x="0.5"
-              y="0.5"
-              width="17"
-              height="10"
-              rx="2"
-              fill="none"
-              stroke="var(--color-text-3)"
-              stroke-dasharray="2.5 2"
-            />
-          </svg>
-          unmapped
-        </div>
-        <div
-          v-if="anyCrosses"
-          class="flex items-center gap-1.5"
-        >
-          <IconArrowsExchange
-            :size="11"
-            :stroke-width="2"
-            class="shrink-0 text-text-3"
-          />
-          crosses boundary
-        </div>
-      </div>
-
-      <!-- edges and label prefixes -->
-      <div class="flex flex-col gap-1">
-        <template v-if="showComponents">
-          <div class="flex items-center gap-1.5">
-            <svg
-              width="20"
-              height="8"
-              viewBox="0 0 20 8"
-              class="shrink-0"
-              aria-hidden="true"
-            >
-              <line
-                x1="0"
-                y1="4"
-                x2="13"
-                y2="4"
-                stroke="var(--color-text-3)"
-                stroke-width="1.25"
-              />
-              <path
-                d="M13 1.4 L19 4 L13 6.6 Z"
-                fill="var(--color-text-3)"
-              />
-            </svg>
-            provides
-          </div>
-          <div class="flex items-center gap-1.5">
-            <svg
-              width="20"
-              height="8"
-              viewBox="0 0 20 8"
-              class="shrink-0"
-              aria-hidden="true"
-            >
-              <line
-                x1="0"
-                y1="4"
-                x2="13"
-                y2="4"
-                stroke="var(--color-text-3)"
-                stroke-width="1.25"
-                stroke-dasharray="3 2.5"
-              />
-              <path
-                d="M13 1.4 L19 4 L13 6.6 Z"
-                fill="var(--color-text-3)"
-              />
-            </svg>
-            consumes
-          </div>
-          <div class="flex items-center gap-1.5">
-            <TypeChip type="System" />
-            system
-          </div>
-        </template>
-        <div
-          v-else
-          class="flex items-center gap-1.5"
-        >
-          <svg
-            width="20"
-            height="8"
-            viewBox="0 0 20 8"
-            class="shrink-0"
-            aria-hidden="true"
-          >
-            <line
-              x1="0"
-              y1="4"
-              x2="13"
-              y2="4"
-              stroke="var(--color-text-3)"
-              stroke-width="1.25"
-            />
-            <path
-              d="M13 1.4 L19 4 L13 6.6 Z"
-              fill="var(--color-text-3)"
-            />
-          </svg>
-          via component
-        </div>
-      </div>
-    </div>
+    <GraphLegend :columns="legendColumns" />
   </div>
 </template>

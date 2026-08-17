@@ -8,6 +8,7 @@ import {
 } from '@/api/components'
 import type { Component, ComponentInstance } from '@/types/component'
 import { useResourceErrors, loadDetailInto } from '@/composables/useResourceErrors'
+import { loadOnce, groupBy } from './support'
 
 export const useComponentStore = defineStore('component', () => {
   const components = ref<Component[]>([])
@@ -26,32 +27,20 @@ export const useComponentStore = defineStore('component', () => {
 
   const componentMap = computed(() => new Map(components.value.map((c) => [c.componentId, c])))
 
-  const componentsBySystem = computed(() => {
-    const map = new Map<string, Component[]>()
-    for (const c of components.value) {
-      const list = map.get(c.system) ?? []
-      list.push(c)
-      map.set(c.system, list)
-    }
-    return map
-  })
+  const componentsBySystem = computed(() => groupBy(components.value, (c) => c.system))
 
   function getComponentsForSystem(systemId: string): Component[] {
     return componentsBySystem.value.get(systemId) ?? []
   }
 
   async function load() {
-    if (loaded.value || loading.value) return
-    loading.value = true
-    error.value = null
-    try {
-      components.value = await fetchComponents()
-      loaded.value = true
-    } catch (e) {
-      error.value = (e as Error).message
-    } finally {
-      loading.value = false
-    }
+    await loadOnce(
+      { loading, loaded, error },
+      async () => {
+        components.value = await fetchComponents()
+      },
+      { resetError: true },
+    )
   }
 
   async function loadComponentDetail(id: string): Promise<void> {
@@ -79,15 +68,9 @@ export const useComponentStore = defineStore('component', () => {
     detailsHydrated.value = true
   }
 
-  const instancesByComponent = computed(() => {
-    const map = new Map<string, ComponentInstance[]>()
-    for (const ci of componentInstances.value) {
-      const list = map.get(ci.component) ?? []
-      list.push(ci)
-      map.set(ci.component, list)
-    }
-    return map
-  })
+  const instancesByComponent = computed(() =>
+    groupBy(componentInstances.value, (ci) => ci.component),
+  )
 
   function getInstancesForComponent(componentId: string): ComponentInstance[] {
     return instancesByComponent.value.get(componentId) ?? []
@@ -99,20 +82,13 @@ export const useComponentStore = defineStore('component', () => {
   )
 
   async function loadComponentInstances(): Promise<void> {
-    if (instancesLoaded.value || instancesLoading.value) return
-    instancesLoading.value = true
-    try {
+    await loadOnce({ loading: instancesLoading, loaded: instancesLoaded, error }, async () => {
       const list = await fetchComponentInstances()
       // The list endpoint is minimal, so hydrate each instance by id
       componentInstances.value = await Promise.all(
         list.map((i) => fetchComponentInstanceById(i.componentInstanceId).catch(() => i)),
       )
-      instancesLoaded.value = true
-    } catch (e) {
-      error.value = (e as Error).message
-    } finally {
-      instancesLoading.value = false
-    }
+    })
   }
 
   return {

@@ -1,29 +1,14 @@
-import { apiFetch } from './fetch'
 import { API } from '@/constants/api'
 import type { Node, NodeType, NodeTypeRef } from '@/types/node'
-
-const USE_MOCKS = import.meta.env.VITE_EMEL_DEV_USE_MOCKS === 'true'
+import { USE_MOCKS, getJson } from './fetch'
+import { decodeAnnotations, type InstanceListItem, type AnnotationsResponse } from './decode'
 
 interface NodeResponse {
   nodeId: string
   displayName: string
   description?: string
   nodeType?: { nodeTypeId: string; displayName: string; resource?: string }
-  annotations?: { key: string; value: string }[] | Record<string, string>
-}
-
-interface InstanceListItem {
-  instanceId: string
-  displayName: string
-  reference: string
-}
-
-function decodeAnnotations(
-  raw: { key: string; value: string }[] | Record<string, string> | undefined,
-): Record<string, string> {
-  if (!raw) return {}
-  if (Array.isArray(raw)) return Object.fromEntries(raw.map((a) => [a.key, a.value]))
-  return raw
+  annotations?: AnnotationsResponse
 }
 
 function decodeNodeTypeRef(
@@ -48,7 +33,7 @@ function decodeNodeType(res: Record<string, unknown>): NodeType {
     nodeTypeId: (res.nodeTypeId as string) ?? (res.instanceId as string) ?? '',
     displayName: (res.displayName as string) ?? '',
     description: (res.description as string) ?? '',
-    annotations: decodeAnnotations(res.annotations as { key: string; value: string }[] | undefined),
+    annotations: decodeAnnotations(res.annotations as AnnotationsResponse | undefined),
   }
 }
 
@@ -65,9 +50,7 @@ export async function fetchNodes(): Promise<Node[]> {
     const { nodes } = await import('@/mocks/nodes')
     return nodes
   }
-  const resp = await apiFetch(API.NODES.list)
-  if (!resp.ok) throw new Error(`Failed to load nodes: ${resp.status}`)
-  const data: NodeResponse[] = await resp.json()
+  const data = await getJson<NodeResponse[]>(API.NODES.list, 'nodes')
   return data.map(decodeNode)
 }
 
@@ -78,9 +61,7 @@ export async function fetchNodeById(id: string): Promise<Node> {
     if (!found) throw new Error(`Node ${id} not found in mocks`)
     return found
   }
-  const resp = await apiFetch(API.NODES.byId(id))
-  if (!resp.ok) throw new Error(`Failed to load node ${id}: ${resp.status}`)
-  return decodeNode(await resp.json())
+  return decodeNode(await getJson<NodeResponse>(API.NODES.byId(id), `node ${id}`))
 }
 
 export async function fetchNodeTypes(): Promise<NodeType[]> {
@@ -88,9 +69,7 @@ export async function fetchNodeTypes(): Promise<NodeType[]> {
     const { nodeTypes } = await import('@/mocks/nodes')
     return nodeTypes
   }
-  const resp = await apiFetch(API.NODE_TYPES.list)
-  if (!resp.ok) throw new Error(`Failed to load node types: ${resp.status}`)
-  const data: InstanceListItem[] = await resp.json()
+  const data = await getJson<InstanceListItem[]>(API.NODE_TYPES.list, 'node types')
   return data.map(nodeTypeFromList)
 }
 
@@ -101,7 +80,7 @@ export async function fetchNodeTypeById(id: string): Promise<NodeType> {
     if (!found) throw new Error(`Node type ${id} not found in mocks`)
     return found
   }
-  const resp = await apiFetch(API.NODE_TYPES.byId(id))
-  if (!resp.ok) throw new Error(`Failed to load node type ${id}: ${resp.status}`)
-  return decodeNodeType(await resp.json())
+  return decodeNodeType(
+    await getJson<Record<string, unknown>>(API.NODE_TYPES.byId(id), `node type ${id}`),
+  )
 }

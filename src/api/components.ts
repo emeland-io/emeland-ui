@@ -1,15 +1,13 @@
-import { apiFetch } from './fetch'
 import { API } from '@/constants/api'
 import type { Component, ComponentInstance } from '@/types/component'
 import type { Version } from '@/types/common'
-
-const USE_MOCKS = import.meta.env.VITE_EMEL_DEV_USE_MOCKS === 'true'
-
-interface InstanceListItem {
-  instanceId: string
-  displayName: string
-  reference: string
-}
+import { USE_MOCKS, getJson } from './fetch'
+import {
+  decodeAnnotations,
+  decodeVersion,
+  type InstanceListItem,
+  type AnnotationsResponse,
+} from './decode'
 
 interface ComponentResponse {
   componentId?: string
@@ -20,19 +18,7 @@ interface ComponentResponse {
   system?: string
   consumes?: string[]
   provides?: string[]
-  annotations?: { key: string; value: string }[] | Record<string, string>
-}
-
-function decodeAnnotations(
-  raw: { key: string; value: string }[] | Record<string, string> | undefined,
-): Record<string, string> {
-  if (!raw) return {}
-  if (Array.isArray(raw)) return Object.fromEntries(raw.map((a) => [a.key, a.value]))
-  return raw
-}
-
-function decodeVersion(v: Version | undefined): Version {
-  return { version: v?.version ?? '', ...v }
+  annotations?: AnnotationsResponse
 }
 
 function decodeComponent(res: ComponentResponse): Component {
@@ -65,9 +51,7 @@ export async function fetchComponents(): Promise<Component[]> {
     const { components } = await import('@/mocks/components')
     return components
   }
-  const resp = await apiFetch(API.COMPONENTS.list)
-  if (!resp.ok) throw new Error(`Failed to load components: ${resp.status}`)
-  const data: InstanceListItem[] = await resp.json()
+  const data = await getJson<InstanceListItem[]>(API.COMPONENTS.list, 'components')
   return data.map(componentFromList)
 }
 
@@ -78,9 +62,9 @@ export async function fetchComponentById(id: string): Promise<Component> {
     if (!found) throw new Error(`Component ${id} not found in mocks`)
     return found
   }
-  const resp = await apiFetch(API.COMPONENTS.byId(id))
-  if (!resp.ok) throw new Error(`Failed to load component ${id}: ${resp.status}`)
-  return decodeComponent(await resp.json())
+  return decodeComponent(
+    await getJson<ComponentResponse>(API.COMPONENTS.byId(id), `component ${id}`),
+  )
 }
 
 interface ComponentInstanceResponse {
@@ -91,7 +75,7 @@ interface ComponentInstanceResponse {
   systemInstance?: string
   consumes?: string[]
   provides?: string[]
-  annotations?: { key: string; value: string }[] | Record<string, string>
+  annotations?: AnnotationsResponse
 }
 
 function decodeComponentInstance(res: ComponentInstanceResponse): ComponentInstance {
@@ -123,9 +107,10 @@ export async function fetchComponentInstances(): Promise<ComponentInstance[]> {
     const { componentInstances } = await import('@/mocks/components')
     return componentInstances
   }
-  const resp = await apiFetch(API.COMPONENT_INSTANCES.list)
-  if (!resp.ok) throw new Error(`Failed to load component instances: ${resp.status}`)
-  const data: InstanceListItem[] = await resp.json()
+  const data = await getJson<InstanceListItem[]>(
+    API.COMPONENT_INSTANCES.list,
+    'component instances',
+  )
   return data.map(componentInstanceFromList)
 }
 
@@ -136,7 +121,10 @@ export async function fetchComponentInstanceById(id: string): Promise<ComponentI
     if (!found) throw new Error(`Component instance ${id} not found in mocks`)
     return found
   }
-  const resp = await apiFetch(API.COMPONENT_INSTANCES.byId(id))
-  if (!resp.ok) throw new Error(`Failed to load component instance ${id}: ${resp.status}`)
-  return decodeComponentInstance(await resp.json())
+  return decodeComponentInstance(
+    await getJson<ComponentInstanceResponse>(
+      API.COMPONENT_INSTANCES.byId(id),
+      `component instance ${id}`,
+    ),
+  )
 }

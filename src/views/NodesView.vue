@@ -1,23 +1,27 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import {
-  IconSearch,
-  IconX,
-  IconCircleOff,
-  IconLoader2,
-  IconArrowUpRight,
-  IconAlertTriangle,
-} from '@tabler/icons-vue'
+import { IconAlertTriangle } from '@tabler/icons-vue'
 import { useNodesStore } from '@/stores/nodes'
 import { useFindingsStore } from '@/stores/findings'
 import ListDetail from '@/components/ListDetail.vue'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
-import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
+import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
+import FindingCard from '@/components/detail/FindingCard.vue'
+import FilterToolbar from '@/components/toolbar/FilterToolbar.vue'
+import FilterChipGroup from '@/components/toolbar/FilterChipGroup.vue'
+import ViewHeader from '@/components/view/ViewHeader.vue'
+import LoadingState from '@/components/view/LoadingState.vue'
+import ErrorState from '@/components/view/ErrorState.vue'
+import EmptyState from '@/components/view/EmptyState.vue'
+import ListPaneBar from '@/components/view/ListPaneBar.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
+import { useAutoSelectFirst } from '@/composables/useResourceList'
+import { useTypesDrawer } from '@/composables/useTypesDrawer'
+import { toggledSet } from '@/utils/set'
 import { categoryColorForNode, categoryColorForName } from '@/constants/nodeCategory'
 
 const store = useNodesStore()
@@ -50,13 +54,7 @@ const filteredNodes = computed(() =>
 )
 const hasActiveFilters = computed(() => !!search.value || activeTypes.value.size > 0)
 function toggleType(name: string) {
-  const s = new Set(activeTypes.value)
-  if (s.has(name)) {
-    s.delete(name)
-  } else {
-    s.add(name)
-  }
-  activeTypes.value = s
+  activeTypes.value = toggledSet(activeTypes.value, name)
 }
 function clearFilters() {
   search.value = ''
@@ -86,17 +84,7 @@ useSelectQuery(
   (n) => n.nodeId,
 )
 
-watch(
-  filteredNodes,
-  (list) => {
-    if (list.length === 0) {
-      selectedId.value = ''
-    } else if (!list.some((n) => n.nodeId === selectedId.value)) {
-      selectNode(list[0].nodeId)
-    }
-  },
-  { immediate: true },
-)
+useAutoSelectFirst(filteredNodes, (n) => n.nodeId, selectedId, selectNode)
 
 watch(selectedId, (id) => {
   if (id) store.loadNodeDetail(id)
@@ -114,39 +102,15 @@ onMounted(() => {
 })
 
 // Node Types drawer
-const typesDrawerOpen = ref(false)
-const selectedTypeId = ref('')
-const selectedType = computed(() => {
-  const detail = store.selectedTypeDetail
-  if (detail && detail.nodeTypeId === selectedTypeId.value) return detail
-  return store.nodeTypes.find((t) => t.nodeTypeId === selectedTypeId.value)
+const typesDrawer = useTypesDrawer({
+  types: () => store.nodeTypes,
+  idOf: (t) => t.nodeTypeId,
+  detail: () => store.selectedTypeDetail,
+  load: store.loadNodeTypes,
+  loadDetail: store.loadNodeTypeDetail,
+  currentTypeId: () => selectedNode.value?.nodeType?.nodeTypeId,
 })
-async function openTypesDrawer() {
-  typesDrawerOpen.value = true
-  await store.loadNodeTypes()
-  const nodeTypeId = selectedNode.value?.nodeType?.nodeTypeId
-  if (nodeTypeId && store.nodeTypes.some((t) => t.nodeTypeId === nodeTypeId)) {
-    selectTypeInDrawer(nodeTypeId)
-  } else if (!selectedTypeId.value && store.nodeTypes.length > 0) {
-    selectTypeInDrawer(store.nodeTypes[0].nodeTypeId)
-  }
-}
-
-function selectTypeInDrawer(id: string) {
-  selectedTypeId.value = id
-  if (id) store.loadNodeTypeDetail(id)
-}
-
-async function openTypeInDrawer(nodeTypeId: string) {
-  typesDrawerOpen.value = true
-  await store.loadNodeTypes()
-  if (store.nodeTypes.some((t) => t.nodeTypeId === nodeTypeId)) {
-    selectTypeInDrawer(nodeTypeId)
-  }
-}
-function closeTypesDrawer() {
-  typesDrawerOpen.value = false
-}
+const { open: typesDrawerOpen, selectedTypeId, selectedType } = typesDrawer
 
 useListKeyboardNav(
   computed(() => filteredNodes.value.map((n) => n.nodeId)),
@@ -154,168 +118,72 @@ useListKeyboardNav(
   selectNode,
   typesDrawerOpen,
 )
-
-useListKeyboardNav(
-  computed(() => store.nodeTypes.map((t) => t.nodeTypeId)),
-  selectedTypeId,
-  selectTypeInDrawer,
-  computed(() => !typesDrawerOpen.value),
-)
 </script>
 
 <template>
   <div class="relative flex h-full flex-col">
-    <!-- Header -->
-    <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <div class="flex min-w-44 items-center gap-3">
-        <h1 class="text-title font-medium text-text-1">Nodes</h1>
-        <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-          {{ store.nodes.length }}
-        </span>
-      </div>
-      <button
-        class="ml-auto flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
-        :class="
-          typesDrawerOpen
-            ? 'bg-accent/10 text-accent-text'
-            : 'text-text-3 hover:bg-bg-3 hover:text-text-1'
-        "
-        @click="openTypesDrawer"
-      >
-        Node types
-        <span
-          v-if="store.typesLoaded"
-          class="font-mono text-micro text-text-4"
+    <ViewHeader
+      title="Nodes"
+      :count="store.nodes.length"
+    >
+      <template #actions>
+        <button
+          class="ml-auto flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
+          :class="
+            typesDrawerOpen
+              ? 'bg-accent/10 text-accent-text'
+              : 'text-text-3 hover:bg-bg-3 hover:text-text-1'
+          "
+          @click="typesDrawer.openDrawer()"
         >
-          {{ store.nodeTypes.length }}
-        </span>
-      </button>
-    </div>
-    <!-- Loading -->
-    <div
+          Node types
+          <span
+            v-if="store.typesLoaded"
+            class="font-mono text-micro text-text-4"
+          >
+            {{ store.nodeTypes.length }}
+          </span>
+        </button>
+      </template>
+    </ViewHeader>
+    <LoadingState
       v-if="store.loading"
-      class="flex flex-1 items-center justify-center"
-    >
-      <div class="flex items-center gap-2 text-text-3">
-        <IconLoader2
-          :size="16"
-          :stroke-width="1.5"
-          class="animate-spin"
-        />
-        <span class="text-body">Loading nodes...</span>
-      </div>
-    </div>
-    <!-- Error -->
-    <div
+      label="Loading nodes..."
+    />
+    <ErrorState
       v-else-if="store.error && store.nodes.length === 0"
-      class="flex flex-1 items-center justify-center"
-    >
-      <p class="text-body text-error">{{ store.error }}</p>
-    </div>
+      :message="store.error"
+    />
     <template v-else>
       <!-- Toolbar -->
-      <div class="flex flex-wrap items-center gap-2 border-b border-border-1 px-4 py-2">
-        <div
-          class="flex items-center gap-2 rounded bg-bg-2 px-2.5 py-1.5 transition-shadow focus-within:ring-1 focus-within:ring-border-2"
-          style="min-width: 300px"
-        >
-          <IconSearch
-            :size="13"
-            :stroke-width="1.5"
-            class="shrink-0 text-text-4"
-          />
-          <input
-            v-model="search"
-            type="text"
-            data-search-input
-            placeholder="Search nodes, annotations... (/)"
-            class="w-full bg-transparent font-mono text-label text-text-2 placeholder:text-meta placeholder:text-text-4 outline-none"
-          />
-          <button
-            v-if="search"
-            class="shrink-0 rounded p-0.5 text-text-4 transition-colors hover:bg-bg-3 hover:text-text-2"
-            title="Clear search"
-            @click="search = ''"
-          >
-            <IconX
-              :size="12"
-              :stroke-width="2"
-            />
-          </button>
-        </div>
-        <div class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1">
-          <span
-            class="shrink-0 cursor-default select-none text-micro font-medium uppercase tracking-wider text-text-4"
-          >
-            Type
-          </span>
-          <button
-            v-for="type in allTypes"
-            :key="type"
-            class="rounded px-2 py-0.5 font-mono text-meta transition-colors"
-            :class="
-              activeTypes.has(type)
-                ? 'bg-accent/10 text-accent-text'
-                : 'bg-bg-0 text-text-3 hover:bg-bg-1 hover:text-text-1'
-            "
-            @click="toggleType(type)"
-          >
-            {{ type }}
-          </button>
-        </div>
-        <button
-          v-if="hasActiveFilters"
-          class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-          @click="clearFilters"
-        >
-          <IconX
-            :size="11"
-            :stroke-width="2"
-          />
-          Clear
-        </button>
-      </div>
-      <!-- Empty state -->
-      <div
-        v-if="filteredNodes.length === 0"
-        class="flex flex-1 items-center justify-center"
+      <FilterToolbar
+        v-model:search="search"
+        placeholder="Search nodes, annotations... (/)"
+        :has-active-filters="hasActiveFilters"
+        @clear="clearFilters"
       >
-        <div class="text-center">
-          <IconCircleOff
-            :size="32"
-            :stroke-width="1.5"
-            class="mx-auto text-text-4"
-          />
-          <p class="mt-3 text-body text-text-2">No nodes</p>
-          <p class="mt-1 text-label text-text-4">
-            {{ hasActiveFilters ? 'No results for current filters' : 'No nodes discovered yet' }}
-          </p>
-        </div>
-      </div>
+        <FilterChipGroup
+          label="Type"
+          :items="allTypes"
+          :active="activeTypes"
+          @toggle="toggleType"
+        />
+      </FilterToolbar>
+      <EmptyState
+        v-if="filteredNodes.length === 0"
+        title="No nodes"
+        :hint="hasActiveFilters ? 'No results for current filters' : 'No nodes discovered yet'"
+      />
       <!-- List-Detail -->
       <ListDetail v-else>
         <!-- List -->
         <template #list>
           <div class="flex h-full flex-col">
             <!-- list bar, so the column starts on the same line as the detail -->
-            <div class="flex h-9 shrink-0 items-center border-b border-border-1 bg-bg-1 px-2">
-              <span class="flex items-center gap-1.5">
-                <span class="text-micro font-medium uppercase tracking-wider text-text-4">
-                  List
-                </span>
-                <span
-                  class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3"
-                >
-                  {{ filteredNodes.length }}
-                  <span
-                    v-if="filteredNodes.length !== store.nodes.length"
-                    class="text-text-4"
-                  >
-                    of {{ store.nodes.length }}
-                  </span>
-                </span>
-              </span>
-            </div>
+            <ListPaneBar
+              :count="filteredNodes.length"
+              :total="store.nodes.length"
+            />
             <div class="min-h-0 flex-1 overflow-y-auto">
               <div
                 v-for="node in filteredNodes"
@@ -388,7 +256,7 @@ useListKeyboardNav(
                   class="group inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-label transition-opacity hover:opacity-80"
                   :class="categoryColorForNode(selectedNode)"
                   title="Show node type"
-                  @click="openTypeInDrawer(selectedNode.nodeType.nodeTypeId)"
+                  @click="typesDrawer.openType(selectedNode.nodeType.nodeTypeId)"
                 >
                   {{ store.getTypeName(selectedNode) }}
                 </button>
@@ -408,18 +276,7 @@ useListKeyboardNav(
               </div>
             </div>
             <div class="flex flex-col gap-5 px-6 py-5">
-              <!-- detail load failed -->
-              <div
-                v-if="store.hasDetailError(selectedNode.nodeId)"
-                class="flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
-              >
-                <div class="min-w-0">
-                  <div class="text-body text-error">Could not load full details</div>
-                  <div class="mt-0.5 font-mono text-meta text-error/80">
-                    Showing basic info only — the detail request failed.
-                  </div>
-                </div>
-              </div>
+              <DetailErrorBanner v-if="store.hasDetailError(selectedNode.nodeId)" />
               <div
                 class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3 @3xl:[&>*:nth-child(2)]:border-l @3xl:[&>*:nth-child(2)]:border-border-1/50 @3xl:[&>*:nth-child(2)]:pl-8 @3xl:[&>*:nth-child(3)]:border-l @3xl:[&>*:nth-child(3)]:border-border-1/50 @3xl:[&>*:nth-child(3)]:pl-8"
               >
@@ -428,14 +285,21 @@ useListKeyboardNav(
                     <SectionLabel>Node type</SectionLabel>
                     <div class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0">
                       <span class="flex w-full items-center gap-3">
-                        <TypeTag :tone="selectedNodeTypeUnknown ? 'error' : 'accent'">
+                        <span
+                          class="flex w-28 shrink-0 items-center justify-center gap-1 rounded px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase"
+                          :class="
+                            selectedNodeTypeUnknown
+                              ? 'bg-error/10 text-error'
+                              : 'bg-accent/10 text-accent-text'
+                          "
+                        >
                           <IconAlertTriangle
                             v-if="selectedNodeTypeUnknown"
                             :size="12"
                             :stroke-width="2"
                           />
                           NodeType
-                        </TypeTag>
+                        </span>
                         <span
                           class="min-w-0 truncate text-body"
                           :class="selectedNodeTypeUnknown ? 'text-error' : 'text-text-2'"
@@ -484,39 +348,12 @@ useListKeyboardNav(
                     >
                       No findings.
                     </p>
-                    <button
+                    <FindingCard
                       v-for="f in relatedFindings"
                       :key="f.findingId"
-                      class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
-                      title="Go to finding"
-                      @click="goToFinding(f.findingId)"
-                    >
-                      <span class="group/row flex w-full items-center gap-2.5">
-                        <span
-                          class="shrink-0 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
-                        >
-                          {{ findingsStore.getKindForFinding(f) }}
-                        </span>
-                        <span
-                          class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                        >
-                          {{ f.displayName }}
-                        </span>
-                        <IconArrowUpRight
-                          :size="15"
-                          :stroke-width="2"
-                          class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                        />
-                      </span>
-                      <span class="flex items-center gap-1.5">
-                        <span class="font-mono text-meta text-text-4">{{ f.findingId }}</span>
-                        <CopyButton
-                          :value="f.findingId"
-                          :size="12"
-                          @click.stop
-                        />
-                      </span>
-                    </button>
+                      :finding="f"
+                      @open="goToFinding"
+                    />
                   </div>
                 </div>
                 <div class="flex flex-col gap-6">
@@ -556,22 +393,12 @@ useListKeyboardNav(
       title="Node Types"
       subtitle="NodeType"
       :count="store.typesLoaded ? store.nodeTypes.length : undefined"
-      @close="closeTypesDrawer"
+      @close="typesDrawer.close()"
     >
-      <!-- Loading -->
-      <div
+      <LoadingState
         v-if="store.typesLoading"
-        class="flex flex-1 items-center justify-center"
-      >
-        <div class="flex items-center gap-2 text-text-3">
-          <IconLoader2
-            :size="16"
-            :stroke-width="1.5"
-            class="animate-spin"
-          />
-          <span class="text-body">Loading types...</span>
-        </div>
-      </div>
+        label="Loading types..."
+      />
       <template v-else>
         <!-- Type list -->
         <div class="w-52 shrink-0 overflow-y-auto border-r border-border-1">
@@ -585,7 +412,7 @@ useListKeyboardNav(
                 ? 'border-l-accent bg-accent/5'
                 : 'border-l-transparent hover:bg-bg-1'
             "
-            @click="selectTypeInDrawer(type.nodeTypeId)"
+            @click="typesDrawer.select(type.nodeTypeId)"
           >
             <span
               class="rounded px-1.5 py-0.5 font-mono text-meta"

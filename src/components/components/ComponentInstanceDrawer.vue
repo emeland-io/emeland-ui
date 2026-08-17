@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconArrowUpRight, IconArrowUp, IconArrowDown } from '@tabler/icons-vue'
+import { IconArrowUp, IconArrowDown } from '@tabler/icons-vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
 import { useContextStore } from '@/stores/contexts'
 import { useInstanceContext } from '@/composables/useInstanceContext'
 import { useResourceNav } from '@/composables/useResourceNav'
+import { useDrawerNav } from '@/composables/useDrawerNav'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
-import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
 import MappingTag from '@/components/MappingTag.vue'
+import RelationRow from '@/components/RelationRow.vue'
 import { mappingStateOf } from '@/utils/mapping'
 
 const props = defineProps<{
@@ -78,15 +79,12 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
   goToResource(type, id)
 }
 
-const navIndex = computed(() => props.navIds?.indexOf(props.selectedInstanceId) ?? -1)
-
-function stepInstance(step: -1 | 1) {
-  const ids = props.navIds
-  if (!ids || navIndex.value < 0) return
-  const next = ids[navIndex.value + step]
-  if (next !== undefined) emit('navigate', next)
-  else emit('nav-exit', step)
-}
+const { navIndex, step: stepInstance } = useDrawerNav({
+  navIds: () => props.navIds,
+  current: () => props.selectedInstanceId,
+  onNavigate: (id) => emit('navigate', id),
+  onExit: (step) => emit('nav-exit', step),
+})
 </script>
 
 <template>
@@ -133,98 +131,43 @@ function stepInstance(step: -1 | 1) {
       <!-- owning component -->
       <div v-if="instance.component">
         <SectionLabel>Component</SectionLabel>
-        <button
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
-          data-drawer-relation
+        <RelationRow
+          :id="instance.component"
+          badge="Component"
+          fixed-badge
+          :name="componentName ?? instance.component"
+          clickable
           title="Go to component"
           @click="navigate('Component', instance.component)"
-        >
-          <TypeTag>Component</TypeTag>
-          <span
-            class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
-          >
-            {{ componentName ?? instance.component }}
-          </span>
-          <IconArrowUpRight
-            :size="16"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-          />
-          <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ instance.component }}</span>
-            <CopyButton
-              :value="instance.component"
-              :size="12"
-              @click.stop
-            />
-          </div>
-        </button>
+        />
       </div>
 
       <!-- system instance -->
       <div v-if="instance.systemInstance">
         <SectionLabel>System instance</SectionLabel>
-        <component
-          :is="systemInstance?.system ? 'button' : 'div'"
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
-          :data-drawer-relation="systemInstance?.system ? '' : undefined"
-          :title="systemInstance?.system ? 'Go to system' : undefined"
-          @click="systemInstance?.system && navigate('System', systemInstance.system)"
-        >
-          <TypeTag>Instance</TypeTag>
-          <span
-            class="max-w-full truncate text-body text-text-2 transition-colors"
-            :class="systemInstance?.system ? 'group-hover:text-accent' : ''"
-          >
-            {{ systemInstance?.displayName ?? instance.systemInstance }}
-          </span>
-          <IconArrowUpRight
-            v-if="systemInstance?.system"
-            :size="16"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-          />
-          <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ instance.systemInstance }}</span>
-            <CopyButton
-              :value="instance.systemInstance"
-              :size="12"
-              @click.stop
-            />
-          </div>
-        </component>
+        <RelationRow
+          :id="instance.systemInstance"
+          badge="Instance"
+          fixed-badge
+          :name="systemInstance?.displayName ?? instance.systemInstance"
+          :clickable="!!systemInstance?.system"
+          title="Go to system"
+          @click="navigate('System', systemInstance!.system)"
+        />
       </div>
 
       <!-- context -->
       <div v-if="context?.id">
         <SectionLabel>Context</SectionLabel>
-        <button
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
-          data-drawer-relation
+        <RelationRow
+          :id="context.id"
+          :badge="contextType"
+          :name="context.name ?? (context.unresolved ? 'Unresolved context' : context.id)"
+          :name-tone="context.unresolved ? 'error' : 'default'"
+          clickable
           title="Go to context"
-          @click="navigate('Context', context.id)"
-        >
-          <TypeTag v-if="contextType">{{ contextType }}</TypeTag>
-          <span
-            class="max-w-full truncate text-body transition-colors group-hover:text-accent"
-            :class="context.unresolved ? 'text-error' : 'text-text-2'"
-          >
-            {{ context.name ?? (context.unresolved ? 'Unresolved context' : context.id) }}
-          </span>
-          <IconArrowUpRight
-            :size="16"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-          />
-          <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ context.id }}</span>
-            <CopyButton
-              :value="context.id"
-              :size="12"
-              @click.stop
-            />
-          </div>
-        </button>
+          @click="navigate('Context', context!.id!)"
+        />
       </div>
 
       <!-- provides -->

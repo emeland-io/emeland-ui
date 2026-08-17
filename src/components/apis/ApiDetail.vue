@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconArrowUpRight, IconArrowsExchange, IconLayoutSidebarRight } from '@tabler/icons-vue'
+import { IconArrowsExchange, IconLayoutSidebarRight } from '@tabler/icons-vue'
 import { useApiStore } from '@/stores/apis'
 import { useSystemStore } from '@/stores/systems'
 import { useComponentStore } from '@/stores/components'
@@ -10,10 +10,13 @@ import { useResourceNav } from '@/composables/useResourceNav'
 import CopyButton from '@/components/CopyButton.vue'
 import TypeChip from '@/components/TypeChip.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
-import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
+import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
+import FindingCard from '@/components/detail/FindingCard.vue'
+import ResourceLinkCard from '@/components/detail/ResourceLinkCard.vue'
 import { endpointUrl } from '@/utils/endpoint'
 import { differingAnnotationKeys } from '@/utils/annotations'
+import { versionDates } from '@/utils/version'
 import type { Api, ApiInstance } from '@/types/api'
 import type { ApiContextFlow } from '@/utils/apiContexts'
 
@@ -113,16 +116,6 @@ const diffNote = computed(() => {
     ? '1 annotation key differs across instances'
     : `${n} annotation keys differ across instances`
 })
-
-function versionDates(a: Api | undefined): [string, string][] {
-  if (!a?.version) return []
-  const v = a.version
-  const rows: [string, string][] = []
-  if (v.availableFrom) rows.push(['Available from', v.availableFrom])
-  if (v.deprecatedFrom) rows.push(['Deprecated from', v.deprecatedFrom])
-  if (v.terminatedFrom) rows.push(['Terminated from', v.terminatedFrom])
-  return rows
-}
 </script>
 
 <template>
@@ -160,7 +153,7 @@ function versionDates(a: Api | undefined): [string, string][] {
             />
           </div>
           <div
-            v-for="[label, value] in versionDates(api)"
+            v-for="[label, value] in versionDates(api.version)"
             :key="label"
             class="mt-1 flex items-baseline justify-end gap-3 font-mono text-micro text-text-4"
           >
@@ -171,18 +164,7 @@ function versionDates(a: Api | undefined): [string, string][] {
       </div>
     </div>
     <div class="flex flex-col gap-5 px-6 py-5">
-      <!-- detail load failed -->
-      <div
-        v-if="store.hasDetailError(api.apiId)"
-        class="flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
-      >
-        <div class="min-w-0">
-          <div class="text-body text-error">Could not load full details</div>
-          <div class="mt-0.5 font-mono text-meta text-error/80">
-            Showing basic info only — the detail request failed.
-          </div>
-        </div>
-      </div>
+      <DetailErrorBanner v-if="store.hasDetailError(api.apiId)" />
       <div
         class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3 @3xl:[&>*:nth-child(2)]:border-l @3xl:[&>*:nth-child(2)]:border-border-1/50 @3xl:[&>*:nth-child(2)]:pl-8 @3xl:[&>*:nth-child(3)]:border-l @3xl:[&>*:nth-child(3)]:border-border-1/50 @3xl:[&>*:nth-child(3)]:pl-8"
       >
@@ -204,44 +186,24 @@ function versionDates(a: Api | undefined): [string, string][] {
             >
               No system.
             </p>
-            <button
+            <ResourceLinkCard
               v-else-if="!systemUnresolved"
-              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+              :id="api.system"
+              badge="System"
+              :name="systemName ?? api.system"
               title="Go to system"
               @click="goToResource('System', api.system)"
-            >
-              <span class="group/row flex w-full items-center gap-3">
-                <TypeTag>System</TypeTag>
-                <span
-                  class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                >
-                  {{ systemName }}
-                </span>
-                <IconArrowUpRight
-                  :size="16"
-                  :stroke-width="2"
-                  class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                />
-              </span>
-              <span class="flex items-center gap-1.5">
-                <span class="font-mono text-meta text-text-4">{{ api.system }}</span>
-                <CopyButton
-                  :value="api.system"
-                  :size="12"
-                  @click.stop
-                />
-              </span>
-            </button>
-            <div
+            />
+            <ResourceLinkCard
               v-else
-              class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
-            >
-              <div class="flex items-center gap-3">
-                <TypeTag tone="error">System</TypeTag>
-                <span class="min-w-0 truncate text-body text-error">Unresolved system</span>
-              </div>
-              <span class="font-mono text-meta text-text-4">{{ api.system }}</span>
-            </div>
+              :id="api.system"
+              badge="System"
+              badge-error
+              name="Unresolved system"
+              name-error
+              :clickable="false"
+              :copyable="false"
+            />
           </div>
           <div v-if="hasContextFlow && flow">
             <!-- Contexts: where the API is provided vs consumed -->
@@ -270,34 +232,15 @@ function versionDates(a: Api | undefined): [string, string][] {
                 >
                   No deployed provider.
                 </p>
-                <button
+                <ResourceLinkCard
                   v-for="ctx in flow.providerContexts"
+                  :id="ctx"
                   :key="ctx"
-                  class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+                  :name="contextName(ctx)"
+                  arrow-end
                   title="Go to context"
                   @click="goToResource('Context', ctx)"
-                >
-                  <span class="group/row flex w-full items-center gap-3">
-                    <span
-                      class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                    >
-                      {{ contextName(ctx) }}
-                    </span>
-                    <IconArrowUpRight
-                      :size="15"
-                      :stroke-width="2"
-                      class="ml-auto shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                    />
-                  </span>
-                  <span class="flex items-center gap-1.5">
-                    <span class="font-mono text-meta text-text-4">{{ ctx }}</span>
-                    <CopyButton
-                      :value="ctx"
-                      :size="12"
-                      @click.stop
-                    />
-                  </span>
-                </button>
+                />
               </div>
               <div>
                 <p class="mb-1 text-micro font-medium uppercase tracking-wider text-text-4">
@@ -309,19 +252,16 @@ function versionDates(a: Api | undefined): [string, string][] {
                 >
                   No deployed consumers.
                 </p>
-                <button
+                <ResourceLinkCard
                   v-for="ctx in flow.consumerContexts"
+                  :id="ctx"
                   :key="ctx"
-                  class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+                  :name="contextName(ctx)"
+                  arrow-end
                   title="Go to context"
                   @click="goToResource('Context', ctx)"
                 >
-                  <span class="group/row flex w-full items-center gap-3">
-                    <span
-                      class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                    >
-                      {{ contextName(ctx) }}
-                    </span>
+                  <template #trailing>
                     <span
                       v-if="flow.crossContexts.includes(ctx)"
                       class="flex shrink-0 items-center gap-1 rounded-full border border-border-2 bg-bg-2 px-1.5 py-0.5 font-mono text-micro text-text-3"
@@ -332,21 +272,8 @@ function versionDates(a: Api | undefined): [string, string][] {
                         :stroke-width="2"
                       />
                     </span>
-                    <IconArrowUpRight
-                      :size="15"
-                      :stroke-width="2"
-                      class="ml-auto shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                    />
-                  </span>
-                  <span class="flex items-center gap-1.5">
-                    <span class="font-mono text-meta text-text-4">{{ ctx }}</span>
-                    <CopyButton
-                      :value="ctx"
-                      :size="12"
-                      @click.stop
-                    />
-                  </span>
-                </button>
+                  </template>
+                </ResourceLinkCard>
               </div>
             </div>
           </div>
@@ -361,35 +288,15 @@ function versionDates(a: Api | undefined): [string, string][] {
             >
               No providing component.
             </p>
-            <button
+            <ResourceLinkCard
               v-for="c in providers"
+              :id="c.componentId"
               :key="c.componentId"
-              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+              badge="Component"
+              :name="c.displayName"
               title="Go to component"
               @click="goToResource('Component', c.componentId)"
-            >
-              <span class="group/row flex w-full items-center gap-3">
-                <TypeTag>Component</TypeTag>
-                <span
-                  class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                >
-                  {{ c.displayName }}
-                </span>
-                <IconArrowUpRight
-                  :size="16"
-                  :stroke-width="2"
-                  class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                />
-              </span>
-              <span class="flex items-center gap-1.5">
-                <span class="font-mono text-meta text-text-4">{{ c.componentId }}</span>
-                <CopyButton
-                  :value="c.componentId"
-                  :size="12"
-                  @click.stop
-                />
-              </span>
-            </button>
+            />
           </div>
           <!-- Related findings -->
           <div>
@@ -405,39 +312,12 @@ function versionDates(a: Api | undefined): [string, string][] {
             >
               No findings.
             </p>
-            <button
+            <FindingCard
               v-for="f in relatedFindings"
               :key="f.findingId"
-              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
-              title="Go to finding"
-              @click="goToFinding(f.findingId)"
-            >
-              <span class="group/row flex w-full items-center gap-2.5">
-                <span
-                  class="shrink-0 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
-                >
-                  {{ findingsStore.getKindForFinding(f) }}
-                </span>
-                <span
-                  class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                >
-                  {{ f.displayName }}
-                </span>
-                <IconArrowUpRight
-                  :size="15"
-                  :stroke-width="2"
-                  class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                />
-              </span>
-              <span class="flex items-center gap-1.5">
-                <span class="font-mono text-meta text-text-4">{{ f.findingId }}</span>
-                <CopyButton
-                  :value="f.findingId"
-                  :size="12"
-                  @click.stop
-                />
-              </span>
-            </button>
+              :finding="f"
+              @open="goToFinding"
+            />
           </div>
         </div>
         <div class="flex flex-col gap-6 @3xl:row-span-2">
@@ -450,35 +330,15 @@ function versionDates(a: Api | undefined): [string, string][] {
             >
               No consuming components.
             </p>
-            <button
+            <ResourceLinkCard
               v-for="c in consumers"
+              :id="c.componentId"
               :key="c.componentId"
-              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+              badge="Component"
+              :name="c.displayName"
               title="Go to component"
               @click="goToResource('Component', c.componentId)"
-            >
-              <span class="group/row flex w-full items-center gap-3">
-                <TypeTag>Component</TypeTag>
-                <span
-                  class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                >
-                  {{ c.displayName }}
-                </span>
-                <IconArrowUpRight
-                  :size="16"
-                  :stroke-width="2"
-                  class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                />
-              </span>
-              <span class="flex items-center gap-1.5">
-                <span class="font-mono text-meta text-text-4">{{ c.componentId }}</span>
-                <CopyButton
-                  :value="c.componentId"
-                  :size="12"
-                  @click.stop
-                />
-              </span>
-            </button>
+            />
           </div>
           <div>
             <!-- Annotations -->

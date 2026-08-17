@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { IconCircleCheck, IconLoader2 } from '@tabler/icons-vue'
 import { useFindingsStore } from '@/stores/findings'
 import FindingsToolbar from '@/components/findings/FindingsToolbar.vue'
 import FindingsList from '@/components/findings/FindingsList.vue'
@@ -10,8 +9,17 @@ import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
+import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
+import ViewHeader from '@/components/view/ViewHeader.vue'
+import LoadingState from '@/components/view/LoadingState.vue'
+import ErrorState from '@/components/view/ErrorState.vue'
+import EmptyState from '@/components/view/EmptyState.vue'
+import ListPaneBar from '@/components/view/ListPaneBar.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
+import { useAutoSelectFirst } from '@/composables/useResourceList'
+import { useTypesDrawer } from '@/composables/useTypesDrawer'
+import { toggledSet } from '@/utils/set'
 
 const store = useFindingsStore()
 const { goToResource } = useResourceNav()
@@ -45,22 +53,10 @@ const filteredFindings = computed(() =>
 )
 
 function toggleType(kind: string) {
-  const s = new Set(activeTypes.value)
-  if (s.has(kind)) {
-    s.delete(kind)
-  } else {
-    s.add(kind)
-  }
-  activeTypes.value = s
+  activeTypes.value = toggledSet(activeTypes.value, kind)
 }
 function toggleResourceType(rt: string) {
-  const s = new Set(activeResourceTypes.value)
-  if (s.has(rt)) {
-    s.delete(rt)
-  } else {
-    s.add(rt)
-  }
-  activeResourceTypes.value = s
+  activeResourceTypes.value = toggledSet(activeResourceTypes.value, rt)
 }
 function clearFilters() {
   search.value = ''
@@ -83,17 +79,7 @@ useSelectQuery(
   (f) => f.findingId,
 )
 
-watch(
-  filteredFindings,
-  (list) => {
-    if (list.length === 0) {
-      selectedId.value = ''
-    } else if (!list.some((f) => f.findingId === selectedId.value)) {
-      selectFinding(list[0].findingId)
-    }
-  },
-  { immediate: true },
-)
+useAutoSelectFirst(filteredFindings, (f) => f.findingId, selectedId, selectFinding)
 
 watch(selectedId, (id) => {
   if (id) store.loadFindingDetail(id)
@@ -102,42 +88,15 @@ watch(selectedId, (id) => {
 onMounted(() => store.load())
 
 // Finding Types drawer
-const typesDrawerOpen = ref(false)
-const selectedTypeId = ref('')
-
-const selectedType = computed(() => {
-  const detail = store.selectedTypeDetail
-  if (detail && detail.findingTypeId === selectedTypeId.value) return detail
-  return store.findingTypes.find((t) => t.findingTypeId === selectedTypeId.value)
+const typesDrawer = useTypesDrawer({
+  types: () => store.findingTypes,
+  idOf: (t) => t.findingTypeId,
+  detail: () => store.selectedTypeDetail,
+  load: store.loadFindingTypes,
+  loadDetail: store.loadFindingTypeDetail,
+  currentTypeId: () => selectedFinding.value?.findingType?.findingTypeId,
 })
-
-async function openTypesDrawer() {
-  typesDrawerOpen.value = true
-  await store.loadFindingTypes()
-  const typeId = selectedFinding.value?.findingType?.findingTypeId
-  if (typeId && store.findingTypes.some((t) => t.findingTypeId === typeId)) {
-    selectTypeInDrawer(typeId)
-  } else if (!selectedTypeId.value && store.findingTypes.length > 0) {
-    selectTypeInDrawer(store.findingTypes[0].findingTypeId)
-  }
-}
-
-function selectTypeInDrawer(id: string) {
-  selectedTypeId.value = id
-  if (id) store.loadFindingTypeDetail(id)
-}
-
-async function openTypeInDrawer(findingTypeId: string) {
-  typesDrawerOpen.value = true
-  await store.loadFindingTypes()
-  if (store.findingTypes.some((t) => t.findingTypeId === findingTypeId)) {
-    selectTypeInDrawer(findingTypeId)
-  }
-}
-
-function closeTypesDrawer() {
-  typesDrawerOpen.value = false
-}
+const { open: typesDrawerOpen, selectedTypeId, selectedType } = typesDrawer
 
 useListKeyboardNav(
   computed(() => filteredFindings.value.map((f) => f.findingId)),
@@ -145,64 +104,42 @@ useListKeyboardNav(
   selectFinding,
   typesDrawerOpen,
 )
-
-useListKeyboardNav(
-  computed(() => store.findingTypes.map((t) => t.findingTypeId)),
-  selectedTypeId,
-  selectTypeInDrawer,
-  computed(() => !typesDrawerOpen.value),
-)
 </script>
 
 <template>
   <div class="relative flex h-full flex-col">
-    <!-- Header -->
-    <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <div class="flex min-w-44 items-center gap-3">
-        <h1 class="text-title font-medium text-text-1">Findings</h1>
-        <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-          {{ store.findings.length }}
-        </span>
-      </div>
-      <button
-        class="ml-auto flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
-        :class="
-          typesDrawerOpen
-            ? 'bg-accent/10 text-accent-text'
-            : 'text-text-3 hover:bg-bg-3 hover:text-text-1'
-        "
-        @click="openTypesDrawer"
-      >
-        Finding types
-        <span
-          v-if="store.typesLoaded"
-          class="font-mono text-micro text-text-4"
+    <ViewHeader
+      title="Findings"
+      :count="store.findings.length"
+    >
+      <template #actions>
+        <button
+          class="ml-auto flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
+          :class="
+            typesDrawerOpen
+              ? 'bg-accent/10 text-accent-text'
+              : 'text-text-3 hover:bg-bg-3 hover:text-text-1'
+          "
+          @click="typesDrawer.openDrawer()"
         >
-          {{ store.findingTypes.length }}
-        </span>
-      </button>
-    </div>
-    <!-- Loading -->
-    <div
+          Finding types
+          <span
+            v-if="store.typesLoaded"
+            class="font-mono text-micro text-text-4"
+          >
+            {{ store.findingTypes.length }}
+          </span>
+        </button>
+      </template>
+    </ViewHeader>
+    <LoadingState
       v-if="store.loading"
-      class="flex flex-1 items-center justify-center"
-    >
-      <div class="flex items-center gap-2 text-text-3">
-        <IconLoader2
-          :size="16"
-          :stroke-width="1.5"
-          class="animate-spin"
-        />
-        <span class="text-body">Loading findings...</span>
-      </div>
-    </div>
-    <!-- Error -->
-    <div
+      label="Loading findings..."
+    />
+    <ErrorState
       v-else-if="store.error && store.findings.length === 0"
-      class="flex flex-1 items-center justify-center"
-    >
-      <p class="text-body text-error">{{ store.error }}</p>
-    </div>
+      :message="store.error"
+    />
     <template v-else>
       <!-- Toolbar -->
       <FindingsToolbar
@@ -216,45 +153,20 @@ useListKeyboardNav(
         @toggle-resource-type="toggleResourceType"
         @clear="clearFilters"
       />
-      <!-- Empty state -->
-      <div
+      <EmptyState
         v-if="filteredFindings.length === 0"
-        class="flex flex-1 items-center justify-center"
-      >
-        <div class="text-center">
-          <IconCircleCheck
-            :size="32"
-            :stroke-width="1.5"
-            class="mx-auto text-accent"
-          />
-          <p class="mt-3 text-body text-text-2">No findings</p>
-          <p class="mt-1 text-label text-text-4">
-            All rules passed or no results for current filters
-          </p>
-        </div>
-      </div>
+        title="No findings"
+        hint="All rules passed or no results for current filters"
+        variant="ok"
+      />
       <!-- List-Detail -->
       <ListDetail v-else>
         <template #list>
           <div class="flex h-full flex-col">
-            <div class="flex h-9 shrink-0 items-center border-b border-border-1 bg-bg-1 px-2">
-              <span class="flex items-center gap-1.5">
-                <span class="text-micro font-medium uppercase tracking-wider text-text-4">
-                  List
-                </span>
-                <span
-                  class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3"
-                >
-                  {{ filteredFindings.length }}
-                  <span
-                    v-if="filteredFindings.length !== store.findings.length"
-                    class="text-text-4"
-                  >
-                    of {{ store.findings.length }}
-                  </span>
-                </span>
-              </span>
-            </div>
+            <ListPaneBar
+              :count="filteredFindings.length"
+              :total="store.findings.length"
+            />
             <div class="min-h-0 flex-1 overflow-y-auto">
               <FindingsList
                 :findings="filteredFindings"
@@ -271,24 +183,16 @@ useListKeyboardNav(
             v-if="selectedFinding"
             class="flex flex-1 flex-col overflow-hidden"
           >
-            <!-- detail load failed -->
-            <div
+            <DetailErrorBanner
               v-if="store.hasDetailError(selectedFinding.findingId)"
-              class="m-4 mb-0 flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
-            >
-              <div class="min-w-0">
-                <div class="text-body text-error">Could not load full details</div>
-                <div class="mt-0.5 font-mono text-meta text-error/80">
-                  Showing basic info only — the detail request failed.
-                </div>
-              </div>
-            </div>
+              class="m-4 mb-0"
+            />
             <FindingDetail
               class="flex-1"
               :finding="selectedFinding"
               :kind="store.getKindForFinding(selectedFinding)"
               @navigate-resource="goToResource"
-              @open-type="openTypeInDrawer"
+              @open-type="typesDrawer.openType"
             />
           </div>
           <div
@@ -306,22 +210,12 @@ useListKeyboardNav(
       title="Finding types"
       subtitle="FindingType"
       :count="store.typesLoaded ? store.findingTypes.length : undefined"
-      @close="closeTypesDrawer"
+      @close="typesDrawer.close()"
     >
-      <!-- Loading -->
-      <div
+      <LoadingState
         v-if="store.typesLoading"
-        class="flex flex-1 items-center justify-center"
-      >
-        <div class="flex items-center gap-2 text-text-3">
-          <IconLoader2
-            :size="16"
-            :stroke-width="1.5"
-            class="animate-spin"
-          />
-          <span class="text-body">Loading types...</span>
-        </div>
-      </div>
+        label="Loading types..."
+      />
       <!-- Type list -->
       <template v-else>
         <div class="w-56 shrink-0 overflow-y-auto border-r border-border-1">
@@ -335,7 +229,7 @@ useListKeyboardNav(
                 ? 'border-l-accent bg-accent/5'
                 : 'border-l-transparent hover:bg-bg-1'
             "
-            @click="selectTypeInDrawer(type.findingTypeId)"
+            @click="typesDrawer.select(type.findingTypeId)"
           >
             <div
               class="text-body font-medium"

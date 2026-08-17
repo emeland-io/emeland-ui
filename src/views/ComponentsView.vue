@@ -1,17 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, defineAsyncComponent } from 'vue'
-import {
-  IconCircleOff,
-  IconLoader2,
-  IconChevronRight,
-  IconFocusCentered,
-  IconZoomScan,
-  IconZoomIn,
-  IconZoomOut,
-  IconArrowsMaximize,
-  IconArrowsMinimize,
-  IconBinaryTree,
-} from '@tabler/icons-vue'
+import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
@@ -22,14 +10,23 @@ import ComponentsToolbar from '@/components/components/ComponentsToolbar.vue'
 import ComponentsList from '@/components/components/ComponentsList.vue'
 import ComponentDetail from '@/components/components/ComponentDetail.vue'
 import ComponentInstanceDrawer from '@/components/components/ComponentInstanceDrawer.vue'
+import GraphPanel from '@/components/graph/GraphPanel.vue'
+import GraphLayerToggle from '@/components/graph/GraphLayerToggle.vue'
+import ViewHeader from '@/components/view/ViewHeader.vue'
+import LoadingState from '@/components/view/LoadingState.vue'
+import ErrorState from '@/components/view/ErrorState.vue'
+import EmptyState from '@/components/view/EmptyState.vue'
+import ListPaneBar from '@/components/view/ListPaneBar.vue'
 import { useSelectQuery, useResourceNav } from '@/composables/useResourceNav'
+import { useAutoSelectFirst, useSearchMatches } from '@/composables/useResourceList'
+import { toggledSet } from '@/utils/set'
 import { useInstanceContext } from '@/composables/useInstanceContext'
 import { groupByBrokenRef } from '@/utils/mapping'
 import { useListKeyboardNav, scrollRowIntoView } from '@/composables/useListKeyboardNav'
 import { useInstanceCursorNav } from '@/composables/useInstanceCursorNav'
 import { useGraphKeyToggles } from '@/composables/useGraphKeyToggles'
-import { LAYER_TOGGLE_KEYS, GRAPH_TOGGLE_KEYS, layerKeyHint, keyHint } from '@/constants/shortcuts'
-import { useResizable } from '@/composables/useResizable'
+import { useGraphPanel, type GraphPaneHandle } from '@/composables/useGraphPanel'
+import { LAYER_TOGGLE_KEYS, GRAPH_TOGGLE_KEYS, layerKeyHint } from '@/constants/shortcuts'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
 const ComponentGraphPane = defineAsyncComponent(
@@ -112,13 +109,7 @@ const filterSystems = computed(() => {
 })
 
 function toggleSystem(id: string) {
-  const s = new Set(activeSystems.value)
-  if (s.has(id)) {
-    s.delete(id)
-  } else {
-    s.add(id)
-  }
-  activeSystems.value = s
+  activeSystems.value = toggledSet(activeSystems.value, id)
 }
 
 function clearFilters() {
@@ -126,20 +117,12 @@ function clearFilters() {
   activeSystems.value = new Set()
 }
 
-const matchIds = computed(() => {
-  const q = search.value.trim().toLowerCase()
-  if (q.length < 2) return new Set<string>()
-  return new Set(
-    store.components
-      .filter(
-        (x) =>
-          x.displayName.toLowerCase().includes(q) ||
-          x.componentId.toLowerCase().includes(q) ||
-          (x.description ?? '').toLowerCase().includes(q),
-      )
-      .map((x) => x.componentId),
-  )
-})
+const matchIds = useSearchMatches(
+  search,
+  () => store.components,
+  (x) => x.componentId,
+  (x) => [x.displayName, x.componentId, x.description],
+)
 
 const selectedId = ref('')
 const selectedComponent = computed(() =>
@@ -225,9 +208,8 @@ watch(selectedInstanceId, (id) => {
 useInstanceCursorNav(cursorInstanceIds, instanceCursor, openInstance, instanceDrawerOpen)
 
 // Graph controls
-const graphPane = ref<InstanceType<typeof ComponentGraphPane> | null>(null)
-const graphVisible = ref(true)
-const graphFullscreen = ref(false)
+const graphPane = ref<GraphPaneHandle | null>(null)
+const graphPanel = useGraphPanel({ pane: graphPane, matchIds })
 const showInstances = ref(false)
 const showUnmapped = ref(true)
 const unmappedOn = computed(
@@ -252,57 +234,9 @@ useGraphKeyToggles({
   [LAYER_TOGGLE_KEYS.apis]: toggleApis,
   [LAYER_TOGGLE_KEYS.instances]: toggleInstances,
   [LAYER_TOGGLE_KEYS.unmapped]: toggleUnmapped,
-  [GRAPH_TOGGLE_KEYS.graph]: toggleGraph,
-  [GRAPH_TOGGLE_KEYS.fullscreen]: toggleFullscreen,
+  [GRAPH_TOGGLE_KEYS.graph]: graphPanel.toggleGraph,
+  [GRAPH_TOGGLE_KEYS.fullscreen]: graphPanel.toggleFullscreen,
 })
-
-function refitGraph() {
-  if (!graphVisible.value) return
-  nextTick(() => requestAnimationFrame(() => graphPane.value?.fit()))
-}
-
-function toggleGraph() {
-  graphVisible.value = !graphVisible.value
-  if (!graphVisible.value) {
-    graphFullscreen.value = false
-    return
-  }
-  if (graphHeight.value < SNAP_CLOSE) graphHeight.value = DEFAULT_HEIGHT
-  refitGraph()
-}
-
-function toggleFullscreen() {
-  graphFullscreen.value = !graphFullscreen.value
-  if (graphFullscreen.value) graphVisible.value = true
-}
-
-const SNAP_CLOSE = 100
-const DEFAULT_HEIGHT = 320
-
-const {
-  size: graphHeight,
-  isResizing: isResizingGraph,
-  onResizeStart: onGraphResizeStart,
-} = useResizable({ initial: DEFAULT_HEIGHT, min: 48, max: 700, axis: 'y' })
-
-watch(graphHeight, (h) => {
-  if (!isResizingGraph.value) return
-  graphVisible.value = h >= SNAP_CLOSE
-})
-
-watch(matchIds, (ids) => {
-  if (ids.size === 0) return
-  nextTick(() => graphPane.value?.focusMatches())
-})
-
-watch(isResizingGraph, (resizing) => {
-  if (!resizing) refitGraph()
-})
-
-function onGraphHandleDown(e: MouseEvent) {
-  if (!graphVisible.value) graphHeight.value = SNAP_CLOSE
-  onGraphResizeStart(e)
-}
 
 useSelectQuery(
   selectedId,
@@ -310,17 +244,7 @@ useSelectQuery(
   (c) => c.componentId,
 )
 
-watch(
-  filteredComponents,
-  (list) => {
-    if (list.length === 0) {
-      selectedId.value = ''
-    } else if (!list.some((c) => c.componentId === selectedId.value)) {
-      selectComponent(list[0].componentId)
-    }
-  },
-  { immediate: true },
-)
+useAutoSelectFirst(filteredComponents, (c) => c.componentId, selectedId, selectComponent)
 
 watch(selectedId, (id) => {
   if (id) store.loadComponentDetail(id)
@@ -340,47 +264,30 @@ onMounted(async () => {
 
 <template>
   <div class="relative flex h-full flex-col">
-    <!-- Header -->
-    <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <div class="flex min-w-44 items-center gap-3">
-        <h1 class="text-title font-medium text-text-1">Components</h1>
-        <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-          {{ store.components.length }}
-        </span>
-        <span class="font-mono text-label text-text-3">
-          {{ store.componentInstances.length }} instances
-        </span>
-        <span
-          class="font-mono text-label"
-          :class="store.unmappedInstances.length > 0 ? 'text-warning' : 'text-text-4'"
-        >
-          {{ store.unmappedInstances.length }} unmapped
-        </span>
-      </div>
-    </div>
+    <ViewHeader
+      title="Components"
+      :count="store.components.length"
+    >
+      <span class="font-mono text-label text-text-3">
+        {{ store.componentInstances.length }} instances
+      </span>
+      <span
+        class="font-mono text-label"
+        :class="store.unmappedInstances.length > 0 ? 'text-warning' : 'text-text-4'"
+      >
+        {{ store.unmappedInstances.length }} unmapped
+      </span>
+    </ViewHeader>
 
-    <!-- Loading -->
-    <div
+    <LoadingState
       v-if="store.loading"
-      class="flex flex-1 items-center justify-center"
-    >
-      <div class="flex items-center gap-2 text-text-3">
-        <IconLoader2
-          :size="16"
-          :stroke-width="1.5"
-          class="animate-spin"
-        />
-        <span class="text-body">Loading components...</span>
-      </div>
-    </div>
+      label="Loading components..."
+    />
 
-    <!-- Error -->
-    <div
+    <ErrorState
       v-else-if="store.error && store.components.length === 0"
-      class="flex flex-1 items-center justify-center"
-    >
-      <p class="text-body text-error">{{ store.error }}</p>
-    </div>
+      :message="store.error"
+    />
 
     <template v-else>
       <ComponentsToolbar
@@ -393,66 +300,22 @@ onMounted(async () => {
       />
 
       <!-- Empty state (unmapped instances may still match the search) -->
-      <div
+      <EmptyState
         v-if="filteredComponents.length === 0 && unmappedFiltered.length === 0"
-        class="flex flex-1 items-center justify-center"
-      >
-        <div class="text-center">
-          <IconCircleOff
-            :size="32"
-            :stroke-width="1.5"
-            class="mx-auto text-text-4"
-          />
-          <p class="mt-3 text-body text-text-2">No components</p>
-          <p class="mt-1 text-label text-text-4">
-            {{
-              hasActiveFilters ? 'No results for current filters' : 'No components discovered yet'
-            }}
-          </p>
-        </div>
-      </div>
+        title="No components"
+        :hint="hasActiveFilters ? 'No results for current filters' : 'No components discovered yet'"
+      />
 
       <!-- list | (graph over detail) -->
       <ListDetail v-else>
         <template #list>
           <div class="flex h-full flex-col">
-            <div
-              class="flex h-9 shrink-0 cursor-pointer select-none items-center border-b border-border-1 bg-bg-1 px-2"
-              :title="
-                listCollapsedEffective ? 'Double-click to expand' : 'Double-click to collapse'
-              "
-              @dblclick="listCollapsed = !listCollapsed"
-            >
-              <span class="flex items-center gap-1.5">
-                <span class="text-micro font-medium uppercase tracking-wider text-text-4">
-                  List
-                </span>
-                <span
-                  class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3"
-                >
-                  {{ filteredComponents.length }}
-                  <span
-                    v-if="filteredComponents.length !== store.components.length"
-                    class="text-text-4"
-                  >
-                    of {{ store.components.length }}
-                  </span>
-                </span>
-              </span>
-              <button
-                class="ml-auto rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                :title="listCollapsedEffective ? 'Expand' : 'Collapse'"
-                @click.stop="listCollapsed = !listCollapsed"
-                @dblclick.stop
-              >
-                <IconChevronRight
-                  :size="14"
-                  :stroke-width="2"
-                  class="transition-transform"
-                  :class="listCollapsedEffective ? '' : 'rotate-90'"
-                />
-              </button>
-            </div>
+            <ListPaneBar
+              :count="filteredComponents.length"
+              :total="store.components.length"
+              :collapsed="listCollapsedEffective"
+              @toggle="listCollapsed = !listCollapsed"
+            />
             <div class="min-h-0 flex-1 overflow-y-auto">
               <ComponentsList
                 :components="filteredComponents"
@@ -471,165 +334,39 @@ onMounted(async () => {
         <template #detail>
           <div
             class="flex min-w-0 flex-1 flex-col overflow-hidden"
-            :class="isResizingGraph ? 'select-none' : ''"
+            :class="graphPanel.isResizing ? 'select-none' : ''"
           >
-            <!-- Graph toolbar -->
-            <div
-              class="grid h-9 shrink-0 cursor-pointer select-none grid-cols-[1fr_auto_1fr] items-center border-b border-border-1 bg-bg-1 px-2"
-              :title="graphVisible ? 'Double-click to hide graph' : 'Double-click to show graph'"
-              @dblclick="toggleGraph"
+            <GraphPanel
+              :panel="graphPanel"
+              :can-focus="!!selectedId"
             >
-              <span class="text-micro font-medium uppercase tracking-wider text-text-4">Graph</span>
-              <div class="flex items-center gap-1">
-                <template v-if="graphVisible">
-                  <button
-                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
-                    title="Focus selection"
-                    :disabled="!selectedId"
-                    @click.stop="graphPane?.focusSelected()"
-                    @dblclick.stop
-                  >
-                    <IconFocusCentered
-                      :size="14"
-                      :stroke-width="1.75"
-                    />
-                  </button>
-                  <button
-                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Fit to view (0) — Shift+click focuses an area"
-                    @click.stop="graphPane?.fit()"
-                    @dblclick.stop
-                  >
-                    <IconZoomScan
-                      :size="14"
-                      :stroke-width="1.75"
-                    />
-                  </button>
-                  <button
-                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Zoom out (−)"
-                    @click.stop="graphPane?.zoomOut()"
-                    @dblclick.stop
-                  >
-                    <IconZoomOut
-                      :size="14"
-                      :stroke-width="1.75"
-                    />
-                  </button>
-                  <button
-                    class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    title="Zoom in (+)"
-                    @click.stop="graphPane?.zoomIn()"
-                    @dblclick.stop
-                  >
-                    <IconZoomIn
-                      :size="14"
-                      :stroke-width="1.75"
-                    />
-                  </button>
-                  <div class="mx-0.5 h-4 w-px bg-bg-3" />
-                  <button
-                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    :title="`Show APIs as nodes; when off, components link directly ${layerKeyHint('apis')}`"
-                    @click.stop="toggleApis"
-                    @dblclick.stop
-                  >
-                    APIs
-                    <span
-                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
-                      :class="showApis ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'"
-                    >
-                      {{ showApis ? 'on' : 'off' }}
-                    </span>
-                  </button>
-                  <button
-                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                    :title="`Show component instances as nodes ${layerKeyHint('instances')}`"
-                    @click.stop="toggleInstances"
-                    @dblclick.stop
-                  >
-                    Instances
-                    <span
-                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
-                      :class="
-                        showInstances ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'
-                      "
-                    >
-                      {{ showInstances ? 'on' : 'off' }}
-                    </span>
-                  </button>
-                  <button
-                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
-                    :disabled="!showInstances || store.unmappedInstances.length === 0"
-                    :title="
-                      store.unmappedInstances.length === 0
-                        ? 'No unmapped instances present'
-                        : showInstances
-                          ? `Show unmapped instances as nodes ${layerKeyHint('unmapped')}`
-                          : 'Enable Instances to show unmapped instances'
-                    "
-                    @click.stop="toggleUnmapped"
-                    @dblclick.stop
-                  >
-                    Unmapped
-                    <span
-                      class="rounded px-1 py-0.5 font-mono text-micro transition-colors"
-                      :class="unmappedOn ? 'bg-accent/15 text-accent-text' : 'bg-bg-0 text-text-4'"
-                    >
-                      {{ unmappedOn ? 'on' : 'off' }}
-                    </span>
-                  </button>
-                  <div class="mx-0.5 h-4 w-px bg-bg-3" />
-                  <button
-                    class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta transition-colors hover:bg-bg-3"
-                    :class="graphFullscreen ? 'text-accent' : 'text-text-3 hover:text-text-1'"
-                    :title="`Toggle fullscreen graph ${keyHint(GRAPH_TOGGLE_KEYS.fullscreen)}`"
-                    @click.stop="toggleFullscreen"
-                    @dblclick.stop
-                  >
-                    <component
-                      :is="graphFullscreen ? IconArrowsMinimize : IconArrowsMaximize"
-                      :size="14"
-                      :stroke-width="1.75"
-                    />
-                    {{ graphFullscreen ? 'Exit full view' : 'Full view' }}
-                  </button>
-                </template>
-                <button
-                  class="flex items-center gap-1.5 rounded px-1.5 py-1 text-meta text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1"
-                  :title="`Show or hide the graph ${keyHint(GRAPH_TOGGLE_KEYS.graph)}`"
-                  @click.stop="toggleGraph"
-                  @dblclick.stop
-                >
-                  <IconBinaryTree
-                    :size="14"
-                    :stroke-width="1.75"
-                  />
-                  {{ graphVisible ? 'Hide graph' : 'Show graph' }}
-                </button>
-              </div>
-              <span />
-            </div>
-
-            <!-- Graph -->
-            <div
-              v-show="graphVisible"
-              class="relative overflow-hidden"
-              :class="graphFullscreen ? 'min-h-0 flex-1' : 'shrink-0'"
-              :style="graphFullscreen ? undefined : { height: graphHeight + 'px' }"
-            >
-              <button
-                v-if="graphFullscreen"
-                class="absolute left-3 top-3 z-20 flex items-center gap-1.5 rounded border border-border-1 bg-bg-1/90 px-2 py-1 text-meta text-text-3 transition-colors hover:bg-bg-2 hover:text-text-1"
-                title="Back to the split layout"
-                @click="toggleFullscreen"
-              >
-                <IconArrowsMinimize
-                  :size="14"
-                  :stroke-width="1.75"
+              <template #layers>
+                <GraphLayerToggle
+                  label="APIs"
+                  :on="showApis"
+                  :title="`Show APIs as nodes; when off, components link directly ${layerKeyHint('apis')}`"
+                  @toggle="toggleApis"
                 />
-                Exit full view
-              </button>
+                <GraphLayerToggle
+                  label="Instances"
+                  :on="showInstances"
+                  :title="`Show component instances as nodes ${layerKeyHint('instances')}`"
+                  @toggle="toggleInstances"
+                />
+                <GraphLayerToggle
+                  label="Unmapped"
+                  :on="unmappedOn"
+                  :disabled="!showInstances || store.unmappedInstances.length === 0"
+                  :title="
+                    store.unmappedInstances.length === 0
+                      ? 'No unmapped instances present'
+                      : showInstances
+                        ? `Show unmapped instances as nodes ${layerKeyHint('unmapped')}`
+                        : 'Enable Instances to show unmapped instances'
+                  "
+                  @toggle="toggleUnmapped"
+                />
+              </template>
               <ComponentGraphPane
                 ref="graphPane"
                 :match-ids="new Set([...matchIds].map((id) => `comp:${id}`))"
@@ -646,19 +383,11 @@ onMounted(async () => {
                 @open-instance="openInstance"
                 @open-api="(id) => goToResource('API', id)"
               />
-            </div>
-
-            <div
-              v-if="!graphFullscreen"
-              class="h-0.5 shrink-0 cursor-row-resize transition-colors hover:bg-accent/40"
-              :class="isResizingGraph ? 'bg-accent/60' : 'bg-bg-3'"
-              :title="graphVisible ? 'Drag to resize' : 'Drag to open the graph'"
-              @mousedown.prevent="onGraphHandleDown"
-            />
+            </GraphPanel>
 
             <!-- Detail -->
             <div
-              v-if="!graphFullscreen"
+              v-if="!graphPanel.fullscreen"
               class="flex min-h-0 flex-1 overflow-hidden border-t border-border-1"
             >
               <ComponentDetail :component="selectedComponent" />

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { IconLoader2 } from '@tabler/icons-vue'
 import { useModelStore } from '@/stores/model'
 import CopyButton from '@/components/CopyButton.vue'
+import LoadingState from '@/components/view/LoadingState.vue'
+import ErrorState from '@/components/view/ErrorState.vue'
 
 const store = useModelStore()
 
@@ -25,28 +26,15 @@ onMounted(() => store.load())
       <h1 class="text-title font-medium text-text-1">Model</h1>
     </div>
 
-    <!-- Loading -->
-    <div
+    <LoadingState
       v-if="store.loading"
-      class="flex flex-1 items-center justify-center"
-    >
-      <div class="flex items-center gap-2 text-text-3">
-        <IconLoader2
-          :size="16"
-          :stroke-width="1.5"
-          class="animate-spin"
-        />
-        <span class="text-body">Loading model...</span>
-      </div>
-    </div>
+      label="Loading model..."
+    />
 
-    <!-- Error -->
-    <div
+    <ErrorState
       v-else-if="store.error"
-      class="flex flex-1 items-center justify-center"
-    >
-      <p class="text-body text-error">{{ store.error }}</p>
-    </div>
+      :message="store.error"
+    />
 
     <!-- Detail -->
     <div

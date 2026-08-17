@@ -1,6 +1,5 @@
 import type { Model } from '@/types/model'
-
-const USE_MOCKS = import.meta.env.VITE_EMEL_DEV_USE_MOCKS === 'true'
+import { USE_MOCKS } from './fetch'
 
 export async function fetchModel(): Promise<Model> {
   if (USE_MOCKS) {

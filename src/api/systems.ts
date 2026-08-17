@@ -1,15 +1,13 @@
-import { apiFetch } from './fetch'
 import { API } from '@/constants/api'
 import type { System, SystemInstance } from '@/types/system'
 import type { Version } from '@/types/common'
-
-const USE_MOCKS = import.meta.env.VITE_EMEL_DEV_USE_MOCKS === 'true'
-
-interface InstanceListItem {
-  instanceId: string
-  displayName: string
-  reference: string
-}
+import { USE_MOCKS, getJson } from './fetch'
+import {
+  decodeAnnotations,
+  decodeVersion,
+  type InstanceListItem,
+  type AnnotationsResponse,
+} from './decode'
 
 interface SystemResponse {
   systemId?: string
@@ -19,7 +17,7 @@ interface SystemResponse {
   version?: Version
   abstract?: boolean
   parent?: string
-  annotations?: { key: string; value: string }[] | Record<string, string>
+  annotations?: AnnotationsResponse
 }
 
 interface SystemInstanceResponse {
@@ -28,19 +26,7 @@ interface SystemInstanceResponse {
   displayName?: string
   system?: string
   context?: string
-  annotations?: { key: string; value: string }[] | Record<string, string>
-}
-
-function decodeAnnotations(
-  raw: { key: string; value: string }[] | Record<string, string> | undefined,
-): Record<string, string> {
-  if (!raw) return {}
-  if (Array.isArray(raw)) return Object.fromEntries(raw.map((a) => [a.key, a.value]))
-  return raw
-}
-
-function decodeVersion(v: Version | undefined): Version {
-  return { version: v?.version ?? '', ...v }
+  annotations?: AnnotationsResponse
 }
 
 function decodeSystem(res: SystemResponse): System {
@@ -89,9 +75,7 @@ export async function fetchSystems(): Promise<System[]> {
     const { systems } = await import('@/mocks/systems')
     return systems
   }
-  const resp = await apiFetch(API.SYSTEMS.list)
-  if (!resp.ok) throw new Error(`Failed to load systems: ${resp.status}`)
-  const data: InstanceListItem[] = await resp.json()
+  const data = await getJson<InstanceListItem[]>(API.SYSTEMS.list, 'systems')
   return data.map(systemFromList)
 }
 
@@ -102,9 +86,7 @@ export async function fetchSystemById(id: string): Promise<System> {
     if (!found) throw new Error(`System ${id} not found in mocks`)
     return found
   }
-  const resp = await apiFetch(API.SYSTEMS.byId(id))
-  if (!resp.ok) throw new Error(`Failed to load system ${id}: ${resp.status}`)
-  return decodeSystem(await resp.json())
+  return decodeSystem(await getJson<SystemResponse>(API.SYSTEMS.byId(id), `system ${id}`))
 }
 
 export async function fetchSystemInstances(): Promise<SystemInstance[]> {
@@ -112,9 +94,7 @@ export async function fetchSystemInstances(): Promise<SystemInstance[]> {
     const { systemInstances } = await import('@/mocks/systems')
     return systemInstances
   }
-  const resp = await apiFetch(API.SYSTEM_INSTANCES.list)
-  if (!resp.ok) throw new Error(`Failed to load system instances: ${resp.status}`)
-  const data: InstanceListItem[] = await resp.json()
+  const data = await getJson<InstanceListItem[]>(API.SYSTEM_INSTANCES.list, 'system instances')
   return data.map(systemInstanceFromList)
 }
 
@@ -125,7 +105,7 @@ export async function fetchSystemInstanceById(id: string): Promise<SystemInstanc
     if (!found) throw new Error(`System instance ${id} not found in mocks`)
     return found
   }
-  const resp = await apiFetch(API.SYSTEM_INSTANCES.byId(id))
-  if (!resp.ok) throw new Error(`Failed to load system instance ${id}: ${resp.status}`)
-  return decodeSystemInstance(await resp.json())
+  return decodeSystemInstance(
+    await getJson<SystemInstanceResponse>(API.SYSTEM_INSTANCES.byId(id), `system instance ${id}`),
+  )
 }
