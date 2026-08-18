@@ -20,8 +20,10 @@ import ListPaneBar from '@/components/view/ListPaneBar.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
 import { useAutoSelectFirst } from '@/composables/useResourceList'
+import { useFindingsForResource } from '@/composables/useFindingsForResource'
 import { useTypesDrawer } from '@/composables/useTypesDrawer'
 import { toggledSet } from '@/utils/set'
+import { matchesAnnotations, matchesQuery } from '@/utils/search'
 import { categoryColorForNode, categoryColorForName } from '@/constants/nodeCategory'
 
 const store = useNodesStore()
@@ -38,16 +40,11 @@ const activeTypes = ref<Set<string>>(new Set())
 const allTypes = computed(() => [...new Set(store.nodes.map((n) => store.getTypeName(n)))])
 const filteredNodes = computed(() =>
   store.nodes.filter((n) => {
-    const q = search.value.toLowerCase()
-    if (q) {
-      const inName = n.displayName.toLowerCase().includes(q)
-      const inId = n.nodeId.toLocaleLowerCase().includes(q)
-      const inTypeId = (n.nodeType?.nodeTypeId ?? '').toLocaleLowerCase().includes(q)
-      const inAnnotations = Object.entries(n.annotations).some(
-        ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
-      )
-      if (!inName && !inId && !inTypeId && !inAnnotations) return false
-    }
+    if (
+      !matchesQuery(search.value, n.displayName, n.nodeId, n.nodeType?.nodeTypeId) &&
+      !matchesAnnotations(search.value, n.annotations)
+    )
+      return false
     if (activeTypes.value.size > 0 && !activeTypes.value.has(store.getTypeName(n))) return false
     return true
   }),
@@ -90,11 +87,7 @@ watch(selectedId, (id) => {
   if (id) store.loadNodeDetail(id)
 })
 
-const relatedFindings = computed(() => {
-  const id = selectedId.value
-  if (!id) return []
-  return findingsStore.findings.filter((f) => f.resources.some((r) => r.resourceId === id))
-})
+const relatedFindings = useFindingsForResource(() => findingsStore.findings, selectedId)
 
 onMounted(() => {
   store.load()

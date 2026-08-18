@@ -1,21 +1,13 @@
-import type { UUID } from './common'
+import type { UUID, Annotations, EntityRef, TypeEntity } from './common'
 
-export interface NodeTypeRef {
-  nodeTypeId: UUID
-  displayName: string
-}
+export type NodeTypeRef = EntityRef<'nodeTypeId'>
 
-export interface NodeType {
-  nodeTypeId: UUID
-  displayName: string
-  description?: string
-  annotations: Record<string, string>
-}
+export type NodeType = TypeEntity<'nodeTypeId'>
 
 export interface Node {
   nodeId: UUID
   displayName: string
   description?: string
   nodeType?: NodeTypeRef
-  annotations: Record<string, string>
+  annotations: Annotations
 }

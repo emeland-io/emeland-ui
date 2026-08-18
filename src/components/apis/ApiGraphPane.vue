@@ -3,8 +3,8 @@ import { computed, ref } from 'vue'
 import { useApiStore } from '@/stores/apis'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
-import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
+import { useInstanceContext } from '@/composables/useInstanceContext'
 import { buildApiGraph } from '@/graph/apiGraph'
 import { resolveApiContextFlows } from '@/utils/apiContexts'
 import type { GraphNodeClick } from '@/types/graph'
@@ -50,14 +50,13 @@ const emit = defineEmits<{
 const apiStore = useApiStore()
 const componentStore = useComponentStore()
 const systemStore = useSystemStore()
-const contextStore = useContextStore()
 const findingsStore = useFindingsStore()
 
+const { contextForInstance } = useInstanceContext()
+
 function instanceContext(inst: ApiInstance): string | undefined {
-  const ctxId = inst.systemInstance
-    ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
-    : undefined
-  return ctxId ? (contextStore.contextMap.get(ctxId)?.displayName ?? ctxId) : undefined
+  const resolved = contextForInstance(inst)
+  return resolved.name ?? (resolved.unresolved ? resolved.id : undefined)
 }
 
 const contextFlows = computed(() =>
@@ -81,12 +80,7 @@ const graphModel = computed(() =>
     crossesOf: (id) => contextFlows.value.get(id)?.crosses ?? false,
     crossCountOf: (id) => contextFlows.value.get(id)?.crossContexts.length ?? 0,
     instancesOf: (id) => apiStore.getInstancesForApi(id),
-    instanceUnresolved: (inst) => {
-      const ctxId = inst.systemInstance
-        ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
-        : undefined
-      return !!ctxId && !contextStore.contextMap.has(ctxId)
-    },
+    instanceUnresolved: (inst) => contextForInstance(inst).unresolved,
     unmappedInstances: props.showUnmapped ? apiStore.unmappedInstances : [],
     instanceContext,
     systemInstanceName: (id) => systemStore.systemInstanceMap.get(id)?.displayName,

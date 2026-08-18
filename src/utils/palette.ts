@@ -1,4 +1,5 @@
 import type { ResourceType } from '@/types/common'
+import { matchesAnnotations, matchesQuery } from '@/utils/search'
 
 export interface PaletteSourceItem {
   id: string
@@ -37,12 +38,8 @@ const GROUP_LABELS: Partial<Record<ResourceType, string>> = {
 
 function matches(item: PaletteSourceItem, q: string): boolean {
   return (
-    item.label.toLowerCase().includes(q) ||
-    item.id.toLowerCase().includes(q) ||
-    (item.description ?? '').toLowerCase().includes(q) ||
-    Object.entries(item.annotations ?? {}).some(
-      ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
-    )
+    matchesQuery(q, item.label, item.id, item.description) ||
+    matchesAnnotations(q, item.annotations)
   )
 }
 

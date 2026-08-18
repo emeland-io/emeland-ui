@@ -5,6 +5,7 @@ import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
 import { useFindingsStore } from '@/stores/findings'
 import { useResourceNav } from '@/composables/useResourceNav'
+import { useFindingsForResource } from '@/composables/useFindingsForResource'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
@@ -44,11 +45,10 @@ function apiKnown(id: string): boolean {
   return apiStore.apiMap.has(id)
 }
 
-const relatedFindings = computed(() => {
-  const id = props.component?.componentId
-  if (!id) return []
-  return findingsStore.findings.filter((f) => f.resources.some((r) => r.resourceId === id))
-})
+const relatedFindings = useFindingsForResource(
+  () => findingsStore.findings,
+  () => props.component?.componentId ?? '',
+)
 
 const instances = computed(() =>
   props.component ? store.getInstancesForComponent(props.component.componentId) : [],

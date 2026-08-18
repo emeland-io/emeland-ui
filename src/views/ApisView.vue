@@ -20,11 +20,13 @@ import ListPaneBar from '@/components/view/ListPaneBar.vue'
 import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
 import { useAutoSelectFirst, useSearchMatches } from '@/composables/useResourceList'
 import { toggledSet } from '@/utils/set'
+import { matchesAnnotations, matchesQuery } from '@/utils/search'
 import { resolveApiContextFlows } from '@/utils/apiContexts'
 import { endpointUrl } from '@/utils/endpoint'
 import { groupByBrokenRef } from '@/utils/mapping'
 import { useListKeyboardNav, scrollRowIntoView } from '@/composables/useListKeyboardNav'
 import { useInstanceCursorNav } from '@/composables/useInstanceCursorNav'
+import { useInstanceContext } from '@/composables/useInstanceContext'
 import { useGraphKeyToggles } from '@/composables/useGraphKeyToggles'
 import { useGraphPanel, type GraphPaneHandle } from '@/composables/useGraphPanel'
 import { LAYER_TOGGLE_KEYS, GRAPH_TOGGLE_KEYS, layerKeyHint } from '@/constants/shortcuts'
@@ -38,6 +40,7 @@ const systemStore = useSystemStore()
 const componentStore = useComponentStore()
 const contextStore = useContextStore()
 const findingsStore = useFindingsStore()
+const { contextForInstance } = useInstanceContext()
 const { goToResource } = useResourceNav()
 
 const search = ref('')
@@ -82,21 +85,18 @@ const chipFilteredApis = computed(() =>
 )
 
 const filteredApis = computed(() =>
-  chipFilteredApis.value.filter((a) => {
-    const q = search.value.toLowerCase()
-    if (!q) return true
-    return (
-      a.displayName.toLowerCase().includes(q) ||
-      (a.description ?? '').toLowerCase().includes(q) ||
-      a.apiId.toLowerCase().includes(q) ||
-      a.type.toLowerCase().includes(q) ||
-      (a.version?.version ?? '').toLowerCase().includes(q) ||
-      systemName(a.system).toLowerCase().includes(q) ||
-      Object.entries(a.annotations).some(
-        ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
-      )
-    )
-  }),
+  chipFilteredApis.value.filter(
+    (a) =>
+      matchesQuery(
+        search.value,
+        a.displayName,
+        a.description,
+        a.apiId,
+        a.type,
+        a.version?.version,
+        systemName(a.system),
+      ) || matchesAnnotations(search.value, a.annotations),
+  ),
 )
 
 const hasActiveFilters = computed(
@@ -109,7 +109,6 @@ const hasActiveFilters = computed(
 
 // instances without a resolvable parent API, filtered by the same toolbar filters
 const unmappedFiltered = computed(() => {
-  const q = search.value.trim().toLowerCase()
   const base = store.unmappedInstances.filter((i) => {
     if (activeSystems.value.size > 0) {
       const system = i.systemInstance
@@ -117,12 +116,7 @@ const unmappedFiltered = computed(() => {
         : undefined
       if (!system || !activeSystems.value.has(system)) return false
     }
-    if (!q) return true
-    return (
-      i.displayName.toLowerCase().includes(q) ||
-      i.apiInstanceId.toLowerCase().includes(q) ||
-      (endpointUrl(i.annotations) ?? '').toLowerCase().includes(q)
-    )
+    return matchesQuery(search.value, i.displayName, i.apiInstanceId, endpointUrl(i.annotations))
   })
   return [...base].sort(
     (a, b) =>
@@ -225,10 +219,7 @@ function byContextThenName(instances: ApiInstance[]): ApiInstance[] {
 }
 
 function instanceContextName(inst: ApiInstance): string | undefined {
-  const ctxId = inst.systemInstance
-    ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
-    : undefined
-  return ctxId ? contextStore.contextMap.get(ctxId)?.displayName : undefined
+  return contextForInstance(inst).name
 }
 
 function onDrawerNavExit(step: number) {

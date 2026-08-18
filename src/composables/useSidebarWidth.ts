@@ -1,4 +1,6 @@
 import { computed, ref } from 'vue'
+import { trackMouseDrag } from '@/utils/dom'
+import { safeStorage } from '@/utils/storage'
 
 export const SIDEBAR_COLLAPSED_WIDTH = 52
 export const SIDEBAR_DEFAULT_WIDTH = 176
@@ -9,8 +11,7 @@ export const SIDEBAR_MAX_WIDTH = 240
 const STORAGE_KEY = 'emeland-sidebar-width'
 
 function readStored(): number {
-  if (typeof localStorage === 'undefined') return SIDEBAR_DEFAULT_WIDTH
-  const raw = Number(localStorage.getItem(STORAGE_KEY))
+  const raw = Number(safeStorage()?.getItem(STORAGE_KEY))
   if (!Number.isFinite(raw) || raw <= 0) return SIDEBAR_DEFAULT_WIDTH
   if (raw <= SIDEBAR_SNAP_WIDTH) return SIDEBAR_COLLAPSED_WIDTH
   return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, raw))
@@ -21,8 +22,7 @@ const isResizing = ref(false)
 const lastExpanded = ref(width.value > SIDEBAR_SNAP_WIDTH ? width.value : SIDEBAR_DEFAULT_WIDTH)
 
 function persist() {
-  if (typeof localStorage === 'undefined') return
-  localStorage.setItem(STORAGE_KEY, String(width.value))
+  safeStorage()?.setItem(STORAGE_KEY, String(width.value))
 }
 
 const collapsed = computed(() => width.value <= SIDEBAR_SNAP_WIDTH)
@@ -45,20 +45,15 @@ export function useSidebarWidth() {
     document.body.style.userSelect = 'none'
     document.body.style.cursor = 'col-resize'
 
-    function onMove(ev: MouseEvent) {
-      setWidth(startWidth + (ev.clientX - startX))
-    }
-    function onUp() {
-      isResizing.value = false
-      document.body.style.userSelect = previousUserSelect
-      document.body.style.cursor = ''
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-      persist()
-    }
-
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
+    trackMouseDrag(
+      (ev) => setWidth(startWidth + (ev.clientX - startX)),
+      () => {
+        isResizing.value = false
+        document.body.style.userSelect = previousUserSelect
+        document.body.style.cursor = ''
+        persist()
+      },
+    )
   }
 
   function toggle() {

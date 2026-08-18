@@ -1,11 +1,15 @@
 import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
-import type { ComponentInstance } from '@/types/component'
 
 export interface ResolvedContext {
   id?: string
   name?: string
   unresolved: boolean
+}
+
+// any instance kind that references its context indirectly via a system instance
+export interface SystemInstanceBound {
+  systemInstance?: string
 }
 
 export function useInstanceContext() {
@@ -17,7 +21,7 @@ export function useInstanceContext() {
     return systemStore.systemInstanceMap.get(systemInstanceId)?.context
   }
 
-  function contextForInstance(inst: ComponentInstance): ResolvedContext {
+  function contextForInstance(inst: SystemInstanceBound): ResolvedContext {
     const id = contextIdForSystemInstance(inst.systemInstance)
     if (!id) return { unresolved: false }
     const ctx = contextStore.contextMap.get(id)

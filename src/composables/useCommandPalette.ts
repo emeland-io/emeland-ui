@@ -1,11 +1,7 @@
-import { ref } from 'vue'
+import { useSingletonOverlay } from '@/composables/useSingletonOverlay'
 
-const open = ref(false)
+const overlay = useSingletonOverlay()
 
 export function useCommandPalette() {
-  return {
-    open,
-    toggle: () => (open.value = !open.value),
-    close: () => (open.value = false),
-  }
+  return overlay
 }

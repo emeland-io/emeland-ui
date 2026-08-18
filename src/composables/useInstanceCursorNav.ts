@@ -1,6 +1,7 @@
 import { toValue, type MaybeRefOrGetter, type Ref } from 'vue'
 import { useWindowKeydown } from '@/composables/useWindowKeydown'
 import { isEditableTarget } from '@/utils/dom'
+import { stepIndex } from '@/utils/stepIndex'
 
 export function useInstanceCursorNav(
   instanceIds: MaybeRefOrGetter<string[]>,
@@ -34,13 +35,9 @@ export function useInstanceCursorNav(
     if (ids.length === 0) return
     e.preventDefault()
     e.stopImmediatePropagation()
-    const index = ids.indexOf(cursor.value)
-    if (index < 0) {
-      cursor.value = e.key === 'ArrowRight' ? ids[0] : ids[ids.length - 1]
-      return
-    }
-    const next = e.key === 'ArrowRight' ? index + 1 : index - 1
-    if (next < 0 || next >= ids.length) return
+    const dir = e.key === 'ArrowRight' ? 1 : -1
+    const next = stepIndex(ids, cursor.value, dir)
+    if (next < 0) return
     cursor.value = ids[next]
   }
 

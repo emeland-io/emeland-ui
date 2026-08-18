@@ -2,9 +2,9 @@
 import { computed } from 'vue'
 import { IconAlertTriangle } from '@tabler/icons-vue'
 import { useSystemStore } from '@/stores/systems'
-import { useContextStore } from '@/stores/contexts'
 import { useComponentStore } from '@/stores/components'
 import { useFindingsStore } from '@/stores/findings'
+import { useInstanceContext } from '@/composables/useInstanceContext'
 import MappingTag from '@/components/MappingTag.vue'
 import UnmappedSection from '@/components/UnmappedSection.vue'
 import { mappingStateOf, groupByBrokenRef } from '@/utils/mapping'
@@ -32,9 +32,9 @@ const emit = defineEmits<{
 }>()
 
 const systemStore = useSystemStore()
-const contextStore = useContextStore()
 const store = useComponentStore()
 const findingsStore = useFindingsStore()
+const { contextForInstance } = useInstanceContext()
 
 // group the section by the system instance each unmapped
 const unmappedGroups = computed(() =>
@@ -70,10 +70,7 @@ function systemInstanceName(id: string | undefined): string | undefined {
 }
 
 function instanceContext(inst: ComponentInstance): string | undefined {
-  const ctxId = inst.systemInstance
-    ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
-    : undefined
-  return ctxId ? contextStore.contextMap.get(ctxId)?.displayName : undefined
+  return contextForInstance(inst).name
 }
 
 function mappingState(inst: ComponentInstance) {

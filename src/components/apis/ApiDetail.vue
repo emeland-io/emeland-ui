@@ -7,6 +7,8 @@ import { useComponentStore } from '@/stores/components'
 import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import { useResourceNav } from '@/composables/useResourceNav'
+import { useFindingsForResource } from '@/composables/useFindingsForResource'
+import { useInstanceContext } from '@/composables/useInstanceContext'
 import CopyButton from '@/components/CopyButton.vue'
 import TypeChip from '@/components/TypeChip.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
@@ -17,7 +19,7 @@ import ResourceLinkCard from '@/components/detail/ResourceLinkCard.vue'
 import { endpointUrl } from '@/utils/endpoint'
 import { differingAnnotationKeys } from '@/utils/annotations'
 import { versionDates } from '@/utils/version'
-import type { Api, ApiInstance } from '@/types/api'
+import type { Api } from '@/types/api'
 import type { ApiContextFlow } from '@/utils/apiContexts'
 
 const props = defineProps<{
@@ -59,11 +61,10 @@ const consumers = computed(() => {
   return componentStore.components.filter((c) => c.consumes.includes(id))
 })
 
-const relatedFindings = computed(() => {
-  const id = props.api?.apiId
-  if (!id) return []
-  return findingsStore.findings.filter((f) => f.resources.some((r) => r.resourceId === id))
-})
+const relatedFindings = useFindingsForResource(
+  () => findingsStore.findings,
+  () => props.api?.apiId ?? '',
+)
 
 function contextName(id: string): string {
   return contextStore.contextMap.get(id)?.displayName ?? id
@@ -82,19 +83,14 @@ function systemInstanceName(id: string | undefined): string | undefined {
   return systemStore.systemInstanceMap.get(id)?.displayName
 }
 
-function contextForInstance(inst: ApiInstance): string | undefined {
-  const ctxId = inst.systemInstance
-    ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
-    : undefined
-  return ctxId ? contextStore.contextMap.get(ctxId)?.displayName : undefined
-}
+const { contextForInstance } = useInstanceContext()
 
 const instanceRows = computed(() =>
   instances.value
     .map((inst) => ({
       inst,
       url: endpointUrl(inst.annotations),
-      context: contextForInstance(inst),
+      context: contextForInstance(inst).name,
       systemInstance: systemInstanceName(inst.systemInstance),
     }))
     .sort(

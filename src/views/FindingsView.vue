@@ -20,6 +20,7 @@ import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
 import { useAutoSelectFirst } from '@/composables/useResourceList'
 import { useTypesDrawer } from '@/composables/useTypesDrawer'
 import { toggledSet } from '@/utils/set'
+import { matchesQuery } from '@/utils/search'
 
 const store = useFindingsStore()
 const { goToResource } = useResourceNav()
@@ -35,12 +36,7 @@ const allResourceTypes = computed(() => [
 
 const filteredFindings = computed(() =>
   store.findings.filter((f) => {
-    const q = search.value.toLowerCase()
-    if (q) {
-      const inName = f.displayName.toLowerCase().includes(q)
-      const inDescription = (f.description ?? '').toLowerCase().includes(q)
-      if (!inName && !inDescription) return false
-    }
+    if (!matchesQuery(search.value, f.displayName, f.description)) return false
     if (activeTypes.value.size > 0 && !activeTypes.value.has(store.getKindForFinding(f)))
       return false
     if (

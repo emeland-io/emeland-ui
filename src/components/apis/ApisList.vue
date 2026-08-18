@@ -3,8 +3,8 @@ import { computed } from 'vue'
 import { IconAlertTriangle, IconArrowsExchange } from '@tabler/icons-vue'
 import { useApiStore } from '@/stores/apis'
 import { useSystemStore } from '@/stores/systems'
-import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
+import { useInstanceContext } from '@/composables/useInstanceContext'
 import MappingTag from '@/components/MappingTag.vue'
 import UnmappedSection from '@/components/UnmappedSection.vue'
 import { endpointUrl } from '@/utils/endpoint'
@@ -42,8 +42,8 @@ const emit = defineEmits<{
 
 const store = useApiStore()
 const systemStore = useSystemStore()
-const contextStore = useContextStore()
 const findingsStore = useFindingsStore()
+const { contextForInstance } = useInstanceContext()
 
 // group the section by the system instance
 const unmappedGroups = computed(() =>
@@ -74,10 +74,7 @@ function instanceCount(id: string): number {
 }
 
 function instanceContext(inst: ApiInstance): string | undefined {
-  const ctxId = inst.systemInstance
-    ? systemStore.systemInstanceMap.get(inst.systemInstance)?.context
-    : undefined
-  return ctxId ? contextStore.contextMap.get(ctxId)?.displayName : undefined
+  return contextForInstance(inst).name
 }
 
 function mappingState(inst: ApiInstance) {

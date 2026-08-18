@@ -1,4 +1,5 @@
 import { ref, onUnmounted } from 'vue'
+import { trackMouseDrag } from '@/utils/dom'
 
 export const RESIZABLE_INITIAL_SIZE = 320
 export const RESIZABLE_MIN_SIZE = 220
@@ -28,22 +29,16 @@ export function useResizable(options: ResizableOptions = {}) {
     const start = axis === 'x' ? e.clientX : e.clientY
     const startWidth = width.value
 
-    function onMove(ev: MouseEvent) {
-      const current = axis === 'x' ? ev.clientX : ev.clientY
-      width.value = Math.max(min, Math.min(max, startWidth + (current - start)))
-    }
-    function onUp() {
-      isResizing.value = false
-      cleanup?.()
-      cleanup = null
-    }
-
-    cleanup = () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
+    cleanup = trackMouseDrag(
+      (ev) => {
+        const current = axis === 'x' ? ev.clientX : ev.clientY
+        width.value = Math.max(min, Math.min(max, startWidth + (current - start)))
+      },
+      () => {
+        isResizing.value = false
+        cleanup = null
+      },
+    )
   }
 
   onUnmounted(() => cleanup?.())

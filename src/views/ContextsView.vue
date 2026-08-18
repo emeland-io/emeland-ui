@@ -25,6 +25,7 @@ import { useAutoSelectFirst, useSearchMatches } from '@/composables/useResourceL
 import { useGraphPanel, type GraphPaneHandle } from '@/composables/useGraphPanel'
 import { useTypesDrawer } from '@/composables/useTypesDrawer'
 import { toggledSet } from '@/utils/set'
+import { matchesAnnotations, matchesQuery } from '@/utils/search'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
 const ContextGraphPane = defineAsyncComponent(
@@ -49,18 +50,11 @@ const chipFilteredContexts = computed(() =>
 )
 
 const filteredContexts = computed(() =>
-  chipFilteredContexts.value.filter((c) => {
-    const q = search.value.trim().toLowerCase()
-    if (!q) return true
-    return (
-      c.displayName.toLowerCase().includes(q) ||
-      c.contextId.toLowerCase().includes(q) ||
-      (c.description ?? '').toLowerCase().includes(q) ||
-      Object.entries(c.annotations).some(
-        ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
-      )
-    )
-  }),
+  chipFilteredContexts.value.filter(
+    (c) =>
+      matchesQuery(search.value, c.displayName, c.contextId, c.description) ||
+      matchesAnnotations(search.value, c.annotations),
+  ),
 )
 
 const hasActiveFilters = computed(() => !!search.value || activeTypes.value.size > 0)

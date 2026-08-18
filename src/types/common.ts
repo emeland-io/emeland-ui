@@ -47,3 +47,10 @@ export interface Version {
 }
 
 export type Annotations = Record<string, string>
+
+export type EntityRef<K extends string> = { displayName: string } & Record<K, UUID>
+
+export type TypeEntity<K extends string> = EntityRef<K> & {
+  description?: string
+  annotations: Annotations
+}

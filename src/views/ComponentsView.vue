@@ -20,6 +20,7 @@ import ListPaneBar from '@/components/view/ListPaneBar.vue'
 import { useSelectQuery, useResourceNav } from '@/composables/useResourceNav'
 import { useAutoSelectFirst, useSearchMatches } from '@/composables/useResourceList'
 import { toggledSet } from '@/utils/set'
+import { matchesAnnotations, matchesQuery } from '@/utils/search'
 import { useInstanceContext } from '@/composables/useInstanceContext'
 import { groupByBrokenRef } from '@/utils/mapping'
 import { useListKeyboardNav, scrollRowIntoView } from '@/composables/useListKeyboardNav'
@@ -58,27 +59,23 @@ const chipFilteredComponents = computed(() =>
 )
 
 const filteredComponents = computed(() =>
-  chipFilteredComponents.value.filter((c) => {
-    const q = search.value.toLowerCase()
-    if (!q) return true
-    return (
-      c.displayName.toLowerCase().includes(q) ||
-      (c.description ?? '').toLowerCase().includes(q) ||
-      c.componentId.toLowerCase().includes(q) ||
-      (c.version?.version ?? '').toLowerCase().includes(q) ||
-      systemName(c.system).toLowerCase().includes(q) ||
-      Object.entries(c.annotations).some(
-        ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
-      )
-    )
-  }),
+  chipFilteredComponents.value.filter(
+    (c) =>
+      matchesQuery(
+        search.value,
+        c.displayName,
+        c.description,
+        c.componentId,
+        c.version?.version,
+        systemName(c.system),
+      ) || matchesAnnotations(search.value, c.annotations),
+  ),
 )
 
 const hasActiveFilters = computed(() => !!search.value || activeSystems.value.size > 0)
 
 // instances without a resolvable parent component, filtered by the same toolbar filters
 const unmappedFiltered = computed(() => {
-  const q = search.value.trim().toLowerCase()
   const base = store.unmappedInstances.filter((i) => {
     if (activeSystems.value.size > 0) {
       const system = i.systemInstance
@@ -86,11 +83,11 @@ const unmappedFiltered = computed(() => {
         : undefined
       if (!system || !activeSystems.value.has(system)) return false
     }
-    if (!q) return true
-    return (
-      i.displayName.toLowerCase().includes(q) ||
-      i.componentInstanceId.toLowerCase().includes(q) ||
-      (contextForInstance(i).name ?? '').toLowerCase().includes(q)
+    return matchesQuery(
+      search.value,
+      i.displayName,
+      i.componentInstanceId,
+      contextForInstance(i).name,
     )
   })
   return [...base].sort(

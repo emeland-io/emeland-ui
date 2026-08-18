@@ -4,6 +4,7 @@ import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import { useResourceNav } from '@/composables/useResourceNav'
+import { useFindingsForResource } from '@/composables/useFindingsForResource'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
@@ -59,11 +60,10 @@ const children = computed(() => {
   return store.systems.filter((s) => s.parent === id)
 })
 
-const relatedFindings = computed(() => {
-  const id = props.system?.systemId
-  if (!id) return []
-  return findingsStore.findings.filter((f) => f.resources.some((r) => r.resourceId === id))
-})
+const relatedFindings = useFindingsForResource(
+  () => findingsStore.findings,
+  () => props.system?.systemId ?? '',
+)
 </script>
 
 <template>
