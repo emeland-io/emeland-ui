@@ -5,7 +5,7 @@ import CopyButton from '@/components/CopyButton.vue'
 /**
  * Stacked related-resource card in the detail panes:
  *   [badge] name
- *   id [copy button]
+ *   id
  * Renders as a navigable button when `clickable` (the default); pass
  * `clickable: false` for unresolved references shown as static rows
  */

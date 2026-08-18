@@ -9,7 +9,7 @@ export function matchesQuery(query: string, ...fields: (string | undefined)[]): 
 }
 
 /**
- * Case-insensitive substring match over annotation keys and values:
+ * Case-insensitive substring match over annotation keys and values
  * An empty query matches everything
  */
 export function matchesAnnotations(

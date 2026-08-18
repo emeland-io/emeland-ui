@@ -1,9 +1,6 @@
-import type { ResourceType } from './common'
+import type { Annotations, EntityRef, ResourceType, TypeEntity } from './common'
 
-export interface FindingTypeRef {
-  findingTypeId: string
-  displayName: string
-}
+export type FindingTypeRef = EntityRef<'findingTypeId'>
 
 export interface FindingResource {
   resourceId: string
@@ -11,12 +8,7 @@ export interface FindingResource {
   resourceType: ResourceType
 }
 
-export interface FindingType {
-  findingTypeId: string
-  displayName: string
-  description?: string
-  annotations: Record<string, string>
-}
+export type FindingType = TypeEntity<'findingTypeId'>
 
 export interface Finding {
   findingId: string
@@ -25,5 +17,5 @@ export interface Finding {
   findingType?: FindingTypeRef
   resources: FindingResource[]
   reference?: string
-  annotations: Record<string, string>
+  annotations: Annotations
 }

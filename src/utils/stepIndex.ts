@@ -1,6 +1,5 @@
 /**
  * Index of the next item when stepping a selection/cursor with arrow keys
- *
  * When the current id is not in the list, forward starts at the first item and
  * backward at the last. Returns -1 when the step would leave the list (or the
  * list is empty) — the caller decides whether that is a no-op or an overflow

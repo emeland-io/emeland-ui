@@ -1,5 +1,10 @@
 import { computed, watch, type ComputedRef, type Ref } from 'vue'
+import { matchesQuery } from '@/utils/search'
 
+/**
+ * Keep the selection valid as the filtered list changes: clear it when the
+ * list empties, select the first row when the current id is filtered away.
+ */
 export function useAutoSelectFirst<T>(
   list: Ref<T[]> | ComputedRef<T[]>,
   idOf: (item: T) => string,
@@ -21,7 +26,7 @@ export function useAutoSelectFirst<T>(
 
 /**
  * Ids whose searchable fields contain the query — used to highlight and focus
- * graph nodes while typing, queries shorter than 2 characters match nothing
+ * graph nodes while typing. Queries shorter than 2 characters match nothing.
  */
 export function useSearchMatches<T>(
   search: Ref<string>,
@@ -34,7 +39,7 @@ export function useSearchMatches<T>(
     if (q.length < 2) return new Set<string>()
     return new Set(
       items()
-        .filter((item) => fields(item).some((f) => (f ?? '').toLowerCase().includes(q)))
+        .filter((item) => matchesQuery(q, ...fields(item)))
         .map(idOf),
     )
   })

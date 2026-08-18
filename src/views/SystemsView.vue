@@ -19,6 +19,7 @@ import ListPaneBar from '@/components/view/ListPaneBar.vue'
 import { useSelectQuery } from '@/composables/useResourceNav'
 import { useAutoSelectFirst, useSearchMatches } from '@/composables/useResourceList'
 import { toggledSet } from '@/utils/set'
+import { matchesAnnotations, matchesQuery } from '@/utils/search'
 import { useListKeyboardNav, scrollRowIntoView } from '@/composables/useListKeyboardNav'
 import { useInstanceCursorNav } from '@/composables/useInstanceCursorNav'
 import { useGraphKeyToggles } from '@/composables/useGraphKeyToggles'
@@ -62,19 +63,11 @@ const chipFilteredSystems = computed(() =>
 )
 
 const filteredSystems = computed(() =>
-  chipFilteredSystems.value.filter((s) => {
-    const q = search.value.toLowerCase()
-    if (!q) return true
-    return (
-      s.displayName.toLowerCase().includes(q) ||
-      (s.description ?? '').toLowerCase().includes(q) ||
-      s.systemId.toLowerCase().includes(q) ||
-      (s.version?.version ?? '').toLowerCase().includes(q) ||
-      Object.entries(s.annotations).some(
-        ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q),
-      )
-    )
-  }),
+  chipFilteredSystems.value.filter(
+    (s) =>
+      matchesQuery(search.value, s.displayName, s.description, s.systemId, s.version?.version) ||
+      matchesAnnotations(search.value, s.annotations),
+  ),
 )
 
 const hasActiveFilters = computed(
@@ -83,16 +76,10 @@ const hasActiveFilters = computed(
 
 // instances without a resolvable parent system, filtered by the same toolbar filters
 const unmappedFiltered = computed(() => {
-  const q = search.value.trim().toLowerCase()
   const base = store.unmappedInstances.filter((i) => {
     if (activeContexts.value.size > 0 && !(i.context && activeContexts.value.has(i.context)))
       return false
-    if (!q) return true
-    return (
-      i.displayName.toLowerCase().includes(q) ||
-      i.systemInstanceId.toLowerCase().includes(q) ||
-      (contextName(i.context) ?? '').toLowerCase().includes(q)
-    )
+    return matchesQuery(search.value, i.displayName, i.systemInstanceId, contextName(i.context))
   })
   return [...base].sort(
     (a, b) =>

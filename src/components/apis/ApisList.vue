@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { IconAlertTriangle, IconArrowsExchange } from '@tabler/icons-vue'
+import { IconArrowsExchange } from '@tabler/icons-vue'
 import { useApiStore } from '@/stores/apis'
 import { useSystemStore } from '@/stores/systems'
 import { useFindingsStore } from '@/stores/findings'
 import { useInstanceContext } from '@/composables/useInstanceContext'
+import { useSystemInstanceGroups } from '@/composables/useUnmappedGroups'
 import MappingTag from '@/components/MappingTag.vue'
 import UnmappedSection from '@/components/UnmappedSection.vue'
+import ResourceListRow from '@/components/list/ResourceListRow.vue'
+import FindingsBadge from '@/components/list/FindingsBadge.vue'
+import InstanceCountBadge from '@/components/list/InstanceCountBadge.vue'
 import { endpointUrl } from '@/utils/endpoint'
-import { mappingStateOf, groupByBrokenRef } from '@/utils/mapping'
+import { mappingStateOf } from '@/utils/mapping'
 import type { Api, ApiInstance } from '@/types/api'
 
 const props = withDefaults(
@@ -46,20 +49,10 @@ const findingsStore = useFindingsStore()
 const { contextForInstance } = useInstanceContext()
 
 // group the section by the system instance
-const unmappedGroups = computed(() =>
-  groupByBrokenRef(
-    props.unmapped,
-    (i) => i.systemInstance,
-    'No system instance',
-    (key) => systemStore.systemInstanceMap.get(key)?.displayName,
-    (key) => systemStore.systemInstanceMap.has(key),
-  ),
+const { unmappedGroups, unmappedGroupTitle } = useSystemInstanceGroups(
+  () => props.unmapped,
+  (i) => i.systemInstance,
 )
-
-function groupTitle(key: string): string {
-  if (!key) return 'No system instance'
-  return systemStore.systemInstanceMap.has(key) ? key : `References missing system instance ${key}`
-}
 
 function systemName(id: string): string | undefined {
   return systemStore.systemMap.get(id)?.displayName
@@ -84,88 +77,52 @@ function mappingState(inst: ApiInstance) {
 
 <template>
   <template v-if="!listCollapsed">
-    <div
+    <ResourceListRow
       v-for="api in apis"
+      :id="api.apiId"
       :key="api.apiId"
-      :data-row-id="api.apiId"
-      class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
-      :class="[
-        api.apiId === selectedId
-          ? 'border-l-accent bg-accent/5'
-          : 'border-l-transparent hover:bg-bg-1',
-      ]"
-      @click="emit('select', api.apiId)"
+      :title="api.displayName"
+      :selected="api.apiId === selectedId"
+      @select="emit('select', $event)"
     >
-      <div
-        class="truncate text-body font-medium text-text-1"
-        :title="api.displayName"
+      <span
+        class="rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta"
+        :class="api.type === 'Unknown' ? 'text-text-4' : 'text-text-3'"
       >
-        {{ api.displayName }}
-      </div>
-      <div class="mt-2 flex flex-wrap items-center gap-1.5">
+        {{ api.type }}
+      </span>
+      <span
+        v-if="systemName(api.system)"
+        class="rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta text-text-3"
+      >
+        {{ systemName(api.system) }}
+      </span>
+      <span
+        v-if="api.version?.version"
+        class="font-mono text-meta text-text-4"
+      >
+        v{{ api.version.version }}
+      </span>
+      <template #badges>
         <span
-          class="rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta"
-          :class="api.type === 'Unknown' ? 'text-text-4' : 'text-text-3'"
+          v-if="crossings.has(api.apiId)"
+          class="flex shrink-0 items-center gap-1 rounded-full border border-border-2 bg-bg-2 px-1.5 py-0.5 font-mono text-micro tabular-nums text-text-3"
+          title="Crosses a context boundary"
         >
-          {{ api.type }}
+          <IconArrowsExchange
+            :size="10"
+            :stroke-width="2"
+          />
+          {{ crossings.get(api.apiId) }}
         </span>
-        <span
-          v-if="systemName(api.system)"
-          class="rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta text-text-3"
-        >
-          {{ systemName(api.system) }}
-        </span>
-        <span
-          v-if="api.version?.version"
-          class="font-mono text-meta text-text-4"
-        >
-          v{{ api.version.version }}
-        </span>
-        <span class="ml-auto flex shrink-0 items-center gap-1.5">
-          <span
-            v-if="crossings.has(api.apiId)"
-            class="flex shrink-0 items-center gap-1 rounded-full border border-border-2 bg-bg-2 px-1.5 py-0.5 font-mono text-micro tabular-nums text-text-3"
-            title="Crosses a context boundary"
-          >
-            <IconArrowsExchange
-              :size="10"
-              :stroke-width="2"
-            />
-            {{ crossings.get(api.apiId) }}
-          </span>
-          <span
-            v-if="findingCount(api.apiId) > 0"
-            class="flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
-            :title="`${findingCount(api.apiId)} finding(s)`"
-          >
-            <IconAlertTriangle
-              :size="10"
-              :stroke-width="2"
-            />
-            {{ findingCount(api.apiId) }}
-          </span>
-          <span
-            v-if="store.instancesLoaded && instanceCount(api.apiId) > 0"
-            class="flex shrink-0 items-center gap-1 font-mono text-micro text-text-3"
-            :title="`${instanceCount(api.apiId)} instance(s)`"
-          >
-            <svg
-              width="14"
-              height="9"
-              viewBox="0 0 14 9"
-              class="shrink-0"
-              aria-hidden="true"
-            >
-              <polygon
-                points="0,0 10,0 14,4 14,9 0,9"
-                fill="var(--color-text-3)"
-              />
-            </svg>
-            {{ instanceCount(api.apiId) }}
-          </span>
-        </span>
-      </div>
-    </div>
+        <FindingsBadge :count="findingCount(api.apiId)" />
+        <InstanceCountBadge
+          v-if="store.instancesLoaded"
+          :count="instanceCount(api.apiId)"
+          :title="`${instanceCount(api.apiId)} instance(s)`"
+        />
+      </template>
+    </ResourceListRow>
   </template>
 
   <!-- instances without a resolvable parent API -->
@@ -173,7 +130,7 @@ function mappingState(inst: ApiInstance) {
     :groups="unmappedGroups"
     :id-of="(i) => i.apiInstanceId"
     :group-key-of="(i) => i.systemInstance || ''"
-    :group-title="groupTitle"
+    :group-title="unmappedGroupTitle"
     :force-expanded="forceExpanded"
     :active-instance-id="activeInstanceId"
     @open="(id) => emit('open-instance', id)"
