@@ -7,12 +7,13 @@ import { useInstanceContext } from '@/composables/useInstanceContext'
 import { useResourceNav } from '@/composables/useResourceNav'
 import { useDrawerNav } from '@/composables/useDrawerNav'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
-import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
-import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
 import MappingTag from '@/components/MappingTag.vue'
 import RelationRow from '@/components/RelationRow.vue'
+import DrawerIdRow from '@/components/drawer/DrawerIdRow.vue'
+import DrawerAnnotationsSection from '@/components/drawer/DrawerAnnotationsSection.vue'
+import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
 import { endpointUrl } from '@/utils/endpoint'
 import { mappingStateOf } from '@/utils/mapping'
 
@@ -106,47 +107,16 @@ const { navIndex, step: stepInstance } = useDrawerNav({
     >
       <!-- identity -->
       <div>
-        <div
-          class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug"
-          style="grid-template-columns: minmax(160px, 30%) minmax(0, 1fr)"
-        >
-          <span class="text-text-3">Instance ID</span>
-          <span class="flex min-w-0 items-center gap-1.5">
-            <span class="break-all text-text-2">
-              {{ instance.apiInstanceId }}
-            </span>
-            <CopyButton
-              :value="instance.apiInstanceId"
-              :size="12"
-            />
-          </span>
-        </div>
-        <div
-          class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug last:border-b-0"
-          style="grid-template-columns: minmax(160px, 30%) minmax(0, 1fr)"
-        >
-          <span class="text-text-3">Endpoint</span>
-          <span class="flex min-w-0 items-center gap-1.5">
-            <span
-              v-if="url"
-              class="break-all text-text-2"
-            >
-              {{ url }}
-            </span>
-            <span
-              v-else
-              class="text-text-4"
-              title="No emeland.io/endpoint.host annotation — not a probe target"
-            >
-              no endpoint declared
-            </span>
-            <CopyButton
-              v-if="url"
-              :value="url"
-              :size="12"
-            />
-          </span>
-        </div>
+        <DrawerIdRow
+          label="Instance ID"
+          :value="instance.apiInstanceId"
+        />
+        <DrawerIdRow
+          label="Endpoint"
+          :value="url"
+          empty-label="no endpoint declared"
+          empty-title="No emeland.io/endpoint.host annotation — not a probe target"
+        />
         <WellKnownAnnotationsTable
           :annotations="instance.annotations"
           columns="minmax(160px, 30%) minmax(0, 1fr)"
@@ -198,20 +168,12 @@ const { navIndex, step: stepInstance } = useDrawerNav({
       </div>
 
       <!-- annotations -->
-      <div v-if="Object.keys(instance.annotations).length">
-        <SectionLabel>Annotations</SectionLabel>
-        <AnnotationsTable
-          :annotations="instance.annotations"
-          columns="minmax(180px, 30%) minmax(0, 1fr)"
-        />
-      </div>
+      <DrawerAnnotationsSection :annotations="instance.annotations" />
     </div>
 
-    <div
+    <DetailEmptyState
       v-else
-      class="flex flex-1 items-center justify-center"
-    >
-      <span class="font-mono text-label text-text-4">Instance not found</span>
-    </div>
+      label="Instance not found"
+    />
   </SlideOverDrawer>
 </template>

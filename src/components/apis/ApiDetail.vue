@@ -12,13 +12,14 @@ import { useInstanceContext } from '@/composables/useInstanceContext'
 import CopyButton from '@/components/CopyButton.vue'
 import TypeChip from '@/components/TypeChip.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
-import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
-import FindingCard from '@/components/detail/FindingCard.vue'
+import DetailHeader from '@/components/detail/DetailHeader.vue'
+import DetailFindingsSection from '@/components/detail/DetailFindingsSection.vue'
+import DetailAnnotationsSection from '@/components/detail/DetailAnnotationsSection.vue'
+import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
 import ResourceLinkCard from '@/components/detail/ResourceLinkCard.vue'
 import { endpointUrl } from '@/utils/endpoint'
 import { differingAnnotationKeys } from '@/utils/annotations'
-import { versionDates } from '@/utils/version'
 import type { Api } from '@/types/api'
 import type { ApiContextFlow } from '@/utils/apiContexts'
 
@@ -37,7 +38,7 @@ const systemStore = useSystemStore()
 const componentStore = useComponentStore()
 const contextStore = useContextStore()
 const findingsStore = useFindingsStore()
-const { goToResource, goToFinding } = useResourceNav()
+const { goToResource } = useResourceNav()
 
 const systemName = computed(() =>
   props.api ? systemStore.systemMap.get(props.api.system)?.displayName : undefined,
@@ -119,46 +120,24 @@ const diffNote = computed(() => {
     v-if="api"
     class="@container flex-1 overflow-y-auto"
   >
-    <div class="border-b border-border-1 px-6 py-4">
-      <div class="flex items-start justify-between gap-4">
-        <div class="min-w-0">
-          <h2 class="text-title font-medium text-text-1">{{ api.displayName }}</h2>
-          <div class="mt-2 flex items-center gap-2">
-            <span
-              class="rounded px-2 py-0.5 font-mono text-label"
-              :class="
-                api.type === 'Unknown' ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent-text'
-              "
-            >
-              {{ api.type }}
-            </span>
-            <span
-              v-if="api.version?.version"
-              class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3"
-            >
-              v{{ api.version.version }}
-            </span>
-          </div>
-        </div>
-        <div class="shrink-0 text-right">
-          <div class="flex items-center justify-end gap-1.5">
-            <span class="font-mono text-label text-text-4">{{ api.apiId }}</span>
-            <CopyButton
-              :value="api.apiId"
-              :size="13"
-            />
-          </div>
-          <div
-            v-for="[label, value] in versionDates(api.version)"
-            :key="label"
-            class="mt-1 flex items-baseline justify-end gap-3 font-mono text-micro text-text-4"
-          >
-            <span>{{ label }}</span>
-            <span class="tabular-nums text-text-3">{{ value }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <DetailHeader
+      :id="api.apiId"
+      :title="api.displayName"
+      :version="api.version"
+    >
+      <span
+        class="rounded px-2 py-0.5 font-mono text-label"
+        :class="api.type === 'Unknown' ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent-text'"
+      >
+        {{ api.type }}
+      </span>
+      <span
+        v-if="api.version?.version"
+        class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3"
+      >
+        v{{ api.version.version }}
+      </span>
+    </DetailHeader>
     <div class="flex flex-col gap-5 px-6 py-5">
       <DetailErrorBanner v-if="store.hasDetailError(api.apiId)" />
       <div
@@ -295,26 +274,7 @@ const diffNote = computed(() => {
             />
           </div>
           <!-- Related findings -->
-          <div>
-            <SectionLabel
-              :count="relatedFindings.length"
-              tone="warning"
-            >
-              Findings
-            </SectionLabel>
-            <p
-              v-if="relatedFindings.length === 0"
-              class="text-data leading-snug text-text-4"
-            >
-              No findings.
-            </p>
-            <FindingCard
-              v-for="f in relatedFindings"
-              :key="f.findingId"
-              :finding="f"
-              @open="goToFinding"
-            />
-          </div>
+          <DetailFindingsSection :findings="relatedFindings" />
         </div>
         <div class="flex flex-col gap-6 @3xl:row-span-2">
           <div>
@@ -336,21 +296,8 @@ const diffNote = computed(() => {
               @click="goToResource('Component', c.componentId)"
             />
           </div>
-          <div>
-            <!-- Annotations -->
-            <SectionLabel :count="Object.keys(api.annotations).length">Annotations</SectionLabel>
-            <p
-              v-if="Object.keys(api.annotations).length === 0"
-              class="text-data leading-snug text-text-4"
-            >
-              No annotations.
-            </p>
-            <AnnotationsTable
-              v-else
-              :annotations="api.annotations"
-              layout="stacked"
-            />
-          </div>
+          <!-- Annotations -->
+          <DetailAnnotationsSection :annotations="api.annotations" />
         </div>
         <div
           v-if="instanceRows.length > 0"
@@ -438,10 +385,8 @@ const diffNote = computed(() => {
       </div>
     </div>
   </div>
-  <div
+  <DetailEmptyState
     v-else
-    class="flex flex-1 items-center justify-center"
-  >
-    <span class="font-mono text-label text-text-4">Select an API to inspect</span>
-  </div>
+    label="Select an API to inspect"
+  />
 </template>

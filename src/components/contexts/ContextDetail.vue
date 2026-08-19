@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconAlertTriangle } from '@tabler/icons-vue'
 import { useContextStore } from '@/stores/contexts'
 import { useSystemStore } from '@/stores/systems'
 import { useFindingsStore } from '@/stores/findings'
@@ -8,9 +7,10 @@ import { useResourceNav } from '@/composables/useResourceNav'
 import { useFindingsForResource } from '@/composables/useFindingsForResource'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
-import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
-import FindingCard from '@/components/detail/FindingCard.vue'
+import DetailHeader from '@/components/detail/DetailHeader.vue'
+import DetailFindingsSection from '@/components/detail/DetailFindingsSection.vue'
+import DetailAnnotationsSection from '@/components/detail/DetailAnnotationsSection.vue'
 import ResourceLinkCard from '@/components/detail/ResourceLinkCard.vue'
 import type { Context } from '@/types/context'
 import type { SystemInstance } from '@/types/system'
@@ -27,7 +27,7 @@ const emit = defineEmits<{
 const store = useContextStore()
 const systemStore = useSystemStore()
 const findingsStore = useFindingsStore()
-const { goToFinding, goToResource } = useResourceNav()
+const { goToResource } = useResourceNav()
 
 const typeUnknown = computed(() => store.getTypeName(props.context) === 'Unknown')
 
@@ -62,43 +62,26 @@ const relatedFindings = useFindingsForResource(
     v-if="context"
     class="@container flex-1 overflow-y-auto"
   >
-    <div class="border-b border-border-1 px-6 py-4">
-      <div class="flex items-start justify-between gap-4">
-        <div class="min-w-0">
-          <h2 class="text-title font-medium text-text-1">
-            {{ context.displayName }}
-          </h2>
-          <div class="mt-2">
-            <button
-              v-if="context.contextTypeId"
-              class="group inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-label transition-opacity hover:opacity-80"
-              :class="typeUnknown ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent-text'"
-              title="Show context type"
-              @click="emit('open-type', context.contextTypeId)"
-            >
-              {{ store.getTypeName(context) }}
-            </button>
-            <span
-              v-else
-              class="rounded bg-error/10 px-2 py-0.5 font-mono text-label text-error"
-            >
-              Unknown
-            </span>
-          </div>
-        </div>
-        <div class="shrink-0 text-right">
-          <div class="flex items-center justify-end gap-1.5">
-            <span class="font-mono text-label text-text-4">
-              {{ context.contextId }}
-            </span>
-            <CopyButton
-              :value="context.contextId"
-              :size="13"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+    <DetailHeader
+      :id="context.contextId"
+      :title="context.displayName"
+    >
+      <button
+        v-if="context.contextTypeId"
+        class="group inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-label transition-opacity hover:opacity-80"
+        :class="typeUnknown ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent-text'"
+        title="Show context type"
+        @click="emit('open-type', context.contextTypeId)"
+      >
+        {{ store.getTypeName(context) }}
+      </button>
+      <span
+        v-else
+        class="rounded bg-error/10 px-2 py-0.5 font-mono text-label text-error"
+      >
+        Unknown
+      </span>
+    </DetailHeader>
     <div class="flex flex-col gap-5 px-6 py-5">
       <DetailErrorBanner v-if="store.hasDetailError(context.contextId)" />
       <div
@@ -197,50 +180,27 @@ const relatedFindings = useFindingsForResource(
               @click="emit('navigate-parent', context.parentId!)"
             />
             <!-- unresolved parent -->
-            <div
+            <ResourceLinkCard
               v-else
-              class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
+              :id="context.parentId!"
+              badge="Context"
+              badge-error
+              name="Unresolved parent"
+              name-error
+              :clickable="false"
+              :copyable="false"
             >
-              <span class="flex w-full items-center gap-3">
-                <span
-                  class="flex w-28 shrink-0 items-center justify-center gap-1 rounded bg-error/10 px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase text-error"
-                >
-                  <IconAlertTriangle
-                    :size="12"
-                    :stroke-width="2"
-                  />
-                  Context
+              <template #subline>
+                <span class="min-w-0 truncate text-meta text-error/80">
+                  References a parent context that does not exist.
                 </span>
-                <span class="min-w-0 truncate text-body text-error">Unresolved parent</span>
-              </span>
-              <span class="text-meta text-error/80">
-                References a parent context that does not exist.
-              </span>
-              <span class="font-mono text-meta text-text-4">
-                {{ context.parentId }}
-              </span>
-            </div>
+                <span class="ml-auto shrink-0 font-mono text-meta text-text-4">
+                  {{ context.parentId }}
+                </span>
+              </template>
+            </ResourceLinkCard>
           </div>
-          <div>
-            <SectionLabel
-              :count="relatedFindings.length"
-              tone="warning"
-            >
-              Findings
-            </SectionLabel>
-            <p
-              v-if="relatedFindings.length === 0"
-              class="text-data leading-snug text-text-4"
-            >
-              No findings.
-            </p>
-            <FindingCard
-              v-for="f in relatedFindings"
-              :key="f.findingId"
-              :finding="f"
-              @open="goToFinding"
-            />
-          </div>
+          <DetailFindingsSection :findings="relatedFindings" />
         </div>
         <div class="flex flex-col gap-6">
           <div>
@@ -261,23 +221,8 @@ const relatedFindings = useFindingsForResource(
               @click="emit('navigate-parent', child.contextId)"
             />
           </div>
-          <div>
-            <!-- Annotations -->
-            <SectionLabel :count="Object.keys(context.annotations).length">
-              Annotations
-            </SectionLabel>
-            <p
-              v-if="Object.keys(context.annotations).length === 0"
-              class="text-data leading-snug text-text-4"
-            >
-              No annotations.
-            </p>
-            <AnnotationsTable
-              v-else
-              :annotations="context.annotations"
-              layout="stacked"
-            />
-          </div>
+          <!-- Annotations -->
+          <DetailAnnotationsSection :annotations="context.annotations" />
         </div>
       </div>
     </div>
