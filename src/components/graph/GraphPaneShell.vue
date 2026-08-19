@@ -5,7 +5,7 @@ import GraphLegend, { type LegendItem } from '@/components/graph/GraphLegend.vue
 import type { GraphEdge, GraphNode, GraphNodeClick } from '@/types/graph'
 
 /**
- * Shared shell of the four resource graph panes: FlowGraph wiring + legend,
+ * Shared shell of the resource graph panes: FlowGraph wiring + legend,
  * with the pane's graph controls exposed to the parent view
  */
 withDefaults(
