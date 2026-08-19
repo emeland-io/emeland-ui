@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useSystemStore } from '@/stores/systems'
 import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import { buildInstanceGraph } from '@/graph/instanceGraph'
 import { buildSystemGraph } from '@/graph/systemGraph'
 import type { GraphNodeClick } from '@/types/graph'
-import FlowGraph from '@/components/graph/FlowGraph.vue'
-import GraphLegend, { type LegendItem } from '@/components/graph/GraphLegend.vue'
+import GraphPaneShell from '@/components/graph/GraphPaneShell.vue'
+import { type LegendItem } from '@/components/graph/GraphLegend.vue'
 import { UNMAPPED_RECT } from '@/components/graph/legendSwatches'
 import type { System } from '@/types/system'
 
@@ -98,32 +98,18 @@ function onNodeClick({ id, kind }: GraphNodeClick) {
   if (kind === 'system') emit('select', id)
   else if (kind === 'instance') emit('openInstance', id)
 }
-
-const graph = ref<InstanceType<typeof FlowGraph> | null>(null)
-
-defineExpose({
-  fit: () => graph.value?.fit(),
-  focusSelected: () => graph.value?.focusSelected(),
-  focusMatches: () => graph.value?.focusMatches(),
-  zoomIn: () => graph.value?.zoomIn(),
-  zoomOut: () => graph.value?.zoomOut(),
-})
 </script>
 
 <template>
-  <div class="relative flex min-h-0 flex-1 flex-col">
-    <FlowGraph
-      ref="graph"
-      :show-controls="showControls"
-      :match-ids="matchIds"
-      :nodes="graphModel.nodes"
-      :edges="graphModel.edges"
-      :selected-id="selectedId"
-      :cursor-id="cursorId"
-      :suspend-cursor-follow="suspendCursorFollow"
-      class="min-h-0 flex-1"
-      @node-click="onNodeClick"
-    />
-    <GraphLegend :columns="legendColumns" />
-  </div>
+  <GraphPaneShell
+    :show-controls="showControls"
+    :match-ids="matchIds"
+    :nodes="graphModel.nodes"
+    :edges="graphModel.edges"
+    :selected-id="selectedId"
+    :cursor-id="cursorId"
+    :suspend-cursor-follow="suspendCursorFollow"
+    :legend-columns="legendColumns"
+    @node-click="onNodeClick"
+  />
 </template>
