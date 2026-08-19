@@ -8,7 +8,7 @@ import { GRAPH_TOGGLE_KEYS } from '@/constants/shortcuts'
 import { useSystemStore } from '@/stores/systems'
 import { useFindingsStore } from '@/stores/findings'
 import ListDetail from '@/components/ListDetail.vue'
-import ContextsList, { type ContextRow } from '@/components/contexts/ContextsList.vue'
+import ContextsList from '@/components/contexts/ContextsList.vue'
 import ContextDetail from '@/components/contexts/ContextDetail.vue'
 import GraphPanel from '@/components/graph/GraphPanel.vue'
 import FilterToolbar from '@/components/toolbar/FilterToolbar.vue'
@@ -20,12 +20,14 @@ import EmptyState from '@/components/view/EmptyState.vue'
 import ListPaneBar from '@/components/view/ListPaneBar.vue'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
 import CopyButton from '@/components/CopyButton.vue'
-import { useSelectQuery } from '@/composables/useResourceNav'
-import { useAutoSelectFirst, useSearchMatches } from '@/composables/useResourceList'
+import { useSearchMatches } from '@/composables/useResourceList'
+import { useResourceSelection } from '@/composables/useResourceSelection'
+import { useHierarchyRows } from '@/composables/useHierarchyRows'
 import { useGraphPanel, type GraphPaneHandle } from '@/composables/useGraphPanel'
 import { useTypesDrawer } from '@/composables/useTypesDrawer'
 import { toggledSet } from '@/utils/set'
 import { matchesAnnotations, matchesQuery } from '@/utils/search'
+import type { Context } from '@/types/context'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
 const ContextGraphPane = defineAsyncComponent(
@@ -68,85 +70,6 @@ function clearFilters() {
   activeTypes.value = new Set()
 }
 
-const collapsed = ref<Set<string>>(new Set())
-
-let defaultCollapseApplied = false
-watch(
-  () => store.contexts.length,
-  (count) => {
-    if (defaultCollapseApplied || count === 0) return
-    defaultCollapseApplied = true
-    const depthOf = (id: string): number => {
-      let depth = 0
-      let cursor = store.contexts.find((x) => x.contextId === id)?.parentId
-      const seen = new Set<string>([id])
-      while (cursor && !seen.has(cursor)) {
-        seen.add(cursor)
-        depth++
-        cursor = store.contexts.find((x) => x.contextId === cursor)?.parentId
-      }
-      return depth
-    }
-    const shut = new Set<string>()
-    for (const item of store.contexts) {
-      const parent = item.parentId
-      if (parent && depthOf(parent) >= 1) shut.add(parent)
-    }
-    collapsed.value = shut
-  },
-  { immediate: true },
-)
-
-function toggleCollapse(id: string) {
-  const s = new Set(collapsed.value)
-  if (s.has(id)) s.delete(id)
-  else s.add(id)
-  collapsed.value = s
-}
-
-const parentIds = computed(() => {
-  const present = new Set(filteredContexts.value.map((c) => c.contextId))
-  const ids = new Set<string>()
-  for (const c of filteredContexts.value) {
-    if (c.parentId && present.has(c.parentId)) ids.add(c.parentId)
-  }
-  return ids
-})
-
-const allCollapsed = computed(
-  () => parentIds.value.size > 0 && [...parentIds.value].every((id) => collapsed.value.has(id)),
-)
-
-function toggleAll() {
-  collapsed.value = allCollapsed.value ? new Set() : new Set(parentIds.value)
-}
-
-const contextRows = computed<ContextRow[]>(() => {
-  const present = new Set(filteredContexts.value.map((c) => c.contextId))
-  const childrenOf = new Map<string, typeof filteredContexts.value>()
-  const roots: typeof filteredContexts.value = []
-  for (const c of filteredContexts.value) {
-    if (c.parentId && present.has(c.parentId)) {
-      childrenOf.set(c.parentId, [...(childrenOf.get(c.parentId) ?? []), c])
-    } else {
-      roots.push(c)
-    }
-  }
-  const rows: ContextRow[] = []
-  const walk = (c: (typeof store.contexts)[number], depth: number, ancestors: string[]) => {
-    const kids = childrenOf.get(c.contextId) ?? []
-    rows.push({ context: c, depth, childCount: kids.length, ancestors })
-    if (collapsed.value.has(c.contextId)) return
-    for (const child of kids) walk(child, depth + 1, [...ancestors, c.contextId])
-  }
-  for (const r of roots) walk(r, 0, [])
-  return rows
-})
-
-const activeRail = computed(
-  () => store.contexts.find((c) => c.contextId === selectedId.value)?.parentId ?? '',
-)
-
 const matchIds = useSearchMatches(
   search,
   () => store.contexts,
@@ -154,36 +77,38 @@ const matchIds = useSearchMatches(
   (x) => [x.displayName, x.contextId, x.description],
 )
 
-watch(matchIds, (ids) => {
-  if (ids.size === 0) return
-  const next = new Set(collapsed.value)
-  for (const id of ids) {
-    let cursor: string | undefined = store.contexts.find((x) => x.contextId === id)?.parentId
-    const seen = new Set<string>()
-    while (cursor && !seen.has(cursor)) {
-      seen.add(cursor)
-      next.delete(cursor)
-      cursor = store.contexts.find((x) => x.contextId === cursor)?.parentId
-    }
-  }
-  collapsed.value = next
+const {
+  selectedId,
+  selected: selectedContext,
+  select: selectContext,
+} = useResourceSelection<Context>({
+  items: () => store.contexts,
+  filtered: () => filteredContexts.value,
+  idOf: (c) => c.contextId,
 })
 
-const selectedId = ref('')
-const selectedContext = computed(() => store.contexts.find((c) => c.contextId === selectedId.value))
+const {
+  collapsed,
+  toggleCollapse,
+  parentIds,
+  allCollapsed,
+  toggleAll,
+  rows: contextRows,
+  expandAncestors,
+  activeRail,
+} = useHierarchyRows<Context>({
+  items: () => store.contexts,
+  filtered: () => filteredContexts.value,
+  idOf: (c) => c.contextId,
+  parentOf: (c) => c.parentId,
+  expandOnMatch: matchIds,
+  selectedId,
+})
 
-function selectContext(id: string) {
-  selectedId.value = id
-  const next = new Set(collapsed.value)
-  let cursor: string | undefined = id
-  const seen = new Set<string>()
-  while (cursor && !seen.has(cursor)) {
-    seen.add(cursor)
-    next.delete(cursor)
-    cursor = store.contexts.find((x) => x.contextId === cursor)?.parentId
-  }
-  collapsed.value = next
-}
+// reveal the selected context's ancestors in the tree
+watch(selectedId, (id) => {
+  if (id) expandAncestors(id)
+})
 
 const graphPane = ref<GraphPaneHandle | null>(null)
 const graphPanel = useGraphPanel({ pane: graphPane, matchIds })
@@ -192,14 +117,6 @@ useGraphKeyToggles({
   [GRAPH_TOGGLE_KEYS.graph]: graphPanel.toggleGraph,
   [GRAPH_TOGGLE_KEYS.fullscreen]: graphPanel.toggleFullscreen,
 })
-
-useSelectQuery(
-  selectedId,
-  computed(() => store.contexts),
-  (c) => c.contextId,
-)
-
-useAutoSelectFirst(filteredContexts, (c) => c.contextId, selectedId, selectContext)
 
 const typesDrawer = useTypesDrawer({
   types: () => store.contextTypes,
@@ -212,7 +129,7 @@ const typesDrawer = useTypesDrawer({
 const { open: typesDrawerOpen, selectedTypeId, selectedType } = typesDrawer
 
 useListKeyboardNav(
-  computed(() => contextRows.value.map((r) => r.context.contextId)),
+  computed(() => contextRows.value.map((r) => r.item.contextId)),
   selectedId,
   selectContext,
   typesDrawerOpen,

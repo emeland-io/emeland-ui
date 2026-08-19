@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useApiStore } from '@/stores/apis'
 import { useSystemStore } from '@/stores/systems'
 import { useComponentStore } from '@/stores/components'
@@ -17,20 +17,22 @@ import LoadingState from '@/components/view/LoadingState.vue'
 import ErrorState from '@/components/view/ErrorState.vue'
 import EmptyState from '@/components/view/EmptyState.vue'
 import ListPaneBar from '@/components/view/ListPaneBar.vue'
-import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
-import { useAutoSelectFirst, useSearchMatches } from '@/composables/useResourceList'
+import { useResourceNav } from '@/composables/useResourceNav'
+import { useSearchMatches } from '@/composables/useResourceList'
+import { useResourceSelection } from '@/composables/useResourceSelection'
+import { useInstanceDrawer } from '@/composables/useInstanceDrawer'
+import { useSystemInstanceGroups } from '@/composables/useUnmappedGroups'
 import { toggledSet } from '@/utils/set'
 import { matchesAnnotations, matchesQuery } from '@/utils/search'
 import { resolveApiContextFlows } from '@/utils/apiContexts'
 import { endpointUrl } from '@/utils/endpoint'
-import { groupByBrokenRef } from '@/utils/mapping'
-import { useListKeyboardNav, scrollRowIntoView } from '@/composables/useListKeyboardNav'
+import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
 import { useInstanceCursorNav } from '@/composables/useInstanceCursorNav'
 import { useInstanceContext } from '@/composables/useInstanceContext'
 import { useGraphKeyToggles } from '@/composables/useGraphKeyToggles'
 import { useGraphPanel, type GraphPaneHandle } from '@/composables/useGraphPanel'
 import { LAYER_TOGGLE_KEYS, GRAPH_TOGGLE_KEYS, layerKeyHint } from '@/constants/shortcuts'
-import type { ApiInstance } from '@/types/api'
+import type { Api, ApiInstance } from '@/types/api'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
 const ApiGraphPane = defineAsyncComponent(() => import('@/components/apis/ApiGraphPane.vue'))
@@ -160,95 +162,63 @@ const matchIds = useSearchMatches(
   (x) => [x.displayName, x.apiId, x.description],
 )
 
-const selectedId = ref('')
-const selectedApi = computed(() => store.apis.find((a) => a.apiId === selectedId.value))
+const {
+  selectedId,
+  selected: selectedApi,
+  select: selectApi,
+} = useResourceSelection<Api>({
+  items: () => store.apis,
+  filtered: () => filteredApis.value,
+  idOf: (a) => a.apiId,
+  loadDetail: (id) => store.loadApiDetail(id),
+})
+
 const selectedFlow = computed(() =>
   selectedId.value ? contextFlows.value.get(selectedId.value) : undefined,
 )
 
-function selectApi(id: string) {
-  selectedId.value = id
+const { unmappedOrderedIds } = useSystemInstanceGroups(
+  unmappedFiltered,
+  (i) => i.systemInstance,
+  (i) => i.apiInstanceId,
+)
+
+function byContextThenName(instances: ApiInstance[]): ApiInstance[] {
+  return [...instances].sort(
+    (a, b) =>
+      (contextForInstance(a).name ?? '').localeCompare(contextForInstance(b).name ?? '') ||
+      a.displayName.localeCompare(b.displayName),
+  )
 }
 
-const instanceDrawerOpen = ref(false)
-const selectedInstanceId = ref('')
-
-function openInstance(id: string) {
-  selectedInstanceId.value = id
-  instanceDrawerOpen.value = true
-}
+const {
+  drawerOpen: instanceDrawerOpen,
+  selectedInstanceId,
+  openInstance,
+  drawerNavIds,
+  onDrawerNavExit,
+  instanceCursor,
+  cursorInstanceIds,
+  openFirstUnmapped,
+} = useInstanceDrawer<ApiInstance>({
+  instances: () => store.apiInstances,
+  instanceId: (i) => i.apiInstanceId,
+  instanceParent: (i) => i.api,
+  unmappedOrderedIds: () => unmappedOrderedIds.value,
+  unmappedFiltered: () => unmappedFiltered.value,
+  selectedId,
+  instancesFor: (id) => byContextThenName(store.getInstancesForApi(id)),
+  lastResourceRowId: () => filteredApis.value.at(-1)?.apiId,
+  selectResource: selectApi,
+})
 
 useListKeyboardNav(
   computed(() => (listCollapsedEffective.value ? [] : filteredApis.value.map((a) => a.apiId))),
   selectedId,
   selectApi,
   instanceDrawerOpen,
-  () => {
-    const first = unmappedOrderedIds.value[0]
-    if (first) openInstance(first)
-  },
+  openFirstUnmapped,
 )
-
-const unmappedOrderedIds = computed(() =>
-  groupByBrokenRef(
-    unmappedFiltered.value,
-    (i) => i.systemInstance,
-    'No system instance',
-    (key) => systemStore.systemInstanceMap.get(key)?.displayName,
-    (key) => systemStore.systemInstanceMap.has(key),
-  ).flatMap((g) => g.items.map((i) => i.apiInstanceId)),
-)
-
-const currentIsUnmapped = computed(() =>
-  unmappedFiltered.value.some((i) => i.apiInstanceId === selectedInstanceId.value),
-)
-
-const drawerNavIds = computed(() => {
-  const inst = store.apiInstances.find((i) => i.apiInstanceId === selectedInstanceId.value)
-  if (!inst) return []
-  if (currentIsUnmapped.value) return unmappedOrderedIds.value
-  return byContextThenName(store.getInstancesForApi(inst.api ?? '')).map((i) => i.apiInstanceId)
-})
-
-function byContextThenName(instances: ApiInstance[]): ApiInstance[] {
-  return [...instances].sort(
-    (a, b) =>
-      (instanceContextName(a) ?? '').localeCompare(instanceContextName(b) ?? '') ||
-      a.displayName.localeCompare(b.displayName),
-  )
-}
-
-function instanceContextName(inst: ApiInstance): string | undefined {
-  return contextForInstance(inst).name
-}
-
-function onDrawerNavExit(step: number) {
-  if (step !== -1 || !currentIsUnmapped.value) return
-  instanceDrawerOpen.value = false
-  const last = filteredApis.value.at(-1)?.apiId
-  if (last) {
-    selectApi(last)
-    scrollRowIntoView(last)
-  }
-}
-
-const instanceCursor = ref('')
-
-const cursorInstanceIds = computed(() =>
-  selectedId.value
-    ? byContextThenName(store.getInstancesForApi(selectedId.value)).map((i) => i.apiInstanceId)
-    : [],
-)
-
-watch(selectedId, () => {
-  instanceCursor.value = ''
-})
-
-watch(selectedInstanceId, (id) => {
-  if (!instanceDrawerOpen.value) return
-  const inst = store.apiInstances.find((i) => i.apiInstanceId === id)
-  instanceCursor.value = inst && inst.api === selectedId.value ? id : ''
-})
 
 useInstanceCursorNav(cursorInstanceIds, instanceCursor, openInstance, instanceDrawerOpen)
 
@@ -281,18 +251,6 @@ useGraphKeyToggles({
   [LAYER_TOGGLE_KEYS.unmapped]: toggleUnmapped,
   [GRAPH_TOGGLE_KEYS.graph]: graphPanel.toggleGraph,
   [GRAPH_TOGGLE_KEYS.fullscreen]: graphPanel.toggleFullscreen,
-})
-
-useSelectQuery(
-  selectedId,
-  computed(() => store.apis),
-  (a) => a.apiId,
-)
-
-useAutoSelectFirst(filteredApis, (a) => a.apiId, selectedId, selectApi)
-
-watch(selectedId, (id) => {
-  if (id) store.loadApiDetail(id)
 })
 
 onMounted(async () => {

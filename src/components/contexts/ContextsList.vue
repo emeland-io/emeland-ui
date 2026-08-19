@@ -6,14 +6,10 @@ import ResourceTreeRow from '@/components/list/ResourceTreeRow.vue'
 import FindingsBadge from '@/components/list/FindingsBadge.vue'
 import InstanceCountBadge from '@/components/list/InstanceCountBadge.vue'
 import ChildCountBars from '@/components/list/ChildCountBars.vue'
+import type { HierarchyRow } from '@/composables/useHierarchyRows'
 import type { Context } from '@/types/context'
 
-export interface ContextRow {
-  context: Context
-  depth: number
-  childCount: number
-  ancestors: string[]
-}
+export type ContextRow = HierarchyRow<Context>
 
 defineProps<{
   rows: ContextRow[]
@@ -49,33 +45,33 @@ function typeName(context: Context): string | undefined {
 <template>
   <ResourceTreeRow
     v-for="row in rows"
-    :id="row.context.contextId"
-    :key="row.context.contextId"
-    :title="row.context.displayName"
+    :id="row.item.contextId"
+    :key="row.item.contextId"
+    :title="row.item.displayName"
     :depth="row.depth"
     :ancestors="row.ancestors"
     :child-count="row.childCount"
-    :selected="row.context.contextId === selectedId"
-    :collapsed="collapsed.has(row.context.contextId)"
+    :selected="row.item.contextId === selectedId"
+    :collapsed="collapsed.has(row.item.contextId)"
     :active-rail="activeRail"
     @select="emit('select', $event)"
     @toggle-collapse="emit('toggle-collapse', $event)"
   >
     <span
-      v-if="typeName(row.context)"
+      v-if="typeName(row.item)"
       class="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent-text"
     >
-      {{ typeName(row.context) }}
+      {{ typeName(row.item) }}
     </span>
     <template #badges>
       <ChildCountBars
         :count="row.childCount"
         :title="`${row.childCount} sub-context(s)`"
       />
-      <FindingsBadge :count="findingCount(row.context.contextId)" />
+      <FindingsBadge :count="findingCount(row.item.contextId)" />
       <InstanceCountBadge
-        :count="instanceCount(row.context.contextId)"
-        :title="`${instanceCount(row.context.contextId)} system instance(s)`"
+        :count="instanceCount(row.item.contextId)"
+        :title="`${instanceCount(row.item.contextId)} system instance(s)`"
       />
     </template>
   </ResourceTreeRow>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useFindingsStore } from '@/stores/findings'
 import FindingsToolbar from '@/components/findings/FindingsToolbar.vue'
 import FindingsList from '@/components/findings/FindingsList.vue'
@@ -15,12 +15,13 @@ import LoadingState from '@/components/view/LoadingState.vue'
 import ErrorState from '@/components/view/ErrorState.vue'
 import EmptyState from '@/components/view/EmptyState.vue'
 import ListPaneBar from '@/components/view/ListPaneBar.vue'
-import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
+import { useResourceNav } from '@/composables/useResourceNav'
 import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
-import { useAutoSelectFirst } from '@/composables/useResourceList'
+import { useResourceSelection } from '@/composables/useResourceSelection'
 import { useTypesDrawer } from '@/composables/useTypesDrawer'
 import { toggledSet } from '@/utils/set'
 import { matchesQuery } from '@/utils/search'
+import type { Finding } from '@/types/finding'
 
 const store = useFindingsStore()
 const { goToResource } = useResourceNav()
@@ -60,25 +61,15 @@ function clearFilters() {
   activeResourceTypes.value = new Set()
 }
 
-const selectedId = ref('')
-const selectedFinding = computed(() => store.findings.find((f) => f.findingId === selectedId.value))
-
-// Preselect a finding when arriving via ?select=<id> (e.g. from a node).
-function selectFinding(id: string) {
-  selectedId.value = id
-  if (id) store.loadFindingDetail(id)
-}
-
-useSelectQuery(
+const {
   selectedId,
-  computed(() => store.findings),
-  (f) => f.findingId,
-)
-
-useAutoSelectFirst(filteredFindings, (f) => f.findingId, selectedId, selectFinding)
-
-watch(selectedId, (id) => {
-  if (id) store.loadFindingDetail(id)
+  selected: selectedFinding,
+  select: selectFinding,
+} = useResourceSelection<Finding>({
+  items: () => store.findings,
+  filtered: () => filteredFindings.value,
+  idOf: (f) => f.findingId,
+  loadDetail: (id) => store.loadFindingDetail(id),
 })
 
 onMounted(() => store.load())

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
@@ -17,17 +17,20 @@ import LoadingState from '@/components/view/LoadingState.vue'
 import ErrorState from '@/components/view/ErrorState.vue'
 import EmptyState from '@/components/view/EmptyState.vue'
 import ListPaneBar from '@/components/view/ListPaneBar.vue'
-import { useSelectQuery, useResourceNav } from '@/composables/useResourceNav'
-import { useAutoSelectFirst, useSearchMatches } from '@/composables/useResourceList'
+import { useResourceNav } from '@/composables/useResourceNav'
+import { useSearchMatches } from '@/composables/useResourceList'
+import { useResourceSelection } from '@/composables/useResourceSelection'
+import { useInstanceDrawer } from '@/composables/useInstanceDrawer'
+import { useSystemInstanceGroups } from '@/composables/useUnmappedGroups'
 import { toggledSet } from '@/utils/set'
 import { matchesAnnotations, matchesQuery } from '@/utils/search'
 import { useInstanceContext } from '@/composables/useInstanceContext'
-import { groupByBrokenRef } from '@/utils/mapping'
-import { useListKeyboardNav, scrollRowIntoView } from '@/composables/useListKeyboardNav'
+import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
 import { useInstanceCursorNav } from '@/composables/useInstanceCursorNav'
 import { useGraphKeyToggles } from '@/composables/useGraphKeyToggles'
 import { useGraphPanel, type GraphPaneHandle } from '@/composables/useGraphPanel'
 import { LAYER_TOGGLE_KEYS, GRAPH_TOGGLE_KEYS, layerKeyHint } from '@/constants/shortcuts'
+import type { ComponentInstance } from '@/types/component'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
 const ComponentGraphPane = defineAsyncComponent(
@@ -121,22 +124,43 @@ const matchIds = useSearchMatches(
   (x) => [x.displayName, x.componentId, x.description],
 )
 
-const selectedId = ref('')
-const selectedComponent = computed(() =>
-  store.components.find((c) => c.componentId === selectedId.value),
+const {
+  selectedId,
+  selected: selectedComponent,
+  select: selectComponent,
+} = useResourceSelection({
+  items: () => store.components,
+  filtered: () => filteredComponents.value,
+  idOf: (c) => c.componentId,
+  loadDetail: (id) => store.loadComponentDetail(id),
+})
+
+const { unmappedOrderedIds } = useSystemInstanceGroups(
+  unmappedFiltered,
+  (i) => i.systemInstance,
+  (i) => i.componentInstanceId,
 )
 
-function selectComponent(id: string) {
-  selectedId.value = id
-}
-
-const instanceDrawerOpen = ref(false)
-const selectedInstanceId = ref('')
-
-function openInstance(id: string) {
-  selectedInstanceId.value = id
-  instanceDrawerOpen.value = true
-}
+const {
+  drawerOpen: instanceDrawerOpen,
+  selectedInstanceId,
+  openInstance,
+  drawerNavIds,
+  onDrawerNavExit,
+  instanceCursor,
+  cursorInstanceIds,
+  openFirstUnmapped,
+} = useInstanceDrawer<ComponentInstance>({
+  instances: () => store.componentInstances,
+  instanceId: (i) => i.componentInstanceId,
+  instanceParent: (i) => i.component,
+  unmappedOrderedIds: () => unmappedOrderedIds.value,
+  unmappedFiltered: () => unmappedFiltered.value,
+  selectedId,
+  instancesFor: (id) => store.getInstancesForComponent(id),
+  lastResourceRowId: () => filteredComponents.value.at(-1)?.componentId,
+  selectResource: selectComponent,
+})
 
 useListKeyboardNav(
   computed(() =>
@@ -145,62 +169,8 @@ useListKeyboardNav(
   selectedId,
   selectComponent,
   instanceDrawerOpen,
-  () => {
-    const first = unmappedOrderedIds.value[0]
-    if (first) openInstance(first)
-  },
+  openFirstUnmapped,
 )
-
-const unmappedOrderedIds = computed(() =>
-  groupByBrokenRef(
-    unmappedFiltered.value,
-    (i) => i.systemInstance,
-    'No system instance',
-    (key) => systemStore.systemInstanceMap.get(key)?.displayName,
-    (key) => systemStore.systemInstanceMap.has(key),
-  ).flatMap((g) => g.items.map((i) => i.componentInstanceId)),
-)
-
-const currentIsUnmapped = computed(() =>
-  unmappedFiltered.value.some((i) => i.componentInstanceId === selectedInstanceId.value),
-)
-
-const drawerNavIds = computed(() => {
-  const inst = store.componentInstances.find(
-    (i) => i.componentInstanceId === selectedInstanceId.value,
-  )
-  if (!inst) return []
-  if (currentIsUnmapped.value) return unmappedOrderedIds.value
-  return store.getInstancesForComponent(inst.component ?? '').map((i) => i.componentInstanceId)
-})
-
-function onDrawerNavExit(step: number) {
-  if (step !== -1 || !currentIsUnmapped.value) return
-  instanceDrawerOpen.value = false
-  const last = filteredComponents.value.at(-1)?.componentId
-  if (last) {
-    selectComponent(last)
-    scrollRowIntoView(last)
-  }
-}
-
-const instanceCursor = ref('')
-
-const cursorInstanceIds = computed(() =>
-  selectedId.value
-    ? store.getInstancesForComponent(selectedId.value).map((i) => i.componentInstanceId)
-    : [],
-)
-
-watch(selectedId, () => {
-  instanceCursor.value = ''
-})
-
-watch(selectedInstanceId, (id) => {
-  if (!instanceDrawerOpen.value) return
-  const inst = store.componentInstances.find((i) => i.componentInstanceId === id)
-  instanceCursor.value = inst && inst.component === selectedId.value ? id : ''
-})
 
 useInstanceCursorNav(cursorInstanceIds, instanceCursor, openInstance, instanceDrawerOpen)
 
@@ -233,18 +203,6 @@ useGraphKeyToggles({
   [LAYER_TOGGLE_KEYS.unmapped]: toggleUnmapped,
   [GRAPH_TOGGLE_KEYS.graph]: graphPanel.toggleGraph,
   [GRAPH_TOGGLE_KEYS.fullscreen]: graphPanel.toggleFullscreen,
-})
-
-useSelectQuery(
-  selectedId,
-  computed(() => store.components),
-  (c) => c.componentId,
-)
-
-useAutoSelectFirst(filteredComponents, (c) => c.componentId, selectedId, selectComponent)
-
-watch(selectedId, (id) => {
-  if (id) store.loadComponentDetail(id)
 })
 
 onMounted(async () => {

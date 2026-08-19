@@ -10,14 +10,10 @@ import FindingsBadge from '@/components/list/FindingsBadge.vue'
 import InstanceCountBadge from '@/components/list/InstanceCountBadge.vue'
 import ChildCountBars from '@/components/list/ChildCountBars.vue'
 import { mappingStateOf } from '@/utils/mapping'
+import type { HierarchyRow } from '@/composables/useHierarchyRows'
 import type { System, SystemInstance } from '@/types/system'
 
-export interface SystemRow {
-  system: System
-  depth: number
-  childCount: number
-  ancestors: string[]
-}
+export type SystemRow = HierarchyRow<System>
 
 const props = withDefaults(
   defineProps<{
@@ -51,6 +47,7 @@ const findingsStore = useFindingsStore()
 const { unmappedGroups, unmappedGroupTitle } = useSystemRefGroups(
   () => props.unmapped,
   (i) => i.system,
+  (i) => i.systemInstanceId,
 )
 
 function instanceCount(id: string): number {
@@ -75,40 +72,40 @@ function mappingState(inst: SystemInstance) {
   <template v-if="!listCollapsed">
     <ResourceTreeRow
       v-for="row in rows"
-      :id="row.system.systemId"
-      :key="row.system.systemId"
-      :title="row.system.displayName"
+      :id="row.item.systemId"
+      :key="row.item.systemId"
+      :title="row.item.displayName"
       :depth="row.depth"
       :ancestors="row.ancestors"
       :child-count="row.childCount"
-      :selected="row.system.systemId === selectedId"
-      :collapsed="collapsed.has(row.system.systemId)"
+      :selected="row.item.systemId === selectedId"
+      :collapsed="collapsed.has(row.item.systemId)"
       :active-rail="activeRail"
       @select="emit('select', $event)"
       @toggle-collapse="emit('toggle-collapse', $event)"
     >
       <span
         class="rounded px-1.5 py-0.5 font-mono text-meta"
-        :class="row.system.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent-text'"
+        :class="row.item.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent-text'"
       >
-        {{ store.getKindForSystem(row.system) }}
+        {{ store.getKindForSystem(row.item) }}
       </span>
       <span
-        v-if="row.system.version?.version"
+        v-if="row.item.version?.version"
         class="font-mono text-meta text-text-4"
       >
-        v{{ row.system.version.version }}
+        v{{ row.item.version.version }}
       </span>
       <template #badges>
         <ChildCountBars
           :count="row.childCount"
           :title="`${row.childCount} sub-system(s)`"
         />
-        <FindingsBadge :count="findingCount(row.system.systemId)" />
+        <FindingsBadge :count="findingCount(row.item.systemId)" />
         <InstanceCountBadge
           v-if="store.instancesLoaded"
-          :count="instanceCount(row.system.systemId)"
-          :title="`${instanceCount(row.system.systemId)} instance(s)`"
+          :count="instanceCount(row.item.systemId)"
+          :title="`${instanceCount(row.item.systemId)} instance(s)`"
         />
       </template>
     </ResourceTreeRow>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { IconAlertTriangle } from '@tabler/icons-vue'
 import { useNodesStore } from '@/stores/nodes'
 import { useFindingsStore } from '@/stores/findings'
@@ -17,14 +17,15 @@ import LoadingState from '@/components/view/LoadingState.vue'
 import ErrorState from '@/components/view/ErrorState.vue'
 import EmptyState from '@/components/view/EmptyState.vue'
 import ListPaneBar from '@/components/view/ListPaneBar.vue'
-import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
+import { useResourceNav } from '@/composables/useResourceNav'
 import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
-import { useAutoSelectFirst } from '@/composables/useResourceList'
+import { useResourceSelection } from '@/composables/useResourceSelection'
 import { useFindingsForResource } from '@/composables/useFindingsForResource'
 import { useTypesDrawer } from '@/composables/useTypesDrawer'
 import { toggledSet } from '@/utils/set'
 import { matchesAnnotations, matchesQuery } from '@/utils/search'
 import { categoryColorForNode, categoryColorForName } from '@/constants/nodeCategory'
+import type { Node } from '@/types/node'
 
 const store = useNodesStore()
 const findingsStore = useFindingsStore()
@@ -59,32 +60,22 @@ function clearFilters() {
 }
 
 // Selection
-const selectedId = ref('')
-const selectedNode = computed(() => store.nodes.find((n) => n.nodeId === selectedId.value))
+const {
+  selectedId,
+  selected: selectedNode,
+  select: selectNode,
+} = useResourceSelection<Node>({
+  items: () => store.nodes,
+  filtered: () => filteredNodes.value,
+  idOf: (n) => n.nodeId,
+  loadDetail: (id) => store.loadNodeDetail(id),
+})
 
 const selectedNodeTypeUnknown = computed(() => {
   const n = selectedNode.value
   if (!n) return false
   const cat = store.getTypeCategory(n)
   return !cat || cat === 'Unknown'
-})
-
-function selectNode(id: string) {
-  selectedId.value = id
-  if (id) store.loadNodeDetail(id)
-}
-
-// Preselect a node when arriving via ?select=<id>
-useSelectQuery(
-  selectedId,
-  computed(() => store.nodes),
-  (n) => n.nodeId,
-)
-
-useAutoSelectFirst(filteredNodes, (n) => n.nodeId, selectedId, selectNode)
-
-watch(selectedId, (id) => {
-  if (id) store.loadNodeDetail(id)
 })
 
 const relatedFindings = useFindingsForResource(() => findingsStore.findings, selectedId)

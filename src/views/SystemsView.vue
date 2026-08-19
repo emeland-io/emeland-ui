@@ -6,7 +6,7 @@ import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import ListDetail from '@/components/ListDetail.vue'
 import SystemsToolbar from '@/components/systems/SystemsToolbar.vue'
-import SystemsList, { type SystemRow } from '@/components/systems/SystemsList.vue'
+import SystemsList from '@/components/systems/SystemsList.vue'
 import SystemDetail from '@/components/systems/SystemDetail.vue'
 import SystemInstancesDrawer from '@/components/systems/SystemInstancesDrawer.vue'
 import GraphPanel from '@/components/graph/GraphPanel.vue'
@@ -16,16 +16,20 @@ import LoadingState from '@/components/view/LoadingState.vue'
 import ErrorState from '@/components/view/ErrorState.vue'
 import EmptyState from '@/components/view/EmptyState.vue'
 import ListPaneBar from '@/components/view/ListPaneBar.vue'
-import { useSelectQuery } from '@/composables/useResourceNav'
-import { useAutoSelectFirst, useSearchMatches } from '@/composables/useResourceList'
+import { useSearchMatches } from '@/composables/useResourceList'
+import { useResourceSelection } from '@/composables/useResourceSelection'
+import { useInstanceDrawer } from '@/composables/useInstanceDrawer'
+import { useHierarchyRows } from '@/composables/useHierarchyRows'
+import { useSystemRefGroups } from '@/composables/useUnmappedGroups'
+import { useContextLabels } from '@/composables/useContextLabels'
 import { toggledSet } from '@/utils/set'
 import { matchesAnnotations, matchesQuery } from '@/utils/search'
-import { useListKeyboardNav, scrollRowIntoView } from '@/composables/useListKeyboardNav'
+import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
 import { useInstanceCursorNav } from '@/composables/useInstanceCursorNav'
 import { useGraphKeyToggles } from '@/composables/useGraphKeyToggles'
 import { useGraphPanel, type GraphPaneHandle } from '@/composables/useGraphPanel'
 import { LAYER_TOGGLE_KEYS, GRAPH_TOGGLE_KEYS, layerKeyHint } from '@/constants/shortcuts'
-import { groupByBrokenRef } from '@/utils/mapping'
+import type { System, SystemInstance } from '@/types/system'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
 const SystemGraphPane = defineAsyncComponent(
@@ -35,17 +39,13 @@ const SystemGraphPane = defineAsyncComponent(
 const store = useSystemStore()
 const contextStore = useContextStore()
 const findingsStore = useFindingsStore()
+const { contextName } = useContextLabels()
 
 const KINDS = ['Concrete', 'Abstract'] as const
 
 const search = ref('')
 const activeKinds = ref<Set<string>>(new Set())
 const activeContexts = ref<Set<string>>(new Set())
-
-function contextName(contextId: string | undefined): string | undefined {
-  if (!contextId) return undefined
-  return contextStore.contextMap.get(contextId)?.displayName
-}
 
 const chipFilteredSystems = computed(() =>
   store.systems.filter((s) => {
@@ -112,87 +112,8 @@ function clearFilters() {
   activeContexts.value = new Set()
 }
 
-const collapsed = ref<Set<string>>(new Set())
-
 const listCollapsed = ref(false)
 const listCollapsedEffective = computed(() => listCollapsed.value && !search.value.trim())
-
-let defaultCollapseApplied = false
-watch(
-  () => store.systems.length,
-  (count) => {
-    if (defaultCollapseApplied || count === 0) return
-    defaultCollapseApplied = true
-    const depthOf = (id: string): number => {
-      let depth = 0
-      let cursor = store.systems.find((x) => x.systemId === id)?.parent
-      const seen = new Set<string>([id])
-      while (cursor && !seen.has(cursor)) {
-        seen.add(cursor)
-        depth++
-        cursor = store.systems.find((x) => x.systemId === cursor)?.parent
-      }
-      return depth
-    }
-    const shut = new Set<string>()
-    for (const item of store.systems) {
-      const parent = item.parent
-      if (parent && depthOf(parent) >= 1) shut.add(parent)
-    }
-    collapsed.value = shut
-  },
-  { immediate: true },
-)
-
-function toggleCollapse(id: string) {
-  const s = new Set(collapsed.value)
-  if (s.has(id)) s.delete(id)
-  else s.add(id)
-  collapsed.value = s
-}
-
-const parentIds = computed(() => {
-  const present = new Set(filteredSystems.value.map((s) => s.systemId))
-  const ids = new Set<string>()
-  for (const s of filteredSystems.value) {
-    if (s.parent && present.has(s.parent)) ids.add(s.parent)
-  }
-  return ids
-})
-
-const allCollapsed = computed(
-  () => parentIds.value.size > 0 && [...parentIds.value].every((id) => collapsed.value.has(id)),
-)
-
-function toggleAll() {
-  collapsed.value = allCollapsed.value ? new Set() : new Set(parentIds.value)
-}
-
-const systemRows = computed<SystemRow[]>(() => {
-  const present = new Set(filteredSystems.value.map((s) => s.systemId))
-  const childrenOf = new Map<string, typeof filteredSystems.value>()
-  const roots: typeof filteredSystems.value = []
-  for (const s of filteredSystems.value) {
-    if (s.parent && present.has(s.parent)) {
-      childrenOf.set(s.parent, [...(childrenOf.get(s.parent) ?? []), s])
-    } else {
-      roots.push(s)
-    }
-  }
-  const rows: SystemRow[] = []
-  const walk = (s: (typeof store.systems)[number], depth: number, ancestors: string[]) => {
-    const kids = childrenOf.get(s.systemId) ?? []
-    rows.push({ system: s, depth, childCount: kids.length, ancestors })
-    if (collapsed.value.has(s.systemId)) return
-    for (const child of kids) walk(child, depth + 1, [...ancestors, s.systemId])
-  }
-  for (const r of roots) walk(r, 0, [])
-  return rows
-})
-
-const activeRail = computed(
-  () => store.systems.find((s) => s.systemId === selectedId.value)?.parent ?? '',
-)
 
 const matchIds = useSearchMatches(
   search,
@@ -201,94 +122,70 @@ const matchIds = useSearchMatches(
   (x) => [x.displayName, x.systemId, x.description],
 )
 
-watch(matchIds, (ids) => {
-  if (ids.size === 0) return
-  const next = new Set(collapsed.value)
-  for (const id of ids) {
-    let cursor: string | undefined = store.systems.find((x) => x.systemId === id)?.parent
-    const seen = new Set<string>()
-    while (cursor && !seen.has(cursor)) {
-      seen.add(cursor)
-      next.delete(cursor)
-      cursor = store.systems.find((x) => x.systemId === cursor)?.parent
-    }
-  }
-  collapsed.value = next
+const {
+  selectedId,
+  selected: selectedSystem,
+  select: selectSystem,
+} = useResourceSelection<System>({
+  items: () => store.systems,
+  filtered: () => filteredSystems.value,
+  idOf: (s) => s.systemId,
+  loadDetail: (id) => store.loadSystemDetail(id),
 })
 
-const selectedId = ref('')
-const selectedSystem = computed(() => store.systems.find((s) => s.systemId === selectedId.value))
+const {
+  collapsed,
+  toggleCollapse,
+  parentIds,
+  allCollapsed,
+  toggleAll,
+  rows: systemRows,
+  expandAncestors,
+  activeRail,
+} = useHierarchyRows<System>({
+  items: () => store.systems,
+  filtered: () => filteredSystems.value,
+  idOf: (s) => s.systemId,
+  parentOf: (s) => s.parent,
+  expandOnMatch: matchIds,
+  selectedId,
+})
+
+// reveal the selected system's ancestors in the tree
+watch(selectedId, (id) => {
+  if (id) expandAncestors(id)
+})
+
 const selectedInstances = computed(() =>
   selectedId.value ? store.getInstancesForSystem(selectedId.value) : [],
 )
 
-function selectSystem(id: string) {
-  selectedId.value = id
-  const next = new Set(collapsed.value)
-  let cursor: string | undefined = id
-  const seen = new Set<string>()
-  while (cursor && !seen.has(cursor)) {
-    seen.add(cursor)
-    next.delete(cursor)
-    cursor = store.systems.find((x) => x.systemId === cursor)?.parent
-  }
-  collapsed.value = next
-}
-
-const instancesDrawerOpen = ref(false)
-const selectedInstanceId = ref('')
-
-function openInstanceInDrawer(id: string) {
-  selectedInstanceId.value = id
-  instancesDrawerOpen.value = true
-}
-
-const unmappedOrderedIds = computed(() =>
-  groupByBrokenRef(unmappedFiltered.value, (i) => i.system, 'No system reference').flatMap((g) =>
-    g.items.map((i) => i.systemInstanceId),
-  ),
+const { unmappedOrderedIds } = useSystemRefGroups(
+  unmappedFiltered,
+  (i) => i.system,
+  (i) => i.systemInstanceId,
 )
 
-const currentIsUnmapped = computed(() =>
-  unmappedFiltered.value.some((i) => i.systemInstanceId === selectedInstanceId.value),
-)
-
-const drawerNavIds = computed(() => {
-  const inst = store.systemInstanceMap.get(selectedInstanceId.value)
-  if (!inst) return []
-  if (currentIsUnmapped.value) return unmappedOrderedIds.value
-  return store.getInstancesForSystem(inst.system).map((i) => i.systemInstanceId)
+const {
+  drawerOpen: instancesDrawerOpen,
+  selectedInstanceId,
+  openInstance: openInstanceInDrawer,
+  drawerNavIds,
+  onDrawerNavExit,
+  instanceCursor,
+  cursorInstanceIds,
+  openFirstUnmapped,
+} = useInstanceDrawer<SystemInstance>({
+  instances: () => store.systemInstances,
+  instanceId: (i) => i.systemInstanceId,
+  instanceParent: (i) => i.system,
+  unmappedOrderedIds: () => unmappedOrderedIds.value,
+  unmappedFiltered: () => unmappedFiltered.value,
+  selectedId,
+  instancesFor: (id) => store.getInstancesForSystem(id),
+  lastResourceRowId: () => systemRows.value.at(-1)?.item.systemId,
+  selectResource: selectSystem,
 })
-
-function onDrawerNavExit(step: number) {
-  if (step !== -1 || !currentIsUnmapped.value) return
-  instancesDrawerOpen.value = false
-  const last = systemRows.value.at(-1)?.system.systemId
-  if (last) {
-    selectSystem(last)
-    scrollRowIntoView(last)
-  }
-}
-
-const instanceCursor = ref('')
-
-const cursorInstanceIds = computed(() =>
-  selectedId.value
-    ? store.getInstancesForSystem(selectedId.value).map((i) => i.systemInstanceId)
-    : [],
-)
-
-watch(selectedId, () => {
-  instanceCursor.value = ''
-})
-
-watch(selectedInstanceId, (id) => {
-  if (!instancesDrawerOpen.value) return
-  const inst = store.systemInstanceMap.get(id)
-  instanceCursor.value = inst && inst.system === selectedId.value ? id : ''
-})
-
-useInstanceCursorNav(cursorInstanceIds, instanceCursor, openInstanceInDrawer, instancesDrawerOpen)
 
 // Graph controls
 const graphPane = ref<GraphPaneHandle | null>(null)
@@ -317,30 +214,17 @@ useGraphKeyToggles({
   [GRAPH_TOGGLE_KEYS.fullscreen]: graphPanel.toggleFullscreen,
 })
 
-useSelectQuery(
-  selectedId,
-  computed(() => store.systems),
-  (s) => s.systemId,
-)
-
 useListKeyboardNav(
   computed(() =>
-    listCollapsedEffective.value ? [] : systemRows.value.map((r) => r.system.systemId),
+    listCollapsedEffective.value ? [] : systemRows.value.map((r) => r.item.systemId),
   ),
   selectedId,
   selectSystem,
   instancesDrawerOpen,
-  () => {
-    const first = unmappedOrderedIds.value[0]
-    if (first) openInstanceInDrawer(first)
-  },
+  openFirstUnmapped,
 )
 
-useAutoSelectFirst(filteredSystems, (s) => s.systemId, selectedId, selectSystem)
-
-watch(selectedId, (id) => {
-  if (id) store.loadSystemDetail(id)
-})
+useInstanceCursorNav(cursorInstanceIds, instanceCursor, openInstanceInDrawer, instancesDrawerOpen)
 
 onMounted(async () => {
   findingsStore.load()

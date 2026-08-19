@@ -5,6 +5,7 @@ import { groupByBrokenRef } from '@/utils/mapping'
 export function useSystemInstanceGroups<T>(
   unmapped: MaybeRefOrGetter<T[]>,
   refOf: (item: T) => string | undefined,
+  idOf: (item: T) => string,
 ) {
   const systemStore = useSystemStore()
 
@@ -25,12 +26,15 @@ export function useSystemInstanceGroups<T>(
       : `References missing system instance ${key}`
   }
 
-  return { unmappedGroups: groups, unmappedGroupTitle: groupTitle }
+  const orderedIds = computed(() => groups.value.flatMap((g) => g.items.map(idOf)))
+
+  return { unmappedGroups: groups, unmappedGroupTitle: groupTitle, unmappedOrderedIds: orderedIds }
 }
 
 export function useSystemRefGroups<T>(
   unmapped: MaybeRefOrGetter<T[]>,
   refOf: (item: T) => string | undefined,
+  idOf: (item: T) => string,
 ) {
   const groups = computed(() => groupByBrokenRef(toValue(unmapped), refOf, 'No system reference'))
 
@@ -38,5 +42,7 @@ export function useSystemRefGroups<T>(
     return key ? `References missing system ${key}` : 'No system reference'
   }
 
-  return { unmappedGroups: groups, unmappedGroupTitle: groupTitle }
+  const orderedIds = computed(() => groups.value.flatMap((g) => g.items.map(idOf)))
+
+  return { unmappedGroups: groups, unmappedGroupTitle: groupTitle, unmappedOrderedIds: orderedIds }
 }

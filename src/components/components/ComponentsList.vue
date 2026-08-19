@@ -42,6 +42,7 @@ const { contextForInstance } = useInstanceContext()
 const { unmappedGroups, unmappedGroupTitle } = useSystemInstanceGroups(
   () => props.unmapped,
   (i) => i.systemInstance,
+  (i) => i.componentInstanceId,
 )
 
 function systemName(id: string): string | undefined {
