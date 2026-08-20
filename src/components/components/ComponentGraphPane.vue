@@ -7,6 +7,7 @@ import { useFindingsStore } from '@/stores/findings'
 import { useInstanceContext } from '@/composables/useInstanceContext'
 import { buildComponentGraph } from '@/graph/componentGraph'
 import type { GraphNodeClick } from '@/types/graph'
+import { prefixedId, stripPrefix } from '@/graph/ids'
 import GraphPaneShell from '@/components/graph/GraphPaneShell.vue'
 import { type LegendItem } from '@/components/graph/GraphLegend.vue'
 import {
@@ -90,9 +91,9 @@ const legendColumns = computed<LegendItem[][]>(() => {
 })
 
 function onNodeClick({ id, kind }: GraphNodeClick) {
-  if (kind === 'component') emit('select', id.slice('comp:'.length))
-  else if (kind === 'instance') emit('open-instance', id.slice('inst:'.length))
-  else if (kind === 'api') emit('open-api', id.slice('api:'.length))
+  if (kind === 'component') emit('select', stripPrefix('component', id))
+  else if (kind === 'instance') emit('open-instance', stripPrefix('instance', id))
+  else if (kind === 'api') emit('open-api', stripPrefix('api', id))
 }
 </script>
 
@@ -102,8 +103,8 @@ function onNodeClick({ id, kind }: GraphNodeClick) {
     :match-ids="matchIds"
     :nodes="graphModel.nodes"
     :edges="graphModel.edges"
-    :selected-id="`comp:${selectedId}`"
-    :cursor-id="cursorId ? `inst:${cursorId}` : ''"
+    :selected-id="prefixedId('component', selectedId)"
+    :cursor-id="cursorId ? prefixedId('instance', cursorId) : ''"
     :suspend-cursor-follow="suspendCursorFollow"
     :legend-columns="legendColumns"
     @node-click="onNodeClick"

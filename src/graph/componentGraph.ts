@@ -1,6 +1,8 @@
 import type { Component, ComponentInstance } from '@/types/component'
 import type { GraphModel, GraphEdge } from '@/types/graph'
 import { layoutDag, frameUnmappedNodes, type DagNode as DagNodeSpec } from './layoutDag'
+import { prefixedId } from './ids'
+import { findingData, instanceNameRefs } from './helpers'
 
 export interface ComponentGraphInput {
   components: Component[]
@@ -44,7 +46,7 @@ export function buildComponentGraph({
     if (apiNodeIds.has(id)) return
     apiNodeIds.add(id)
     nodes.push({
-      id: `api:${id}`,
+      id: prefixedId('api', id),
       kind: 'api',
       data: {
         label: apiName(id) ?? id,
@@ -57,30 +59,24 @@ export function buildComponentGraph({
   for (const c of components) {
     const instances = instancesOf?.(c.componentId) ?? []
     nodes.push({
-      id: `comp:${c.componentId}`,
+      id: prefixedId('component', c.componentId),
       kind: 'component',
       data: {
         label: c.displayName,
         description: c.description || undefined,
         system: systemName?.(c.system),
-        findings: findingCountOf?.(c.componentId) || undefined,
-        findingKinds: findingKindsOf?.(c.componentId),
-        instanceNames: instances.length
-          ? instances.map((inst) => ({
-              name: inst.displayName,
-              unresolved: instanceUnresolved?.(inst) || undefined,
-            }))
-          : undefined,
+        ...findingData(c.componentId, findingCountOf, findingKindsOf),
+        instanceNames: instanceNameRefs(instances, instanceUnresolved),
       },
     })
     if (showInstances) {
       for (const inst of instances) {
         nodes.push({
-          id: `inst:${inst.componentInstanceId}`,
+          id: prefixedId('instance', inst.componentInstanceId),
           kind: 'instance',
           data: {
             label: inst.displayName,
-            parent: `comp:${c.componentId}`,
+            parent: prefixedId('component', c.componentId),
             component: c.displayName,
             context: instanceContext?.(inst),
             systemInstance: systemInstanceName?.(inst.systemInstance),
@@ -89,8 +85,8 @@ export function buildComponentGraph({
         })
         edges.push({
           id: `has:${c.componentId}:${inst.componentInstanceId}`,
-          source: `comp:${c.componentId}`,
-          target: `inst:${inst.componentInstanceId}`,
+          source: prefixedId('component', c.componentId),
+          target: prefixedId('instance', inst.componentInstanceId),
           kind: 'contains',
         })
       }
@@ -100,8 +96,8 @@ export function buildComponentGraph({
       ensureApiNode(apiId)
       edges.push({
         id: `prov:${c.componentId}:${apiId}`,
-        source: `comp:${c.componentId}`,
-        target: `api:${apiId}`,
+        source: prefixedId('component', c.componentId),
+        target: prefixedId('api', apiId),
         kind: 'provides',
       })
     }
@@ -109,8 +105,8 @@ export function buildComponentGraph({
       ensureApiNode(apiId)
       edges.push({
         id: `cons:${apiId}:${c.componentId}`,
-        source: `api:${apiId}`,
-        target: `comp:${c.componentId}`,
+        source: prefixedId('api', apiId),
+        target: prefixedId('component', c.componentId),
         kind: 'consumes',
       })
     }
@@ -145,7 +141,7 @@ export function buildComponentGraph({
   if (showInstances) {
     for (const inst of unmappedInstances ?? []) {
       unmappedNodes.push({
-        id: `inst:${inst.componentInstanceId}`,
+        id: prefixedId('instance', inst.componentInstanceId),
         kind: 'instance',
         data: {
           label: inst.displayName,

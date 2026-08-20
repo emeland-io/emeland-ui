@@ -8,6 +8,7 @@ import { useInstanceContext } from '@/composables/useInstanceContext'
 import { buildApiGraph } from '@/graph/apiGraph'
 import { resolveApiContextFlows } from '@/utils/apiContexts'
 import type { GraphNodeClick } from '@/types/graph'
+import { prefixedId, stripPrefix } from '@/graph/ids'
 import GraphPaneShell from '@/components/graph/GraphPaneShell.vue'
 import { type LegendItem } from '@/components/graph/GraphLegend.vue'
 import {
@@ -109,9 +110,9 @@ const legendColumns = computed<LegendItem[][]>(() => {
 })
 
 function onNodeClick({ id, kind }: GraphNodeClick) {
-  if (kind === 'api') emit('select', id.slice('api:'.length))
-  else if (kind === 'component') emit('open-component', id.slice('comp:'.length))
-  else if (kind === 'instance') emit('open-instance', id.slice('inst:'.length))
+  if (kind === 'api') emit('select', stripPrefix('api', id))
+  else if (kind === 'component') emit('open-component', stripPrefix('component', id))
+  else if (kind === 'instance') emit('open-instance', stripPrefix('instance', id))
 }
 </script>
 
@@ -121,8 +122,8 @@ function onNodeClick({ id, kind }: GraphNodeClick) {
     :match-ids="matchIds"
     :nodes="graphModel.nodes"
     :edges="graphModel.edges"
-    :selected-id="`api:${selectedId}`"
-    :cursor-id="cursorId ? `inst:${cursorId}` : ''"
+    :selected-id="prefixedId('api', selectedId)"
+    :cursor-id="cursorId ? prefixedId('instance', cursorId) : ''"
     :suspend-cursor-follow="suspendCursorFollow"
     :legend-columns="legendColumns"
     @node-click="onNodeClick"

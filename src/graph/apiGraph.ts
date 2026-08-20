@@ -2,6 +2,8 @@ import type { Api, ApiInstance } from '@/types/api'
 import type { Component } from '@/types/component'
 import type { GraphModel, GraphEdge } from '@/types/graph'
 import { layoutDag, frameUnmappedNodes, type DagNode as DagNodeSpec } from './layoutDag'
+import { prefixedId } from './ids'
+import { findingData, instanceNameRefs } from './helpers'
 
 export interface ApiGraphInput {
   apis: Api[]
@@ -37,28 +39,19 @@ export function buildApiGraph({
   showInstances = false,
 }: ApiGraphInput): GraphModel {
   const presentApis = new Set(apis.map((a) => a.apiId))
-  const nodes: DagNodeSpec[] = apis.map((a) => {
-    const instances = instancesOf?.(a.apiId) ?? []
-    return {
-      id: `api:${a.apiId}`,
-      kind: 'api' as const,
-      data: {
-        label: a.displayName,
-        description: a.description || undefined,
-        version: a.version?.version || undefined,
-        crosses: crossesOf?.(a.apiId) || undefined,
-        crossCount: crossCountOf?.(a.apiId) || undefined,
-        findings: findingCountOf?.(a.apiId) || undefined,
-        findingKinds: findingKindsOf?.(a.apiId),
-        instanceNames: instances.length
-          ? instances.map((i) => ({
-              name: i.displayName,
-              unresolved: instanceUnresolved?.(i) || undefined,
-            }))
-          : undefined,
-      },
-    }
-  })
+  const nodes: DagNodeSpec[] = apis.map((a) => ({
+    id: prefixedId('api', a.apiId),
+    kind: 'api' as const,
+    data: {
+      label: a.displayName,
+      description: a.description || undefined,
+      version: a.version?.version || undefined,
+      crosses: crossesOf?.(a.apiId) || undefined,
+      crossCount: crossCountOf?.(a.apiId) || undefined,
+      ...findingData(a.apiId, findingCountOf, findingKindsOf),
+      instanceNames: instanceNameRefs(instancesOf?.(a.apiId) ?? [], instanceUnresolved),
+    },
+  }))
   const edges: GraphEdge[] = []
   // unmapped instances are kept out of the dagre pass and placed in their own lane
   const unmappedNodes: DagNodeSpec[] = []
@@ -68,11 +61,11 @@ export function buildApiGraph({
     for (const a of apis) {
       for (const inst of instancesOf?.(a.apiId) ?? []) {
         nodes.push({
-          id: `inst:${inst.apiInstanceId}`,
+          id: prefixedId('instance', inst.apiInstanceId),
           kind: 'instance',
           data: {
             label: inst.displayName,
-            parent: `api:${a.apiId}`,
+            parent: prefixedId('api', a.apiId),
             context: instanceContext?.(inst),
             systemInstance: inst.systemInstance
               ? systemInstanceName?.(inst.systemInstance)
@@ -82,15 +75,15 @@ export function buildApiGraph({
         })
         edges.push({
           id: `has:${a.apiId}:${inst.apiInstanceId}`,
-          source: `api:${a.apiId}`,
-          target: `inst:${inst.apiInstanceId}`,
+          source: prefixedId('api', a.apiId),
+          target: prefixedId('instance', inst.apiInstanceId),
           kind: 'contains',
         })
       }
     }
     for (const inst of unmappedInstances ?? []) {
       unmappedNodes.push({
-        id: `inst:${inst.apiInstanceId}`,
+        id: prefixedId('instance', inst.apiInstanceId),
         kind: 'instance',
         data: {
           label: inst.displayName,
@@ -115,22 +108,21 @@ export function buildApiGraph({
   if (showComponents) {
     for (const c of relevant) {
       nodes.push({
-        id: `comp:${c.componentId}`,
+        id: prefixedId('component', c.componentId),
         kind: 'component',
         data: {
           label: c.displayName,
           description: c.description || undefined,
           system: systemName?.(c.system),
-          findings: findingCountOf?.(c.componentId) || undefined,
-          findingKinds: findingKindsOf?.(c.componentId),
+          ...findingData(c.componentId, findingCountOf, findingKindsOf),
         },
       })
       for (const apiId of c.provides) {
         if (!presentApis.has(apiId)) continue
         edges.push({
           id: `prov:${c.componentId}:${apiId}`,
-          source: `comp:${c.componentId}`,
-          target: `api:${apiId}`,
+          source: prefixedId('component', c.componentId),
+          target: prefixedId('api', apiId),
           kind: 'provides',
         })
       }
@@ -138,8 +130,8 @@ export function buildApiGraph({
         if (!presentApis.has(apiId)) continue
         edges.push({
           id: `cons:${apiId}:${c.componentId}`,
-          source: `api:${apiId}`,
-          target: `comp:${c.componentId}`,
+          source: prefixedId('api', apiId),
+          target: prefixedId('component', c.componentId),
           kind: 'consumes',
         })
       }
@@ -158,8 +150,8 @@ export function buildApiGraph({
           seen.add(key)
           edges.push({
             id: `via:${key}`,
-            source: `api:${from}`,
-            target: `api:${to}`,
+            source: prefixedId('api', from),
+            target: prefixedId('api', to),
             kind: 'communicates',
           })
         }

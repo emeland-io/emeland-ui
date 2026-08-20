@@ -30,6 +30,7 @@ import { useInstanceCursorNav } from '@/composables/useInstanceCursorNav'
 import { useInstanceContext } from '@/composables/useInstanceContext'
 import { useGraphKeyToggles } from '@/composables/useGraphKeyToggles'
 import { useGraphPanel, type GraphPaneHandle } from '@/composables/useGraphPanel'
+import { prefixedId } from '@/graph/ids'
 import { LAYER_TOGGLE_KEYS, GRAPH_TOGGLE_KEYS, layerKeyHint } from '@/constants/shortcuts'
 import type { Api, ApiInstance } from '@/types/api'
 
@@ -372,7 +373,7 @@ onMounted(async () => {
             </template>
             <ApiGraphPane
               ref="graphPane"
-              :match-ids="new Set([...matchIds].map((id) => `api:${id}`))"
+              :match-ids="new Set([...matchIds].map((id) => prefixedId('api', id)))"
               :apis="chipFilteredApis"
               :selected-id="selectedId"
               :cursor-id="instanceCursor"

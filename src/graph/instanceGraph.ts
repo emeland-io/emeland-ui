@@ -6,6 +6,8 @@ import {
   type LayoutMember,
   type LayoutFrame,
 } from './layout'
+import { UNMAPPED_FRAME_ID } from './ids'
+import { containsEdges, findingData, hierarchyDepth, orderParentsFirst } from './helpers'
 
 export interface InstanceGraphInput {
   systems: System[]
@@ -18,7 +20,7 @@ export interface InstanceGraphInput {
 
 const NO_CONTEXT = 'no-context'
 const UNMAPPED_ROW = 'unmapped'
-const UNMAPPED_FRAME = 'frame:unmapped'
+const UNMAPPED_FRAME = UNMAPPED_FRAME_ID
 
 export function buildInstanceGraph({
   systems,
@@ -43,35 +45,23 @@ export function buildInstanceGraph({
     allSystems.filter((s) => s.parent && byId.has(s.parent)).map((s) => s.parent as string),
   )
 
+  // leaf systems share one column (depth 1) so anchors line up with parents
+  const baseDepth = hierarchyDepth(
+    allSystems,
+    (s) => s.systemId,
+    (s) => s.parent,
+  )
   const depthOf = (system: System): number => {
-    let depth = 0
-    let current = system.parent
-    const seen = new Set<string>([system.systemId])
-    while (current && byId.has(current) && !seen.has(current)) {
-      seen.add(current)
-      depth++
-      current = byId.get(current)?.parent
-    }
+    const depth = baseDepth(system)
     if (depth === 0 && !isParent.has(system.systemId)) return 1
     return depth
   }
 
-  const childrenOf = new Map<string, System[]>()
-  const roots: System[] = []
-  for (const system of allSystems) {
-    if (system.parent && byId.has(system.parent)) {
-      childrenOf.set(system.parent, [...(childrenOf.get(system.parent) ?? []), system])
-    } else {
-      roots.push(system)
-    }
-  }
-  const ordered: System[] = []
-  const visit = (system: System) => {
-    if (ordered.includes(system)) return
-    ordered.push(system)
-    for (const child of childrenOf.get(system.systemId) ?? []) visit(child)
-  }
-  for (const r of roots) visit(r)
+  const ordered = orderParentsFirst(
+    allSystems,
+    (s) => s.systemId,
+    (s) => s.parent,
+  )
 
   const anchors: LayoutAnchor[] = ordered.map((system) => ({
     id: system.systemId,
@@ -84,8 +74,7 @@ export function buildInstanceGraph({
       abstract: system.abstract,
       description: system.description || undefined,
       version: system.version?.version || undefined,
-      findings: findingCountOf?.(system.systemId) || undefined,
-      findingKinds: findingKindsOf?.(system.systemId),
+      ...findingData(system.systemId, findingCountOf, findingKindsOf),
     },
   }))
 
@@ -145,18 +134,12 @@ export function buildInstanceGraph({
   }
 
   const members: LayoutMember[] = []
-  const edges: GraphEdge[] = []
+  const edges: GraphEdge[] = containsEdges(
+    allSystems,
+    (s) => s.systemId,
+    (s) => s.parent,
+  )
 
-  const present = new Set(allSystems.map((s) => s.systemId))
-  for (const system of allSystems) {
-    if (!system.parent || !present.has(system.parent)) continue
-    edges.push({
-      id: `sub:${system.parent}:${system.systemId}`,
-      source: system.parent,
-      target: system.systemId,
-      kind: 'contains',
-    })
-  }
   for (const { system, instances } of withInstances) {
     const ordered = [...instances].sort(
       (a, b) =>

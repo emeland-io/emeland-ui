@@ -28,6 +28,7 @@ import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
 import { useInstanceCursorNav } from '@/composables/useInstanceCursorNav'
 import { useGraphKeyToggles } from '@/composables/useGraphKeyToggles'
 import { useGraphPanel, type GraphPaneHandle } from '@/composables/useGraphPanel'
+import { prefixedId } from '@/graph/ids'
 import { LAYER_TOGGLE_KEYS, GRAPH_TOGGLE_KEYS, layerKeyHint } from '@/constants/shortcuts'
 import type { ComponentInstance } from '@/types/component'
 
@@ -319,7 +320,7 @@ onMounted(async () => {
             </template>
             <ComponentGraphPane
               ref="graphPane"
-              :match-ids="new Set([...matchIds].map((id) => `comp:${id}`))"
+              :match-ids="new Set([...matchIds].map((id) => prefixedId('component', id)))"
               :components="chipFilteredComponents"
               :selected-id="selectedId"
               :cursor-id="instanceCursor"
