@@ -5,14 +5,12 @@ import FindingsToolbar from '@/components/findings/FindingsToolbar.vue'
 import FindingsList from '@/components/findings/FindingsList.vue'
 import FindingDetail from '@/components/findings/FindingDetail.vue'
 import ListDetail from '@/components/ListDetail.vue'
-import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
+import TypesDrawerShell from '@/components/drawer/TypesDrawerShell.vue'
+import DetailAnnotationsSection from '@/components/detail/DetailAnnotationsSection.vue'
+import ResourceViewShell from '@/components/view/ResourceViewShell.vue'
 import CopyButton from '@/components/CopyButton.vue'
-import SectionLabel from '@/components/SectionLabel.vue'
-import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
 import ViewHeader from '@/components/view/ViewHeader.vue'
-import LoadingState from '@/components/view/LoadingState.vue'
-import ErrorState from '@/components/view/ErrorState.vue'
 import EmptyState from '@/components/view/EmptyState.vue'
 import ListPaneBar from '@/components/view/ListPaneBar.vue'
 import { useResourceNav } from '@/composables/useResourceNav'
@@ -21,7 +19,7 @@ import { useResourceSelection } from '@/composables/useResourceSelection'
 import { useTypesDrawer } from '@/composables/useTypesDrawer'
 import { toggledSet } from '@/utils/set'
 import { matchesQuery } from '@/utils/search'
-import type { Finding } from '@/types/finding'
+import type { Finding, FindingType } from '@/types/finding'
 
 const store = useFindingsStore()
 const { goToResource } = useResourceNav()
@@ -94,183 +92,160 @@ useListKeyboardNav(
 </script>
 
 <template>
-  <div class="relative flex h-full flex-col">
-    <ViewHeader
-      title="Findings"
-      :count="store.findings.length"
-    >
-      <template #actions>
-        <button
-          class="ml-auto flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
-          :class="
-            typesDrawerOpen
-              ? 'bg-accent/10 text-accent-text'
-              : 'text-text-3 hover:bg-bg-3 hover:text-text-1'
-          "
-          @click="typesDrawer.openDrawer()"
-        >
-          Finding types
-          <span
-            v-if="store.typesLoaded"
-            class="font-mono text-micro text-text-4"
-          >
-            {{ store.findingTypes.length }}
-          </span>
-        </button>
-      </template>
-    </ViewHeader>
-    <LoadingState
-      v-if="store.loading"
-      label="Loading findings..."
-    />
-    <ErrorState
-      v-else-if="store.error && store.findings.length === 0"
-      :message="store.error"
-    />
-    <template v-else>
-      <!-- Toolbar -->
-      <FindingsToolbar
-        :search="search"
-        :types="allTypes"
-        :resource-types="allResourceTypes"
-        :active-types="activeTypes"
-        :active-resource-types="activeResourceTypes"
-        @update:search="search = $event"
-        @toggle-type="toggleType"
-        @toggle-resource-type="toggleResourceType"
-        @clear="clearFilters"
-      />
-      <EmptyState
-        v-if="filteredFindings.length === 0"
-        title="No findings"
-        hint="All rules passed or no results for current filters"
-        variant="ok"
-      />
-      <!-- List-Detail -->
-      <ListDetail v-else>
-        <template #list>
-          <div class="flex h-full flex-col">
-            <ListPaneBar
-              :count="filteredFindings.length"
-              :total="store.findings.length"
-            />
-            <div class="min-h-0 flex-1 overflow-y-auto">
-              <FindingsList
-                :findings="filteredFindings"
-                :selected-id="selectedId"
-                :kind-for="store.getKindForFinding"
-                @select="selectFinding"
-              />
-            </div>
-          </div>
-        </template>
-
-        <template #detail>
-          <div
-            v-if="selectedFinding"
-            class="flex flex-1 flex-col overflow-hidden"
-          >
-            <DetailErrorBanner
-              v-if="store.hasDetailError(selectedFinding.findingId)"
-              class="m-4 mb-0"
-            />
-            <FindingDetail
-              class="flex-1"
-              :finding="selectedFinding"
-              :kind="store.getKindForFinding(selectedFinding)"
-              @navigate-resource="goToResource"
-              @open-type="typesDrawer.openType"
-            />
-          </div>
-          <div
-            v-else
-            class="flex flex-1 items-center justify-center"
-          >
-            <span class="font-mono text-label text-text-id">Select a finding to inspect</span>
-          </div>
-        </template>
-      </ListDetail>
-    </template>
-    <!-- Finding Types slide-over drawer -->
-    <SlideOverDrawer
-      :open="typesDrawerOpen"
-      title="Finding types"
-      subtitle="FindingType"
-      :count="store.typesLoaded ? store.findingTypes.length : undefined"
-      @close="typesDrawer.close()"
-    >
-      <LoadingState
-        v-if="store.typesLoading"
-        label="Loading types..."
-      />
-      <!-- Type list -->
-      <template v-else>
-        <div class="w-56 shrink-0 overflow-y-auto border-r border-border-1">
-          <div
-            v-for="type in store.findingTypes"
-            :key="type.findingTypeId"
-            :data-row-id="type.findingTypeId"
-            class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
+  <ResourceViewShell
+    :loading="store.loading"
+    loading-label="Loading findings..."
+    :error="store.error"
+    :error-list-empty="store.findings.length === 0"
+  >
+    <template #header>
+      <ViewHeader
+        title="Findings"
+        :count="store.findings.length"
+      >
+        <template #actions>
+          <button
+            class="ml-auto flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
             :class="
-              type.findingTypeId === selectedTypeId
-                ? 'border-l-accent bg-accent/5'
-                : 'border-l-transparent hover:bg-bg-1'
+              typesDrawerOpen
+                ? 'bg-accent/10 text-accent-text'
+                : 'text-text-3 hover:bg-bg-3 hover:text-text-1'
             "
-            @click="typesDrawer.select(type.findingTypeId)"
+            @click="typesDrawer.openDrawer()"
           >
-            <div
-              class="text-body font-medium"
-              :class="type.findingTypeId === selectedTypeId ? 'text-accent-text' : 'text-text-1'"
+            Finding types
+            <span
+              v-if="store.typesLoaded"
+              class="font-mono text-micro text-text-4"
             >
-              {{ type.displayName }}
-            </div>
-            <div
-              v-if="type.description"
-              class="mt-1 truncate text-meta text-text-id"
-            >
-              {{ type.description }}
-            </div>
+              {{ store.findingTypes.length }}
+            </span>
+          </button>
+        </template>
+      </ViewHeader>
+    </template>
+
+    <!-- Toolbar -->
+    <FindingsToolbar
+      :search="search"
+      :types="allTypes"
+      :resource-types="allResourceTypes"
+      :active-types="activeTypes"
+      :active-resource-types="activeResourceTypes"
+      @update:search="search = $event"
+      @toggle-type="toggleType"
+      @toggle-resource-type="toggleResourceType"
+      @clear="clearFilters"
+    />
+    <EmptyState
+      v-if="filteredFindings.length === 0"
+      title="No findings"
+      hint="All rules passed or no results for current filters"
+      variant="ok"
+    />
+    <!-- List-Detail -->
+    <ListDetail v-else>
+      <template #list>
+        <div class="flex h-full flex-col">
+          <ListPaneBar
+            :count="filteredFindings.length"
+            :total="store.findings.length"
+          />
+          <div class="min-h-0 flex-1 overflow-y-auto">
+            <FindingsList
+              :findings="filteredFindings"
+              :selected-id="selectedId"
+              :kind-for="store.getKindForFinding"
+              @select="selectFinding"
+            />
           </div>
         </div>
-        <!-- Type detail -->
+      </template>
+
+      <template #detail>
         <div
-          v-if="selectedType"
-          class="flex-1 overflow-y-auto px-6 py-5"
+          v-if="selectedFinding"
+          class="flex flex-1 flex-col overflow-hidden"
         >
-          <h3 class="text-title font-medium text-text-1">{{ selectedType.displayName }}</h3>
-          <div class="mt-2 flex items-center gap-2">
-            <span class="font-mono text-label text-text-id">{{ selectedType.findingTypeId }}</span>
-            <CopyButton
-              :value="selectedType.findingTypeId"
-              :size="13"
-            />
-          </div>
-          <p
-            v-if="selectedType.description"
-            class="mt-4 text-body leading-relaxed text-text-2"
-          >
-            {{ selectedType.description }}
-          </p>
-          <div
-            v-if="Object.keys(selectedType.annotations).length > 0"
-            class="mt-6"
-          >
-            <SectionLabel :count="Object.keys(selectedType.annotations).length">
-              Annotations
-            </SectionLabel>
-            <AnnotationsTable
-              :annotations="selectedType.annotations"
-              layout="stacked"
-            />
-          </div>
+          <DetailErrorBanner
+            v-if="store.hasDetailError(selectedFinding.findingId)"
+            class="m-4 mb-0"
+          />
+          <FindingDetail
+            class="flex-1"
+            :finding="selectedFinding"
+            :kind="store.getKindForFinding(selectedFinding)"
+            @navigate-resource="goToResource"
+            @open-type="typesDrawer.openType"
+          />
         </div>
         <div
           v-else
           class="flex flex-1 items-center justify-center"
         >
-          <span class="font-mono text-label text-text-id">Select a finding type</span>
+          <span class="font-mono text-label text-text-id">Select a finding to inspect</span>
         </div>
       </template>
-    </SlideOverDrawer>
-  </div>
+    </ListDetail>
+
+    <template #drawers>
+      <!-- Finding Types slide-over drawer -->
+      <TypesDrawerShell
+        :open="typesDrawerOpen"
+        title="Finding types"
+        subtitle="FindingType"
+        :count="store.typesLoaded ? store.findingTypes.length : undefined"
+        :loading="store.typesLoading"
+        :types="store.findingTypes"
+        :id-of="(t: FindingType) => t.findingTypeId"
+        :selected-id="selectedTypeId"
+        :has-detail="!!selectedType"
+        empty-label="Select a finding type"
+        list-width="w-56"
+        row-class="px-4 py-3"
+        @close="typesDrawer.close()"
+        @select="typesDrawer.select"
+      >
+        <template #row="{ type, selected }">
+          <div
+            class="text-body font-medium"
+            :class="selected ? 'text-accent-text' : 'text-text-1'"
+          >
+            {{ type.displayName }}
+          </div>
+          <div
+            v-if="type.description"
+            class="mt-1 truncate text-meta text-text-id"
+          >
+            {{ type.description }}
+          </div>
+        </template>
+        <template #detail>
+          <template v-if="selectedType">
+            <h3 class="text-title font-medium text-text-1">{{ selectedType.displayName }}</h3>
+            <div class="mt-2 flex items-center gap-2">
+              <span class="font-mono text-label text-text-id">
+                {{ selectedType.findingTypeId }}
+              </span>
+              <CopyButton
+                :value="selectedType.findingTypeId"
+                :size="13"
+              />
+            </div>
+            <p
+              v-if="selectedType.description"
+              class="mt-4 text-body leading-relaxed text-text-2"
+            >
+              {{ selectedType.description }}
+            </p>
+            <DetailAnnotationsSection
+              v-if="Object.keys(selectedType.annotations).length > 0"
+              class="mt-6"
+              :annotations="selectedType.annotations"
+            />
+          </template>
+        </template>
+      </TypesDrawerShell>
+    </template>
+  </ResourceViewShell>
 </template>

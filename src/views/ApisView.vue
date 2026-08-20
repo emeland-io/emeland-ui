@@ -13,8 +13,7 @@ import ApiInstanceDrawer from '@/components/apis/ApiInstanceDrawer.vue'
 import GraphPanel from '@/components/graph/GraphPanel.vue'
 import GraphLayerToggle from '@/components/graph/GraphLayerToggle.vue'
 import ViewHeader from '@/components/view/ViewHeader.vue'
-import LoadingState from '@/components/view/LoadingState.vue'
-import ErrorState from '@/components/view/ErrorState.vue'
+import ResourceViewShell from '@/components/view/ResourceViewShell.vue'
 import EmptyState from '@/components/view/EmptyState.vue'
 import ListPaneBar from '@/components/view/ListPaneBar.vue'
 import { useResourceNav } from '@/composables/useResourceNav'
@@ -266,157 +265,154 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="relative flex h-full flex-col">
-    <ViewHeader
-      title="APIs"
-      :count="store.apis.length"
-    >
-      <span class="font-mono text-label text-text-3">
-        {{ store.apiInstances.length }} instances
-      </span>
-      <span
-        class="font-mono text-label"
-        :class="store.unmappedInstances.length > 0 ? 'text-warning' : 'text-text-4'"
+  <ResourceViewShell
+    :loading="store.loading"
+    loading-label="Loading APIs..."
+    :error="store.error"
+    :error-list-empty="store.apis.length === 0"
+  >
+    <template #header>
+      <ViewHeader
+        title="APIs"
+        :count="store.apis.length"
       >
-        {{ store.unmappedInstances.length }} unmapped
-      </span>
-    </ViewHeader>
-
-    <LoadingState
-      v-if="store.loading"
-      label="Loading APIs..."
-    />
-
-    <ErrorState
-      v-else-if="store.error && store.apis.length === 0"
-      :message="store.error"
-    />
-
-    <template v-else>
-      <ApisToolbar
-        v-model:search="search"
-        :systems="filterSystems"
-        :active-systems="activeSystems"
-        :types="filterTypes"
-        :active-types="activeTypes"
-        :cross-context="crossContextOnly"
-        :has-active-filters="hasActiveFilters"
-        @toggle-system="toggleSystem"
-        @toggle-type="toggleType"
-        @toggle-cross-context="crossContextOnly = !crossContextOnly"
-        @clear="clearFilters"
-      />
-
-      <EmptyState
-        v-if="filteredApis.length === 0 && unmappedFiltered.length === 0"
-        title="No APIs"
-        :hint="hasActiveFilters ? 'No results for current filters' : 'No APIs discovered yet'"
-      />
-
-      <!-- list | (graph over detail) -->
-      <ListDetail v-else>
-        <template #list>
-          <div class="flex h-full flex-col">
-            <ListPaneBar
-              :count="filteredApis.length"
-              :total="store.apis.length"
-              :collapsed="listCollapsedEffective"
-              @toggle="listCollapsed = !listCollapsed"
-            />
-            <div class="min-h-0 flex-1 overflow-y-auto">
-              <ApisList
-                :apis="filteredApis"
-                :selected-id="selectedId"
-                :crossings="crossings"
-                :unmapped="unmappedFiltered"
-                :active-instance-id="instanceDrawerOpen ? selectedInstanceId : ''"
-                :force-expanded="!!search.trim()"
-                :list-collapsed="listCollapsedEffective"
-                @select="selectApi"
-                @open-instance="openInstance"
-              />
-            </div>
-          </div>
-        </template>
-
-        <template #detail>
-          <div
-            class="flex min-w-0 flex-1 flex-col overflow-hidden"
-            :class="graphPanel.isResizing ? 'select-none' : ''"
-          >
-            <GraphPanel
-              :panel="graphPanel"
-              :can-focus="!!selectedId"
-            >
-              <template #layers>
-                <GraphLayerToggle
-                  label="Components"
-                  :on="showComponents"
-                  :title="`Show providing and consuming components; when off, APIs link directly ${layerKeyHint('components')}`"
-                  @toggle="toggleComponents"
-                />
-                <GraphLayerToggle
-                  label="Instances"
-                  :on="showInstances"
-                  :title="`Show API instances as nodes; unmapped ones appear as standalone nodes ${layerKeyHint('instances')}`"
-                  @toggle="toggleInstances"
-                />
-                <GraphLayerToggle
-                  label="Unmapped"
-                  :on="unmappedOn"
-                  :disabled="!showInstances || store.unmappedInstances.length === 0"
-                  :title="
-                    store.unmappedInstances.length === 0
-                      ? 'No unmapped instances present'
-                      : showInstances
-                        ? `Show unmapped instances as nodes ${layerKeyHint('unmapped')}`
-                        : 'Enable Instances to show unmapped instances'
-                  "
-                  @toggle="toggleUnmapped"
-                />
-              </template>
-              <ApiGraphPane
-                ref="graphPane"
-                :match-ids="new Set([...matchIds].map((id) => `api:${id}`))"
-                :apis="chipFilteredApis"
-                :selected-id="selectedId"
-                :cursor-id="instanceCursor"
-                :suspend-cursor-follow="instanceDrawerOpen"
-                :show-components="showComponents"
-                :show-instances="showInstances"
-                :show-unmapped="unmappedOn"
-                :show-controls="false"
-                class="h-full"
-                @select="selectApi"
-                @open-component="(id) => goToResource('Component', id)"
-                @open-instance="openInstance"
-              />
-            </GraphPanel>
-
-            <!-- Detail -->
-            <div
-              v-if="!graphPanel.fullscreen"
-              class="flex min-h-0 flex-1 overflow-hidden border-t border-border-1"
-            >
-              <ApiDetail
-                :api="selectedApi"
-                :flow="selectedFlow"
-                :active-instance-id="instanceDrawerOpen ? selectedInstanceId : ''"
-                @open-instance="openInstance"
-              />
-            </div>
-          </div>
-        </template>
-      </ListDetail>
+        <span class="font-mono text-label text-text-3">
+          {{ store.apiInstances.length }} instances
+        </span>
+        <span
+          class="font-mono text-label"
+          :class="store.unmappedInstances.length > 0 ? 'text-warning' : 'text-text-4'"
+        >
+          {{ store.unmappedInstances.length }} unmapped
+        </span>
+      </ViewHeader>
     </template>
 
-    <ApiInstanceDrawer
-      :open="instanceDrawerOpen"
-      :selected-instance-id="selectedInstanceId"
-      :nav-ids="drawerNavIds"
-      @close="instanceDrawerOpen = false"
-      @navigate="(id) => (selectedInstanceId = id)"
-      @nav-exit="onDrawerNavExit"
+    <ApisToolbar
+      v-model:search="search"
+      :systems="filterSystems"
+      :active-systems="activeSystems"
+      :types="filterTypes"
+      :active-types="activeTypes"
+      :cross-context="crossContextOnly"
+      :has-active-filters="hasActiveFilters"
+      @toggle-system="toggleSystem"
+      @toggle-type="toggleType"
+      @toggle-cross-context="crossContextOnly = !crossContextOnly"
+      @clear="clearFilters"
     />
-  </div>
+
+    <EmptyState
+      v-if="filteredApis.length === 0 && unmappedFiltered.length === 0"
+      title="No APIs"
+      :hint="hasActiveFilters ? 'No results for current filters' : 'No APIs discovered yet'"
+    />
+
+    <!-- list | (graph over detail) -->
+    <ListDetail v-else>
+      <template #list>
+        <div class="flex h-full flex-col">
+          <ListPaneBar
+            :count="filteredApis.length"
+            :total="store.apis.length"
+            :collapsed="listCollapsedEffective"
+            @toggle="listCollapsed = !listCollapsed"
+          />
+          <div class="min-h-0 flex-1 overflow-y-auto">
+            <ApisList
+              :apis="filteredApis"
+              :selected-id="selectedId"
+              :crossings="crossings"
+              :unmapped="unmappedFiltered"
+              :active-instance-id="instanceDrawerOpen ? selectedInstanceId : ''"
+              :force-expanded="!!search.trim()"
+              :list-collapsed="listCollapsedEffective"
+              @select="selectApi"
+              @open-instance="openInstance"
+            />
+          </div>
+        </div>
+      </template>
+
+      <template #detail>
+        <div
+          class="flex min-w-0 flex-1 flex-col overflow-hidden"
+          :class="graphPanel.isResizing ? 'select-none' : ''"
+        >
+          <GraphPanel
+            :panel="graphPanel"
+            :can-focus="!!selectedId"
+          >
+            <template #layers>
+              <GraphLayerToggle
+                label="Components"
+                :on="showComponents"
+                :title="`Show providing and consuming components; when off, APIs link directly ${layerKeyHint('components')}`"
+                @toggle="toggleComponents"
+              />
+              <GraphLayerToggle
+                label="Instances"
+                :on="showInstances"
+                :title="`Show API instances as nodes; unmapped ones appear as standalone nodes ${layerKeyHint('instances')}`"
+                @toggle="toggleInstances"
+              />
+              <GraphLayerToggle
+                label="Unmapped"
+                :on="unmappedOn"
+                :disabled="!showInstances || store.unmappedInstances.length === 0"
+                :title="
+                  store.unmappedInstances.length === 0
+                    ? 'No unmapped instances present'
+                    : showInstances
+                      ? `Show unmapped instances as nodes ${layerKeyHint('unmapped')}`
+                      : 'Enable Instances to show unmapped instances'
+                "
+                @toggle="toggleUnmapped"
+              />
+            </template>
+            <ApiGraphPane
+              ref="graphPane"
+              :match-ids="new Set([...matchIds].map((id) => `api:${id}`))"
+              :apis="chipFilteredApis"
+              :selected-id="selectedId"
+              :cursor-id="instanceCursor"
+              :suspend-cursor-follow="instanceDrawerOpen"
+              :show-components="showComponents"
+              :show-instances="showInstances"
+              :show-unmapped="unmappedOn"
+              :show-controls="false"
+              class="h-full"
+              @select="selectApi"
+              @open-component="(id) => goToResource('Component', id)"
+              @open-instance="openInstance"
+            />
+          </GraphPanel>
+
+          <!-- Detail -->
+          <div
+            v-if="!graphPanel.fullscreen"
+            class="flex min-h-0 flex-1 overflow-hidden border-t border-border-1"
+          >
+            <ApiDetail
+              :api="selectedApi"
+              :flow="selectedFlow"
+              :active-instance-id="instanceDrawerOpen ? selectedInstanceId : ''"
+              @open-instance="openInstance"
+            />
+          </div>
+        </div>
+      </template>
+    </ListDetail>
+
+    <template #drawers>
+      <ApiInstanceDrawer
+        :open="instanceDrawerOpen"
+        :selected-instance-id="selectedInstanceId"
+        :nav-ids="drawerNavIds"
+        @close="instanceDrawerOpen = false"
+        @navigate="(id) => (selectedInstanceId = id)"
+        @nav-exit="onDrawerNavExit"
+      />
+    </template>
+  </ResourceViewShell>
 </template>

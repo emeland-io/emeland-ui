@@ -14,11 +14,10 @@ import GraphPanel from '@/components/graph/GraphPanel.vue'
 import FilterToolbar from '@/components/toolbar/FilterToolbar.vue'
 import FilterChipGroup from '@/components/toolbar/FilterChipGroup.vue'
 import ViewHeader from '@/components/view/ViewHeader.vue'
-import LoadingState from '@/components/view/LoadingState.vue'
-import ErrorState from '@/components/view/ErrorState.vue'
+import ResourceViewShell from '@/components/view/ResourceViewShell.vue'
 import EmptyState from '@/components/view/EmptyState.vue'
 import ListPaneBar from '@/components/view/ListPaneBar.vue'
-import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
+import TypesDrawerShell from '@/components/drawer/TypesDrawerShell.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import { useSearchMatches } from '@/composables/useResourceList'
 import { useResourceSelection } from '@/composables/useResourceSelection'
@@ -27,7 +26,7 @@ import { useGraphPanel, type GraphPaneHandle } from '@/composables/useGraphPanel
 import { useTypesDrawer } from '@/composables/useTypesDrawer'
 import { toggledSet } from '@/utils/set'
 import { matchesAnnotations, matchesQuery } from '@/utils/search'
-import type { Context } from '@/types/context'
+import type { Context, ContextType } from '@/types/context'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
 const ContextGraphPane = defineAsyncComponent(
@@ -145,180 +144,163 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="relative flex h-full flex-col">
-    <ViewHeader
-      title="Contexts"
-      :count="store.contexts.length"
-    >
-      <template #actions>
-        <button
-          class="ml-auto rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
-          :class="
-            typesDrawerOpen
-              ? 'bg-accent/10 text-accent-text'
-              : 'text-text-3 hover:bg-bg-3 hover:text-text-1'
-          "
-          @click="typesDrawer.openDrawer()"
-        >
-          Context types
-        </button>
-      </template>
-    </ViewHeader>
-
-    <LoadingState
-      v-if="store.loading"
-      label="Loading contexts..."
-    />
-
-    <ErrorState
-      v-else-if="store.error && store.contexts.length === 0"
-      :message="store.error"
-    />
-
-    <template v-else>
-      <!-- Toolbar -->
-      <FilterToolbar
-        v-model:search="search"
-        placeholder="Search contexts, IDs, annotations... (/)"
-        :has-active-filters="hasActiveFilters"
-        @clear="clearFilters"
+  <ResourceViewShell
+    :loading="store.loading"
+    loading-label="Loading contexts..."
+    :error="store.error"
+    :error-list-empty="store.contexts.length === 0"
+  >
+    <template #header>
+      <ViewHeader
+        title="Contexts"
+        :count="store.contexts.length"
       >
-        <FilterChipGroup
-          label="Type"
-          :items="allTypes"
-          :active="activeTypes"
-          @toggle="toggleType"
-        />
-      </FilterToolbar>
-
-      <EmptyState
-        v-if="filteredContexts.length === 0"
-        title="No contexts"
-        :hint="hasActiveFilters ? 'No results for current filters' : 'No contexts discovered yet'"
-      />
-
-      <!-- list | (graph over detail) -->
-      <ListDetail v-else>
-        <template #list>
-          <div class="flex h-full flex-col">
-            <ListPaneBar
-              :count="filteredContexts.length"
-              :total="store.contexts.length"
-            >
-              <template #actions>
-                <button
-                  class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
-                  :disabled="parentIds.size === 0"
-                  :title="
-                    parentIds.size === 0
-                      ? 'Nothing to collapse'
-                      : allCollapsed
-                        ? 'Expand all'
-                        : 'Collapse all'
-                  "
-                  @click="toggleAll"
-                >
-                  <component
-                    :is="allCollapsed ? IconChevronsDown : IconChevronsUp"
-                    :size="14"
-                    :stroke-width="1.75"
-                  />
-                </button>
-              </template>
-            </ListPaneBar>
-            <div class="min-h-0 flex-1 overflow-y-auto">
-              <ContextsList
-                :rows="contextRows"
-                :selected-id="selectedId"
-                :collapsed="collapsed"
-                :active-rail="activeRail"
-                @select="selectContext"
-                @toggle-collapse="toggleCollapse"
-              />
-            </div>
-          </div>
-        </template>
-
-        <template #detail>
-          <div
-            class="flex min-w-0 flex-1 flex-col overflow-hidden"
-            :class="graphPanel.isResizing ? 'select-none' : ''"
-          >
-            <GraphPanel
-              :panel="graphPanel"
-              :can-focus="!!selectedId"
-            >
-              <ContextGraphPane
-                ref="graphPane"
-                :match-ids="matchIds"
-                :contexts="chipFilteredContexts"
-                :selected-id="selectedId"
-                :show-controls="false"
-                class="h-full"
-                @select="selectContext"
-              />
-            </GraphPanel>
-
-            <!-- Detail -->
-            <div
-              v-if="!graphPanel.fullscreen"
-              class="flex min-h-0 flex-1 overflow-hidden border-t border-border-1"
-            >
-              <ContextDetail
-                v-if="selectedContext"
-                :context="selectedContext"
-                @navigate-parent="selectContext"
-                @open-type="typesDrawer.openType"
-              />
-              <div
-                v-else
-                class="flex flex-1 items-center justify-center"
-              >
-                <span class="font-mono text-label text-text-4">Select a context</span>
-              </div>
-            </div>
-          </div>
-        </template>
-      </ListDetail>
-    </template>
-    <!-- context types drawer -->
-    <SlideOverDrawer
-      :open="typesDrawerOpen"
-      title="Context Types"
-      subtitle="ContextType"
-      :count="store.typesLoaded ? store.contextTypes.length : undefined"
-      @close="typesDrawer.close()"
-    >
-      <LoadingState
-        v-if="store.typesLoading"
-        label="Loading types..."
-      />
-      <template v-else>
-        <!-- Type list -->
-        <div class="w-52 shrink-0 overflow-y-auto border-r border-border-1">
-          <div
-            v-for="type in store.contextTypes"
-            :key="type.contextTypeId"
-            :data-row-id="type.contextTypeId"
-            class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-2.5 transition-colors"
+        <template #actions>
+          <button
+            class="ml-auto rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
             :class="
-              type.contextTypeId === selectedTypeId
-                ? 'border-l-accent bg-accent/5'
-                : 'border-l-transparent hover:bg-bg-1'
+              typesDrawerOpen
+                ? 'bg-accent/10 text-accent-text'
+                : 'text-text-3 hover:bg-bg-3 hover:text-text-1'
             "
-            @click="typesDrawer.select(type.contextTypeId)"
+            @click="typesDrawer.openDrawer()"
           >
-            <span class="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent-text">
-              {{ type.displayName }}
-            </span>
+            Context types
+          </button>
+        </template>
+      </ViewHeader>
+    </template>
+
+    <!-- Toolbar -->
+    <FilterToolbar
+      v-model:search="search"
+      placeholder="Search contexts, IDs, annotations... (/)"
+      :has-active-filters="hasActiveFilters"
+      @clear="clearFilters"
+    >
+      <FilterChipGroup
+        label="Type"
+        :items="allTypes"
+        :active="activeTypes"
+        @toggle="toggleType"
+      />
+    </FilterToolbar>
+
+    <EmptyState
+      v-if="filteredContexts.length === 0"
+      title="No contexts"
+      :hint="hasActiveFilters ? 'No results for current filters' : 'No contexts discovered yet'"
+    />
+
+    <!-- list | (graph over detail) -->
+    <ListDetail v-else>
+      <template #list>
+        <div class="flex h-full flex-col">
+          <ListPaneBar
+            :count="filteredContexts.length"
+            :total="store.contexts.length"
+          >
+            <template #actions>
+              <button
+                class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
+                :disabled="parentIds.size === 0"
+                :title="
+                  parentIds.size === 0
+                    ? 'Nothing to collapse'
+                    : allCollapsed
+                      ? 'Expand all'
+                      : 'Collapse all'
+                "
+                @click="toggleAll"
+              >
+                <component
+                  :is="allCollapsed ? IconChevronsDown : IconChevronsUp"
+                  :size="14"
+                  :stroke-width="1.75"
+                />
+              </button>
+            </template>
+          </ListPaneBar>
+          <div class="min-h-0 flex-1 overflow-y-auto">
+            <ContextsList
+              :rows="contextRows"
+              :selected-id="selectedId"
+              :collapsed="collapsed"
+              :active-rail="activeRail"
+              @select="selectContext"
+              @toggle-collapse="toggleCollapse"
+            />
           </div>
         </div>
-        <!-- Type detail -->
+      </template>
+
+      <template #detail>
         <div
-          v-if="selectedType"
-          class="flex-1 overflow-y-auto px-6 py-5"
+          class="flex min-w-0 flex-1 flex-col overflow-hidden"
+          :class="graphPanel.isResizing ? 'select-none' : ''"
         >
-          <div class="flex items-center gap-2">
+          <GraphPanel
+            :panel="graphPanel"
+            :can-focus="!!selectedId"
+          >
+            <ContextGraphPane
+              ref="graphPane"
+              :match-ids="matchIds"
+              :contexts="chipFilteredContexts"
+              :selected-id="selectedId"
+              :show-controls="false"
+              class="h-full"
+              @select="selectContext"
+            />
+          </GraphPanel>
+
+          <!-- Detail -->
+          <div
+            v-if="!graphPanel.fullscreen"
+            class="flex min-h-0 flex-1 overflow-hidden border-t border-border-1"
+          >
+            <ContextDetail
+              v-if="selectedContext"
+              :context="selectedContext"
+              @navigate-parent="selectContext"
+              @open-type="typesDrawer.openType"
+            />
+            <div
+              v-else
+              class="flex flex-1 items-center justify-center"
+            >
+              <span class="font-mono text-label text-text-4">Select a context</span>
+            </div>
+          </div>
+        </div>
+      </template>
+    </ListDetail>
+
+    <template #drawers>
+      <TypesDrawerShell
+        :open="typesDrawerOpen"
+        title="Context Types"
+        subtitle="ContextType"
+        :count="store.typesLoaded ? store.contextTypes.length : undefined"
+        :loading="store.typesLoading"
+        :types="store.contextTypes"
+        :id-of="(t: ContextType) => t.contextTypeId"
+        :selected-id="selectedTypeId"
+        :has-detail="!!selectedType"
+        empty-label="Select a context type"
+        @close="typesDrawer.close()"
+        @select="typesDrawer.select"
+      >
+        <template #row="{ type }">
+          <span class="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent-text">
+            {{ type.displayName }}
+          </span>
+        </template>
+        <template #detail>
+          <div
+            v-if="selectedType"
+            class="flex items-center gap-2"
+          >
             <span class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent-text">
               {{ selectedType.displayName }}
             </span>
@@ -329,13 +311,13 @@ onMounted(async () => {
             />
           </div>
           <p
-            v-if="selectedType.description"
+            v-if="selectedType?.description"
             class="mt-4 text-body leading-relaxed text-text-2"
           >
             {{ selectedType.description }}
           </p>
           <div
-            v-if="Object.keys(selectedType.annotations).length > 0"
+            v-if="selectedType && Object.keys(selectedType.annotations).length > 0"
             class="mt-6"
           >
             <div class="mb-3 text-meta font-semibold uppercase tracking-widest text-text-4">
@@ -356,14 +338,8 @@ onMounted(async () => {
               <span class="break-all text-text-2">{{ value }}</span>
             </div>
           </div>
-        </div>
-        <div
-          v-else
-          class="flex flex-1 items-center justify-center"
-        >
-          <span class="font-mono text-label text-text-4">Select a context type</span>
-        </div>
-      </template>
-    </SlideOverDrawer>
-  </div>
+        </template>
+      </TypesDrawerShell>
+    </template>
+  </ResourceViewShell>
 </template>

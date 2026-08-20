@@ -12,8 +12,7 @@ import SystemInstancesDrawer from '@/components/systems/SystemInstancesDrawer.vu
 import GraphPanel from '@/components/graph/GraphPanel.vue'
 import GraphLayerToggle from '@/components/graph/GraphLayerToggle.vue'
 import ViewHeader from '@/components/view/ViewHeader.vue'
-import LoadingState from '@/components/view/LoadingState.vue'
-import ErrorState from '@/components/view/ErrorState.vue'
+import ResourceViewShell from '@/components/view/ResourceViewShell.vue'
 import EmptyState from '@/components/view/EmptyState.vue'
 import ListPaneBar from '@/components/view/ListPaneBar.vue'
 import { useSearchMatches } from '@/composables/useResourceList'
@@ -235,179 +234,176 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="relative flex h-full flex-col">
-    <ViewHeader
-      title="Systems"
-      :count="store.systems.length"
-    >
-      <span class="font-mono text-label text-text-3">
-        {{ store.systemInstances.length }} instances
-      </span>
-      <span
-        class="font-mono text-label"
-        :class="store.unmappedInstances.length > 0 ? 'text-warning' : 'text-text-4'"
+  <ResourceViewShell
+    :loading="store.loading"
+    loading-label="Loading systems..."
+    :error="store.error"
+    :error-list-empty="store.systems.length === 0"
+  >
+    <template #header>
+      <ViewHeader
+        title="Systems"
+        :count="store.systems.length"
       >
-        {{ store.unmappedInstances.length }} unmapped
-      </span>
-    </ViewHeader>
-
-    <LoadingState
-      v-if="store.loading"
-      label="Loading systems..."
-    />
-
-    <ErrorState
-      v-else-if="store.error && store.systems.length === 0"
-      :message="store.error"
-    />
-
-    <template v-else>
-      <SystemsToolbar
-        v-model:search="search"
-        :kinds="[...KINDS]"
-        :active-kinds="activeKinds"
-        :contexts="allContexts"
-        :active-contexts="activeContexts"
-        :has-active-filters="hasActiveFilters"
-        @toggle-kind="toggleKind"
-        @toggle-context="toggleContext"
-        @clear="clearFilters"
-      />
-
-      <EmptyState
-        v-if="filteredSystems.length === 0 && unmappedFiltered.length === 0"
-        title="No systems"
-        :hint="hasActiveFilters ? 'No results for current filters' : 'No systems discovered yet'"
-      />
-
-      <!-- list | (graph over detail) -->
-      <ListDetail v-else>
-        <template #list>
-          <div class="flex h-full flex-col">
-            <!-- list bar, mirroring the graph bar on the other side -->
-            <ListPaneBar
-              :count="filteredSystems.length"
-              :total="store.systems.length"
-              :collapsed="listCollapsedEffective"
-              @toggle="listCollapsed = !listCollapsed"
-            >
-              <template #actions>
-                <button
-                  class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
-                  :disabled="parentIds.size === 0"
-                  :title="
-                    parentIds.size === 0
-                      ? 'Nothing to collapse'
-                      : allCollapsed
-                        ? 'Expand all'
-                        : 'Collapse all'
-                  "
-                  @click.stop="toggleAll"
-                  @dblclick.stop
-                >
-                  <component
-                    :is="allCollapsed ? IconChevronsDown : IconChevronsUp"
-                    :size="14"
-                    :stroke-width="1.75"
-                  />
-                </button>
-              </template>
-            </ListPaneBar>
-            <div class="min-h-0 flex-1 overflow-y-auto">
-              <SystemsList
-                :rows="systemRows"
-                :selected-id="selectedId"
-                :collapsed="collapsed"
-                :active-rail="activeRail"
-                :unmapped="unmappedFiltered"
-                :active-instance-id="instancesDrawerOpen ? selectedInstanceId : ''"
-                :force-expanded="!!search.trim()"
-                :list-collapsed="listCollapsedEffective"
-                @select="selectSystem"
-                @toggle-collapse="toggleCollapse"
-                @open-instance="openInstanceInDrawer"
-              />
-            </div>
-          </div>
-        </template>
-
-        <template #detail>
-          <div
-            class="flex min-w-0 flex-1 flex-col overflow-hidden"
-            :class="graphPanel.isResizing ? 'select-none' : ''"
-          >
-            <GraphPanel
-              :panel="graphPanel"
-              :can-focus="!!selectedId"
-            >
-              <template #layers>
-                <GraphLayerToggle
-                  label="Instances"
-                  :on="showInstances"
-                  :title="`Show system instances; when off, the graph shows the system hierarchy ${layerKeyHint('instances')}`"
-                  @toggle="toggleInstances"
-                />
-                <GraphLayerToggle
-                  label="Unmapped"
-                  :on="unmappedOn"
-                  :disabled="!showInstances || store.unmappedInstances.length === 0"
-                  :title="
-                    store.unmappedInstances.length === 0
-                      ? 'No unmapped instances present'
-                      : showInstances
-                        ? `Show unmapped instances as nodes ${layerKeyHint('unmapped')}`
-                        : 'Enable Instances to show unmapped instances'
-                  "
-                  @toggle="toggleUnmapped"
-                />
-              </template>
-              <SystemGraphPane
-                ref="graphPane"
-                :match-ids="matchIds"
-                :systems="chipFilteredSystems"
-                :selected-id="selectedId"
-                :cursor-id="instanceCursor"
-                :suspend-cursor-follow="instancesDrawerOpen"
-                :show-instances="showInstances"
-                :show-unmapped="unmappedOn"
-                :show-controls="false"
-                class="h-full"
-                @select="selectSystem"
-                @open-instance="openInstanceInDrawer"
-              />
-            </GraphPanel>
-
-            <!-- Detail -->
-            <div
-              v-if="!graphPanel.fullscreen"
-              class="flex min-h-0 flex-1 overflow-hidden border-t border-border-1"
-            >
-              <SystemDetail
-                :system="selectedSystem"
-                :instances="selectedInstances"
-                :active-instance-id="instancesDrawerOpen ? selectedInstanceId : ''"
-                @navigate-parent="selectSystem"
-                @open-instance="openInstanceInDrawer"
-              />
-            </div>
-          </div>
-        </template>
-      </ListDetail>
+        <span class="font-mono text-label text-text-3">
+          {{ store.systemInstances.length }} instances
+        </span>
+        <span
+          class="font-mono text-label"
+          :class="store.unmappedInstances.length > 0 ? 'text-warning' : 'text-text-4'"
+        >
+          {{ store.unmappedInstances.length }} unmapped
+        </span>
+      </ViewHeader>
     </template>
 
-    <SystemInstancesDrawer
-      :open="instancesDrawerOpen"
-      :selected-instance-id="selectedInstanceId"
-      :nav-ids="drawerNavIds"
-      @close="instancesDrawerOpen = false"
-      @navigate="(id) => (selectedInstanceId = id)"
-      @nav-exit="onDrawerNavExit"
-      @go-to-system="
-        (id) => {
-          instancesDrawerOpen = false
-          selectSystem(id)
-        }
-      "
+    <SystemsToolbar
+      v-model:search="search"
+      :kinds="[...KINDS]"
+      :active-kinds="activeKinds"
+      :contexts="allContexts"
+      :active-contexts="activeContexts"
+      :has-active-filters="hasActiveFilters"
+      @toggle-kind="toggleKind"
+      @toggle-context="toggleContext"
+      @clear="clearFilters"
     />
-  </div>
+
+    <EmptyState
+      v-if="filteredSystems.length === 0 && unmappedFiltered.length === 0"
+      title="No systems"
+      :hint="hasActiveFilters ? 'No results for current filters' : 'No systems discovered yet'"
+    />
+
+    <!-- list | (graph over detail) -->
+    <ListDetail v-else>
+      <template #list>
+        <div class="flex h-full flex-col">
+          <!-- list bar, mirroring the graph bar on the other side -->
+          <ListPaneBar
+            :count="filteredSystems.length"
+            :total="store.systems.length"
+            :collapsed="listCollapsedEffective"
+            @toggle="listCollapsed = !listCollapsed"
+          >
+            <template #actions>
+              <button
+                class="rounded p-1 text-text-3 transition-colors hover:bg-bg-3 hover:text-text-1 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-text-3"
+                :disabled="parentIds.size === 0"
+                :title="
+                  parentIds.size === 0
+                    ? 'Nothing to collapse'
+                    : allCollapsed
+                      ? 'Expand all'
+                      : 'Collapse all'
+                "
+                @click.stop="toggleAll"
+                @dblclick.stop
+              >
+                <component
+                  :is="allCollapsed ? IconChevronsDown : IconChevronsUp"
+                  :size="14"
+                  :stroke-width="1.75"
+                />
+              </button>
+            </template>
+          </ListPaneBar>
+          <div class="min-h-0 flex-1 overflow-y-auto">
+            <SystemsList
+              :rows="systemRows"
+              :selected-id="selectedId"
+              :collapsed="collapsed"
+              :active-rail="activeRail"
+              :unmapped="unmappedFiltered"
+              :active-instance-id="instancesDrawerOpen ? selectedInstanceId : ''"
+              :force-expanded="!!search.trim()"
+              :list-collapsed="listCollapsedEffective"
+              @select="selectSystem"
+              @toggle-collapse="toggleCollapse"
+              @open-instance="openInstanceInDrawer"
+            />
+          </div>
+        </div>
+      </template>
+
+      <template #detail>
+        <div
+          class="flex min-w-0 flex-1 flex-col overflow-hidden"
+          :class="graphPanel.isResizing ? 'select-none' : ''"
+        >
+          <GraphPanel
+            :panel="graphPanel"
+            :can-focus="!!selectedId"
+          >
+            <template #layers>
+              <GraphLayerToggle
+                label="Instances"
+                :on="showInstances"
+                :title="`Show system instances; when off, the graph shows the system hierarchy ${layerKeyHint('instances')}`"
+                @toggle="toggleInstances"
+              />
+              <GraphLayerToggle
+                label="Unmapped"
+                :on="unmappedOn"
+                :disabled="!showInstances || store.unmappedInstances.length === 0"
+                :title="
+                  store.unmappedInstances.length === 0
+                    ? 'No unmapped instances present'
+                    : showInstances
+                      ? `Show unmapped instances as nodes ${layerKeyHint('unmapped')}`
+                      : 'Enable Instances to show unmapped instances'
+                "
+                @toggle="toggleUnmapped"
+              />
+            </template>
+            <SystemGraphPane
+              ref="graphPane"
+              :match-ids="matchIds"
+              :systems="chipFilteredSystems"
+              :selected-id="selectedId"
+              :cursor-id="instanceCursor"
+              :suspend-cursor-follow="instancesDrawerOpen"
+              :show-instances="showInstances"
+              :show-unmapped="unmappedOn"
+              :show-controls="false"
+              class="h-full"
+              @select="selectSystem"
+              @open-instance="openInstanceInDrawer"
+            />
+          </GraphPanel>
+
+          <!-- Detail -->
+          <div
+            v-if="!graphPanel.fullscreen"
+            class="flex min-h-0 flex-1 overflow-hidden border-t border-border-1"
+          >
+            <SystemDetail
+              :system="selectedSystem"
+              :instances="selectedInstances"
+              :active-instance-id="instancesDrawerOpen ? selectedInstanceId : ''"
+              @navigate-parent="selectSystem"
+              @open-instance="openInstanceInDrawer"
+            />
+          </div>
+        </div>
+      </template>
+    </ListDetail>
+
+    <template #drawers>
+      <SystemInstancesDrawer
+        :open="instancesDrawerOpen"
+        :selected-instance-id="selectedInstanceId"
+        :nav-ids="drawerNavIds"
+        @close="instancesDrawerOpen = false"
+        @navigate="(id) => (selectedInstanceId = id)"
+        @nav-exit="onDrawerNavExit"
+        @go-to-system="
+          (id) => {
+            instancesDrawerOpen = false
+            selectSystem(id)
+          }
+        "
+      />
+    </template>
+  </ResourceViewShell>
 </template>
