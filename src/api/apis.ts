@@ -1,13 +1,8 @@
 import { API } from '@/constants/api'
 import type { Api, ApiInstance, ApiType } from '@/types/api'
 import type { Version } from '@/types/common'
-import { USE_MOCKS, getJson } from './fetch'
-import {
-  decodeAnnotations,
-  decodeVersion,
-  type InstanceListItem,
-  type AnnotationsResponse,
-} from './decode'
+import { decodeAnnotations, decodeVersion, type AnnotationsResponse } from './decode'
+import { makeResourceApi, responseId } from './resource'
 
 interface ApiResponse {
   apiId?: string
@@ -20,20 +15,9 @@ interface ApiResponse {
   annotations?: AnnotationsResponse
 }
 
-function apiFromList(item: InstanceListItem): Api {
-  return {
-    apiId: item.instanceId,
-    displayName: item.displayName,
-    version: { version: '' },
-    type: 'Unknown',
-    system: '',
-    annotations: {},
-  }
-}
-
 function decodeApi(res: ApiResponse): Api {
   return {
-    apiId: res.apiId ?? res.instanceId ?? '',
+    apiId: responseId(res, 'apiId'),
     displayName: res.displayName ?? '',
     description: res.description ?? '',
     version: decodeVersion(res.version),
@@ -43,24 +27,18 @@ function decodeApi(res: ApiResponse): Api {
   }
 }
 
-export async function fetchApis(): Promise<Api[]> {
-  if (USE_MOCKS) {
-    const { apis } = await import('@/mocks/api')
-    return apis
-  }
-  const data = await getJson<InstanceListItem[]>(API.APIS.list, 'APIs')
-  return data.map(apiFromList)
-}
+const apis = makeResourceApi<Api, ApiResponse>({
+  name: 'API',
+  namePlural: 'APIs',
+  listPath: API.APIS.list,
+  byIdPath: API.APIS.byId,
+  mocks: async () => (await import('@/mocks/api')).apis,
+  idOf: (a) => a.apiId,
+  decode: decodeApi,
+})
 
-export async function fetchApiById(id: string): Promise<Api> {
-  if (USE_MOCKS) {
-    const { apis } = await import('@/mocks/api')
-    const found = apis.find((a) => a.apiId === id)
-    if (!found) throw new Error(`API ${id} not found in mocks`)
-    return found
-  }
-  return decodeApi(await getJson<ApiResponse>(API.APIS.byId(id), `API ${id}`))
-}
+export const fetchApis = apis.fetchAll
+export const fetchApiById = apis.fetchById
 
 interface ApiInstanceResponse {
   apiInstanceId?: string
@@ -73,7 +51,7 @@ interface ApiInstanceResponse {
 
 function decodeApiInstance(res: ApiInstanceResponse): ApiInstance {
   return {
-    apiInstanceId: res.apiInstanceId ?? res.instanceId ?? '',
+    apiInstanceId: responseId(res, 'apiInstanceId'),
     displayName: res.displayName ?? '',
     ...(res.api ? { api: res.api } : {}),
     ...(res.systemInstance ? { systemInstance: res.systemInstance } : {}),
@@ -81,31 +59,15 @@ function decodeApiInstance(res: ApiInstanceResponse): ApiInstance {
   }
 }
 
-function apiInstanceFromList(item: InstanceListItem): ApiInstance {
-  return {
-    apiInstanceId: item.instanceId,
-    displayName: item.displayName,
-    annotations: {},
-  }
-}
+const apiInstances = makeResourceApi<ApiInstance, ApiInstanceResponse>({
+  name: 'API instance',
+  namePlural: 'API instances',
+  listPath: API.API_INSTANCES.list,
+  byIdPath: API.API_INSTANCES.byId,
+  mocks: async () => (await import('@/mocks/api')).apiInstances,
+  idOf: (i) => i.apiInstanceId,
+  decode: decodeApiInstance,
+})
 
-export async function fetchApiInstances(): Promise<ApiInstance[]> {
-  if (USE_MOCKS) {
-    const { apiInstances } = await import('@/mocks/api')
-    return apiInstances
-  }
-  const data = await getJson<InstanceListItem[]>(API.API_INSTANCES.list, 'API instances')
-  return data.map(apiInstanceFromList)
-}
-
-export async function fetchApiInstanceById(id: string): Promise<ApiInstance> {
-  if (USE_MOCKS) {
-    const { apiInstances } = await import('@/mocks/api')
-    const found = apiInstances.find((i) => i.apiInstanceId === id)
-    if (!found) throw new Error(`API instance ${id} not found in mocks`)
-    return found
-  }
-  return decodeApiInstance(
-    await getJson<ApiInstanceResponse>(API.API_INSTANCES.byId(id), `API instance ${id}`),
-  )
-}
+export const fetchApiInstances = apiInstances.fetchAll
+export const fetchApiInstanceById = apiInstances.fetchById

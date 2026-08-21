@@ -1,7 +1,7 @@
 import { API } from '@/constants/api'
 import type { Node, NodeType, NodeTypeRef } from '@/types/node'
-import { USE_MOCKS, getJson } from './fetch'
-import { decodeAnnotations, type InstanceListItem, type AnnotationsResponse } from './decode'
+import { decodeAnnotations, type AnnotationsResponse } from './decode'
+import { decodeTypeEntity, makeResourceApi } from './resource'
 
 interface NodeResponse {
   nodeId: string
@@ -28,59 +28,30 @@ function decodeNode(res: NodeResponse): Node {
   }
 }
 
-function decodeNodeType(res: Record<string, unknown>): NodeType {
-  return {
-    nodeTypeId: (res.nodeTypeId as string) ?? (res.instanceId as string) ?? '',
-    displayName: (res.displayName as string) ?? '',
-    description: (res.description as string) ?? '',
-    annotations: decodeAnnotations(res.annotations as AnnotationsResponse | undefined),
-  }
-}
+// the node list endpoint returns full nodes, not minimal list items
+const nodes = makeResourceApi<Node, NodeResponse, NodeResponse>({
+  name: 'Node',
+  namePlural: 'nodes',
+  listPath: API.NODES.list,
+  byIdPath: API.NODES.byId,
+  mocks: async () => (await import('@/mocks/nodes')).nodes,
+  idOf: (n) => n.nodeId,
+  fromList: decodeNode,
+  decode: decodeNode,
+})
 
-function nodeTypeFromList(item: InstanceListItem): NodeType {
-  return {
-    nodeTypeId: item.instanceId,
-    displayName: item.displayName,
-    annotations: {},
-  }
-}
+export const fetchNodes = nodes.fetchAll
+export const fetchNodeById = nodes.fetchById
 
-export async function fetchNodes(): Promise<Node[]> {
-  if (USE_MOCKS) {
-    const { nodes } = await import('@/mocks/nodes')
-    return nodes
-  }
-  const data = await getJson<NodeResponse[]>(API.NODES.list, 'nodes')
-  return data.map(decodeNode)
-}
+const nodeTypes = makeResourceApi<NodeType, Record<string, unknown>>({
+  name: 'Node type',
+  namePlural: 'node types',
+  listPath: API.NODE_TYPES.list,
+  byIdPath: API.NODE_TYPES.byId,
+  mocks: async () => (await import('@/mocks/nodes')).nodeTypes,
+  idOf: (t) => t.nodeTypeId,
+  decode: (res) => decodeTypeEntity('nodeTypeId', res),
+})
 
-export async function fetchNodeById(id: string): Promise<Node> {
-  if (USE_MOCKS) {
-    const { nodes } = await import('@/mocks/nodes')
-    const found = nodes.find((n) => n.nodeId === id)
-    if (!found) throw new Error(`Node ${id} not found in mocks`)
-    return found
-  }
-  return decodeNode(await getJson<NodeResponse>(API.NODES.byId(id), `node ${id}`))
-}
-
-export async function fetchNodeTypes(): Promise<NodeType[]> {
-  if (USE_MOCKS) {
-    const { nodeTypes } = await import('@/mocks/nodes')
-    return nodeTypes
-  }
-  const data = await getJson<InstanceListItem[]>(API.NODE_TYPES.list, 'node types')
-  return data.map(nodeTypeFromList)
-}
-
-export async function fetchNodeTypeById(id: string): Promise<NodeType> {
-  if (USE_MOCKS) {
-    const { nodeTypes } = await import('@/mocks/nodes')
-    const found = nodeTypes.find((t) => t.nodeTypeId === id)
-    if (!found) throw new Error(`Node type ${id} not found in mocks`)
-    return found
-  }
-  return decodeNodeType(
-    await getJson<Record<string, unknown>>(API.NODE_TYPES.byId(id), `node type ${id}`),
-  )
-}
+export const fetchNodeTypes = nodeTypes.fetchAll
+export const fetchNodeTypeById = nodeTypes.fetchById

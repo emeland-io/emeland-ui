@@ -1,7 +1,7 @@
 import { API } from '@/constants/api'
 import type { Finding, FindingResource, FindingType } from '@/types/finding'
-import { USE_MOCKS, getJson } from './fetch'
 import { decodeAnnotations, type AnnotationsResponse } from './decode'
+import { decodeTypeEntity, makeResourceApi } from './resource'
 
 interface FindingResponse {
   findingId: string
@@ -50,59 +50,35 @@ function decodeFinding(res: FindingResponse): Finding {
   }
 }
 
-function decodeFindingType(res: Record<string, unknown>): FindingType {
-  return {
-    findingTypeId: (res.findingTypeId as string) ?? (res.instanceId as string) ?? '',
-    displayName: (res.displayName as string) ?? '',
-    description: (res.description as string) ?? '',
-    annotations: decodeAnnotations(res.annotations as AnnotationsResponse | undefined),
-  }
-}
+// the finding list endpoint returns full findings, not minimal list items
+const findings = makeResourceApi<Finding, FindingResponse, FindingResponse>({
+  name: 'Finding',
+  namePlural: 'findings',
+  listPath: API.FINDINGS.list,
+  byIdPath: API.FINDINGS.byId,
+  mocks: async () => (await import('@/mocks/findings')).findings,
+  idOf: (f) => f.findingId,
+  fromList: decodeFinding,
+  decode: decodeFinding,
+})
 
-function findingTypeFromList(item: FindingTypeListItem): FindingType {
-  return {
-    findingTypeId: item.findingTypeId,
-    displayName: item.displayName,
-    annotations: {},
-  }
-}
+export const fetchFindings = findings.fetchAll
+export const fetchFindingById = findings.fetchById
 
-export async function fetchFindings(): Promise<Finding[]> {
-  if (USE_MOCKS) {
-    const { findings } = await import('@/mocks/findings')
-    return findings
-  }
-  const data = await getJson<FindingResponse[]>(API.FINDINGS.list, 'findings')
-  return data.map(decodeFinding)
-}
+const findingTypes = makeResourceApi<FindingType, Record<string, unknown>, FindingTypeListItem>({
+  name: 'Finding type',
+  namePlural: 'finding types',
+  listPath: API.FINDING_TYPES.list,
+  byIdPath: API.FINDING_TYPES.byId,
+  mocks: async () => (await import('@/mocks/findings')).findingTypes,
+  idOf: (t) => t.findingTypeId,
+  fromList: (item) =>
+    decodeTypeEntity('findingTypeId', {
+      findingTypeId: item.findingTypeId,
+      displayName: item.displayName,
+    }),
+  decode: (res) => decodeTypeEntity('findingTypeId', res),
+})
 
-export async function fetchFindingById(id: string): Promise<Finding> {
-  if (USE_MOCKS) {
-    const { findings } = await import('@/mocks/findings')
-    const found = findings.find((f) => f.findingId === id)
-    if (!found) throw new Error(`Finding ${id} not found in mocks`)
-    return found
-  }
-  return decodeFinding(await getJson<FindingResponse>(API.FINDINGS.byId(id), `finding ${id}`))
-}
-
-export async function fetchFindingTypes(): Promise<FindingType[]> {
-  if (USE_MOCKS) {
-    const { findingTypes } = await import('@/mocks/findings')
-    return findingTypes
-  }
-  const data = await getJson<FindingTypeListItem[]>(API.FINDING_TYPES.list, 'finding types')
-  return data.map(findingTypeFromList)
-}
-
-export async function fetchFindingTypeById(id: string): Promise<FindingType> {
-  if (USE_MOCKS) {
-    const { findingTypes } = await import('@/mocks/findings')
-    const found = findingTypes.find((t) => t.findingTypeId === id)
-    if (!found) throw new Error(`Finding type ${id} not found in mocks`)
-    return found
-  }
-  return decodeFindingType(
-    await getJson<Record<string, unknown>>(API.FINDING_TYPES.byId(id), `finding type ${id}`),
-  )
-}
+export const fetchFindingTypes = findingTypes.fetchAll
+export const fetchFindingTypeById = findingTypes.fetchById
