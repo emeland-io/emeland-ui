@@ -62,12 +62,12 @@ function typeName(context: Context): string | undefined {
     <template #badges>
       <ChildCountBars
         :count="row.childCount"
-        :title="`${row.childCount} sub-context(s)`"
+        noun="sub-context"
       />
       <FindingsBadge :count="findingCount(row.item.contextId)" />
       <InstanceCountBadge
         :count="instanceCount(row.item.contextId)"
-        :title="`${instanceCount(row.item.contextId)} system instance(s)`"
+        noun="system instance"
       />
     </template>
   </ResourceTreeRow>

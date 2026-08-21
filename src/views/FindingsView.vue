@@ -10,6 +10,7 @@ import DetailAnnotationsSection from '@/components/detail/DetailAnnotationsSecti
 import ResourceViewShell from '@/components/view/ResourceViewShell.vue'
 import CopyButton from '@/components/CopyButton.vue'
 import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
+import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
 import ViewHeader from '@/components/view/ViewHeader.vue'
 import EmptyState from '@/components/view/EmptyState.vue'
 import ListPaneBar from '@/components/view/ListPaneBar.vue'
@@ -179,12 +180,10 @@ useListKeyboardNav(
             @open-type="typesDrawer.openType"
           />
         </div>
-        <div
+        <DetailEmptyState
           v-else
-          class="flex flex-1 items-center justify-center"
-        >
-          <span class="font-mono text-label text-text-id">Select a finding to inspect</span>
-        </div>
+          label="Select a finding to inspect"
+        />
       </template>
     </ListDetail>
 
@@ -215,7 +214,7 @@ useListKeyboardNav(
           </div>
           <div
             v-if="type.description"
-            class="mt-1 truncate text-meta text-text-id"
+            class="mt-1 truncate text-meta text-text-3"
           >
             {{ type.description }}
           </div>
@@ -224,7 +223,7 @@ useListKeyboardNav(
           <template v-if="selectedType">
             <h3 class="text-title font-medium text-text-1">{{ selectedType.displayName }}</h3>
             <div class="mt-2 flex items-center gap-2">
-              <span class="font-mono text-label text-text-id">
+              <span class="font-mono text-label text-text-3">
                 {{ selectedType.findingTypeId }}
               </span>
               <CopyButton

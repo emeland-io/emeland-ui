@@ -2,7 +2,7 @@
 import { useSystemStore } from '@/stores/systems'
 import { useInstanceContext } from '@/composables/useInstanceContext'
 import InstancesBoard from '@/components/InstancesBoard.vue'
-import TypeChip from '@/components/TypeChip.vue'
+import TypeGlyph from '@/components/TypeGlyph.vue'
 import type { ComponentInstance } from '@/types/component'
 
 withDefaults(
@@ -40,7 +40,7 @@ function systemInstanceName(id: string): string | undefined {
         class="flex max-w-[45%] shrink-0 items-baseline gap-1 font-mono text-micro text-text-4"
         :title="systemInstanceName(inst.systemInstance)"
       >
-        <TypeChip type="SystemInstance" />
+        <TypeGlyph type="SystemInstance" />
         <span class="truncate">{{ systemInstanceName(inst.systemInstance) }}</span>
       </span>
     </template>
@@ -49,7 +49,7 @@ function systemInstanceName(id: string): string | undefined {
         v-if="systemInstanceName(inst.systemInstance)"
         class="flex shrink-0 items-center gap-1 font-mono text-micro text-text-4"
       >
-        <TypeChip type="SystemInstance" />
+        <TypeGlyph type="SystemInstance" />
         {{ systemInstanceName(inst.systemInstance) }}
       </span>
     </template>

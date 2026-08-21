@@ -97,13 +97,12 @@ function mappingState(inst: SystemInstance) {
       <template #badges>
         <ChildCountBars
           :count="row.childCount"
-          :title="`${row.childCount} sub-system(s)`"
+          noun="sub-system"
         />
         <FindingsBadge :count="findingCount(row.item.systemId)" />
         <InstanceCountBadge
           v-if="store.instancesLoaded"
           :count="instanceCount(row.item.systemId)"
-          :title="`${instanceCount(row.item.systemId)} instance(s)`"
         />
       </template>
     </ResourceTreeRow>

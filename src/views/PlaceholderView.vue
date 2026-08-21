@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { useNavEntry } from '@/composables/useNavigation'
 import ViewHeader from '@/components/view/ViewHeader.vue'
 import NotReadyNotice from '@/components/view/NotReadyNotice.vue'
-import TypeChip from '@/components/TypeChip.vue'
+import TypeGlyph from '@/components/TypeGlyph.vue'
 
 /**
  * Stand-in for views whose backend resources do not exist yet
@@ -18,7 +18,7 @@ const title = computed(() => entry.value?.item.label ?? String(route.name ?? 'Co
 <template>
   <div class="flex h-full flex-col">
     <ViewHeader :title="title">
-      <TypeChip
+      <TypeGlyph
         v-if="entry"
         :type="entry.item.type"
         :letter="entry.item.chip"

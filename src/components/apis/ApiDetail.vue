@@ -10,7 +10,7 @@ import { useResourceNav } from '@/composables/useResourceNav'
 import { useFindingsForResource } from '@/composables/useFindingsForResource'
 import { useInstanceContext } from '@/composables/useInstanceContext'
 import CopyButton from '@/components/CopyButton.vue'
-import TypeChip from '@/components/TypeChip.vue'
+import TypeGlyph from '@/components/TypeGlyph.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
 import DetailHeader from '@/components/detail/DetailHeader.vue'
@@ -341,7 +341,7 @@ const diffNote = computed(() => {
                   class="flex shrink-0 items-center gap-1 font-mono text-micro text-text-4"
                   :title="row.systemInstance"
                 >
-                  <TypeChip type="Context" />
+                  <TypeGlyph type="Context" />
                   {{ row.context }}
                 </span>
               </span>

@@ -4,7 +4,7 @@ import type { NavItem } from '@/composables/useNavigation'
 import { useSidebarNav } from '@/composables/useSidebarNav'
 import { useSidebarWidth } from '@/composables/useSidebarWidth'
 import { useSidebarHover } from '@/composables/useSidebarHover'
-import TypeChip from '@/components/TypeChip.vue'
+import TypeGlyph from '@/components/TypeGlyph.vue'
 
 const props = defineProps<{
   item: NavItem
@@ -39,7 +39,7 @@ function onLeave() {
     @mouseleave="onLeave"
   >
     <span class="relative flex shrink-0">
-      <TypeChip
+      <TypeGlyph
         :type="item.type"
         :letter="item.chip"
         :label="item.label"

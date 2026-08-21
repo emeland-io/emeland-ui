@@ -3,7 +3,7 @@ import type { Component } from '@/types/component'
 import type { GraphModel, GraphEdge } from '@/types/graph'
 import { layoutDag, frameUnmappedNodes, type DagNode as DagNodeSpec } from './layoutDag'
 import { prefixedId } from './ids'
-import { findingData, instanceNameRefs } from './helpers'
+import { apiRelationNames, findingData, instanceNameRefs } from './helpers'
 
 export interface ApiGraphInput {
   apis: Api[]
@@ -43,10 +43,7 @@ export function buildApiGraph({
   // display-ready provider/consumer names for the tooltip relation sections
   // (only when the component layer is shown — matching the visible edges)
   const relationNames = (apiId: string, dir: 'provides' | 'consumes') =>
-    components
-      .filter((c) => c[dir].includes(apiId))
-      .map((c) => c.displayName)
-      .sort((a, b) => a.localeCompare(b))
+    apiRelationNames(components, apiId, dir)
 
   const nodes: DagNodeSpec[] = apis.map((a) => ({
     id: prefixedId('api', a.apiId),

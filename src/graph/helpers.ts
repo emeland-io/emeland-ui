@@ -24,6 +24,21 @@ export function findingData(
   }
 }
 
+/**
+ * Display names of the components providing/consuming an API, sorted — the
+ * tooltip relation sections of api nodes (emitted by the builders)
+ */
+export function apiRelationNames(
+  components: { provides: string[]; consumes: string[]; displayName: string }[],
+  apiId: string,
+  dir: 'provides' | 'consumes',
+): string[] {
+  return components
+    .filter((c) => c[dir].includes(apiId))
+    .map((c) => c.displayName)
+    .sort((a, b) => a.localeCompare(b))
+}
+
 /** `sub:` contains edges from each item to its parent, skipping missing parents */
 export function containsEdges<T>(
   items: T[],

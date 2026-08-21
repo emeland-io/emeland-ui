@@ -1,8 +1,9 @@
 <script setup lang="ts">
-defineProps<{
-  count: number
-  title: string
-}>()
+import { computed } from 'vue'
+import { pluralize } from '@/utils/text'
+
+const props = withDefaults(defineProps<{ count: number; noun?: string }>(), { noun: 'instance' })
+const title = computed(() => pluralize(props.count, props.noun))
 </script>
 
 <template>

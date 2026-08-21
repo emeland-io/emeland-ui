@@ -2,7 +2,7 @@ import type { Component, ComponentInstance } from '@/types/component'
 import type { GraphModel, GraphEdge } from '@/types/graph'
 import { layoutDag, frameUnmappedNodes, type DagNode as DagNodeSpec } from './layoutDag'
 import { prefixedId } from './ids'
-import { findingData, instanceNameRefs } from './helpers'
+import { apiRelationNames, findingData, instanceNameRefs } from './helpers'
 
 export interface ComponentGraphInput {
   components: Component[]
@@ -43,10 +43,7 @@ export function buildComponentGraph({
   const apiNodeIds = new Set<string>()
 
   const relationNames = (apiId: string, dir: 'provides' | 'consumes') =>
-    components
-      .filter((c) => c[dir].includes(apiId))
-      .map((c) => c.displayName)
-      .sort((a, b) => a.localeCompare(b))
+    apiRelationNames(components, apiId, dir)
 
   const ensureApiNode = (id: string) => {
     if (apiNodeIds.has(id)) return

@@ -116,7 +116,6 @@ function mappingState(inst: ApiInstance) {
         <InstanceCountBadge
           v-if="store.instancesLoaded"
           :count="instanceCount(api.apiId)"
-          :title="`${instanceCount(api.apiId)} instance(s)`"
         />
       </template>
     </ResourceListRow>

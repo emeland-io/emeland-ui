@@ -10,6 +10,7 @@ import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
+import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
 import FindingCard from '@/components/detail/FindingCard.vue'
 import FilterToolbar from '@/components/toolbar/FilterToolbar.vue'
 import FilterChipGroup from '@/components/toolbar/FilterChipGroup.vue'
@@ -24,6 +25,7 @@ import { useFindingsForResource } from '@/composables/useFindingsForResource'
 import { useTypesDrawer } from '@/composables/useTypesDrawer'
 import { toggledSet } from '@/utils/set'
 import { matchesAnnotations, matchesQuery } from '@/utils/search'
+import { pluralize } from '@/utils/text'
 import { categoryColorForNode, categoryColorForName } from '@/constants/nodeCategory'
 import type { Node, NodeType } from '@/types/node'
 
@@ -195,14 +197,14 @@ useListKeyboardNav(
                 </span>
                 <span
                   v-if="nodeVersion(node.annotations)"
-                  class="font-mono text-meta text-text-id"
+                  class="font-mono text-meta text-text-3"
                 >
                   {{ nodeVersion(node.annotations) }}
                 </span>
                 <span
                   v-if="findingsStore.findingCountFor(node.nodeId) > 0"
                   class="ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
-                  :title="`${findingsStore.findingCountFor(node.nodeId)} finding(s)`"
+                  :title="pluralize(findingsStore.findingCountFor(node.nodeId), 'finding')"
                 >
                   <IconAlertTriangle
                     :size="10"
@@ -226,7 +228,7 @@ useListKeyboardNav(
             <div class="flex items-start justify-between gap-4">
               <h2 class="text-title font-medium text-text-1">{{ selectedNode.displayName }}</h2>
               <div class="flex items-center gap-1.5">
-                <span class="font-mono text-label text-text-id">{{ selectedNode.nodeId }}</span>
+                <span class="font-mono text-label text-text-3">{{ selectedNode.nodeId }}</span>
                 <CopyButton
                   :value="selectedNode.nodeId"
                   :size="13"
@@ -354,12 +356,10 @@ useListKeyboardNav(
             </div>
           </div>
         </div>
-        <div
+        <DetailEmptyState
           v-else
-          class="flex flex-1 items-center justify-center"
-        >
-          <span class="font-mono text-label text-text-id">Select a node to inspect</span>
-        </div>
+          label="Select a node to inspect"
+        />
       </template>
     </ListDetail>
 
@@ -396,7 +396,7 @@ useListKeyboardNav(
               >
                 {{ selectedType.displayName }}
               </span>
-              <span class="font-mono text-label text-text-id">{{ selectedType.nodeTypeId }}</span>
+              <span class="font-mono text-label text-text-3">{{ selectedType.nodeTypeId }}</span>
               <CopyButton
                 :value="selectedType.nodeTypeId"
                 :size="13"

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { IconArrowsExchange } from '@tabler/icons-vue'
-import TypeChip from '@/components/TypeChip.vue'
+import TypeGlyph from '@/components/TypeGlyph.vue'
 import type { ResourceType } from '@/types/common'
 
 /**
  * - rect: node drawn as a (rounded) rectangle; pass `rx: 5` for the pill shape
  * - pentagon: node drawn as the clipped-corner shape; outlined when `stroke` is set
  * - arrow: edge marker, dashed for "consumes"-style relations
- * - chip: a TypeChip label prefix (e.g. System, Context)
+ * - chip: a TypeGlyph label prefix (e.g. System, Context)
  * - crossing: the boundary-crossing icon
  */
 export type LegendSwatch =
@@ -101,7 +101,7 @@ defineProps<{
             fill="var(--color-text-3)"
           />
         </svg>
-        <TypeChip
+        <TypeGlyph
           v-else-if="item.swatch.shape === 'chip'"
           :type="item.swatch.type"
         />

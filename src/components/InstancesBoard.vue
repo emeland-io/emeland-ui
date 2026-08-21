@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { IconLayoutGrid, IconList, IconSearch, IconLayoutSidebarRight } from '@tabler/icons-vue'
 import ViewModeSwitch from '@/components/ViewModeSwitch.vue'
-import TypeChip from '@/components/TypeChip.vue'
+import TypeGlyph from '@/components/TypeGlyph.vue'
 import type { ResolvedContext } from '@/composables/useInstanceContext'
 
 /**
@@ -185,7 +185,7 @@ const columns = computed(() => {
           v-if="ctx(inst).name"
           class="flex shrink-0 items-center gap-1 font-mono text-micro text-text-4"
         >
-          <TypeChip type="Context" />
+          <TypeGlyph type="Context" />
           {{ ctx(inst).name }}
         </span>
         <slot
