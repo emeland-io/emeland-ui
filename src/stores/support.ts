@@ -7,8 +7,8 @@ export interface LoadFlags {
 }
 
 /**
- * skip when already loaded or in flight, flip the
- * loading flag around `fn`, record thrown messages in `error`
+ * The stores' load-once shape: skip when already loaded or in flight, flip the
+ * loading flag around `fn`, record thrown messages in `error`.
  */
 export async function loadOnce(
   flags: LoadFlags,
@@ -28,7 +28,7 @@ export async function loadOnce(
   }
 }
 
-/** Replace `target` with a freshly fetched detail, clearing it on failure */
+/** Replace `target` with a freshly fetched detail, clearing it on failure. */
 export async function loadDetailRef<T>(target: Ref<T | null>, fetcher: () => Promise<T>) {
   target.value = null
   try {
