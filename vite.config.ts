@@ -3,12 +3,22 @@ import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 
-// vueDevTools only runs in the dev server
-import vueDevTools from 'vite-plugin-vue-devtools' 
+// dev tools 
+import vueDevTools from 'vite-plugin-vue-devtools'
+import Inspector from 'vite-plugin-vue-inspector'
 
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
-  plugins: [vue(), tailwindcss(), ...(command === 'serve' ? [vueDevTools()] : [])],
+  plugins: [
+    vue(),
+    tailwindcss(),
+    ...(command === 'serve'
+      ? [
+          vueDevTools({ componentInspector: false }),
+          Inspector({ launchEditor: 'code' }),
+        ]
+      : []),
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

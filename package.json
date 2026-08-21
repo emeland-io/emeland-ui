@@ -42,6 +42,7 @@
     "typescript-eslint": "^8.60.0",
     "vite": "^8.2.1",
     "vite-plugin-vue-devtools": "^8.2.1",
+    "vite-plugin-vue-inspector": "^7.0.0",
     "vitest": "^4.1.9",
     "vue-tsc": "^3.2.8"
   }
