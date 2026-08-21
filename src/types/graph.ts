@@ -66,6 +66,10 @@ export interface ApiNodeData extends BaseNodeData {
   crosses?: boolean
   /** number of contexts the API is consumed in but not provided in */
   crossCount?: number
+  /** display names of providing components (tooltip relation section) */
+  providers?: string[]
+  /** display names of consuming components (tooltip relation section) */
+  consumers?: string[]
 }
 export interface ComponentNodeData extends BaseNodeData {
   system?: string

@@ -34,7 +34,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   select: [id: string]
-  openInstance: [id: string]
+  'open-instance': [id: string]
 }>()
 
 const store = useSystemStore()
@@ -96,7 +96,7 @@ const legendColumns = computed<LegendItem[][]>(() => {
 
 function onNodeClick({ id, kind }: GraphNodeClick) {
   if (kind === 'system') emit('select', id)
-  else if (kind === 'instance') emit('openInstance', id)
+  else if (kind === 'instance') emit('open-instance', id)
 }
 </script>
 

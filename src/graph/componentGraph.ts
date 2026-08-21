@@ -42,6 +42,12 @@ export function buildComponentGraph({
   const unmappedNodes: DagNodeSpec[] = []
   const apiNodeIds = new Set<string>()
 
+  const relationNames = (apiId: string, dir: 'provides' | 'consumes') =>
+    components
+      .filter((c) => c[dir].includes(apiId))
+      .map((c) => c.displayName)
+      .sort((a, b) => a.localeCompare(b))
+
   const ensureApiNode = (id: string) => {
     if (apiNodeIds.has(id)) return
     apiNodeIds.add(id)
@@ -52,6 +58,8 @@ export function buildComponentGraph({
         label: apiName(id) ?? id,
         description: apiDescription?.(id),
         version: apiVersion?.(id),
+        providers: relationNames(id, 'provides'),
+        consumers: relationNames(id, 'consumes'),
       },
     })
   }

@@ -39,6 +39,15 @@ export function buildApiGraph({
   showInstances = false,
 }: ApiGraphInput): GraphModel {
   const presentApis = new Set(apis.map((a) => a.apiId))
+
+  // display-ready provider/consumer names for the tooltip relation sections
+  // (only when the component layer is shown — matching the visible edges)
+  const relationNames = (apiId: string, dir: 'provides' | 'consumes') =>
+    components
+      .filter((c) => c[dir].includes(apiId))
+      .map((c) => c.displayName)
+      .sort((a, b) => a.localeCompare(b))
+
   const nodes: DagNodeSpec[] = apis.map((a) => ({
     id: prefixedId('api', a.apiId),
     kind: 'api' as const,
@@ -50,6 +59,8 @@ export function buildApiGraph({
       crossCount: crossCountOf?.(a.apiId) || undefined,
       ...findingData(a.apiId, findingCountOf, findingKindsOf),
       instanceNames: instanceNameRefs(instancesOf?.(a.apiId) ?? [], instanceUnresolved),
+      providers: showComponents ? relationNames(a.apiId, 'provides') : undefined,
+      consumers: showComponents ? relationNames(a.apiId, 'consumes') : undefined,
     },
   }))
   const edges: GraphEdge[] = []

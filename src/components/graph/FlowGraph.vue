@@ -400,17 +400,10 @@ const tooltip = computed(() => {
     .slice()
     .sort((a, b) => (b.unresolved ? 1 : 0) - (a.unresolved ? 1 : 0) || a.name.localeCompare(b.name))
 
-  // api nodes: names of providing/consuming components, derived from the edges
-  // (mirrors how instance names are derived above)
-  const neighboursOf = (dir: 'in' | 'out') =>
-    props.edges
-      .filter((e) => (dir === 'in' ? e.target : e.source) === node.id)
-      .map((e) => byId.get(dir === 'in' ? e.source : e.target))
-      .filter((n) => n?.kind === 'component')
-      .map((n) => n!.data.label)
-      .sort((a, b) => a.localeCompare(b))
-  const providers = node.kind === 'api' ? neighboursOf('in') : []
-  const consumers = node.kind === 'api' ? neighboursOf('out') : []
+  // provider/consumer names are emitted by the builders (ApiNodeData)
+  const apiData = node.data as { providers?: string[]; consumers?: string[] }
+  const providers = apiData.providers ?? []
+  const consumers = apiData.consumers ?? []
 
   // Place the tooltip where it fits: above, below, right or left of the node
   const { x, y, zoom } = viewport.value
