@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { IconAlertTriangle } from '@tabler/icons-vue'
 import { useContextStore } from '@/stores/contexts'
 import { useSystemStore } from '@/stores/systems'
 import { useFindingsStore } from '@/stores/findings'
@@ -9,6 +10,7 @@ import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
 import DetailHeader from '@/components/detail/DetailHeader.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import DetailFindingsSection from '@/components/detail/DetailFindingsSection.vue'
 import DetailAnnotationsSection from '@/components/detail/DetailAnnotationsSection.vue'
 import ResourceLinkCard from '@/components/detail/ResourceLinkCard.vue'
@@ -68,19 +70,20 @@ const relatedFindings = useFindingsForResource(
     >
       <button
         v-if="context.contextTypeId"
-        class="group inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-label transition-opacity hover:opacity-80"
-        :class="typeUnknown ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent-text'"
+        class="transition-opacity hover:opacity-80"
         title="Show context type"
         @click="emit('open-type', context.contextTypeId)"
       >
-        {{ store.getTypeName(context) }}
+        <TypeTag :tone="typeUnknown ? 'error' : 'accent'">
+          {{ store.getTypeName(context) }}
+        </TypeTag>
       </button>
-      <span
+      <TypeTag
         v-else
-        class="rounded bg-error/10 px-2 py-0.5 font-mono text-label text-error"
+        tone="error"
       >
         Unknown
-      </span>
+      </TypeTag>
     </DetailHeader>
     <div class="flex flex-col gap-5 px-6 py-5">
       <DetailErrorBanner v-if="store.hasDetailError(context.contextId)" />
@@ -190,6 +193,12 @@ const relatedFindings = useFindingsForResource(
               :clickable="false"
               :copyable="false"
             >
+              <template #badge-icon>
+                <IconAlertTriangle
+                  :size="12"
+                  :stroke-width="2"
+                />
+              </template>
               <template #subline>
                 <span class="min-w-0 truncate text-meta text-error/80">
                   References a parent context that does not exist.

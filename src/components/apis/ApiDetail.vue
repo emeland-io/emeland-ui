@@ -14,6 +14,7 @@ import TypeChip from '@/components/TypeChip.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
 import DetailHeader from '@/components/detail/DetailHeader.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import DetailFindingsSection from '@/components/detail/DetailFindingsSection.vue'
 import DetailAnnotationsSection from '@/components/detail/DetailAnnotationsSection.vue'
 import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
@@ -125,18 +126,13 @@ const diffNote = computed(() => {
       :title="api.displayName"
       :version="api.version"
     >
-      <span
-        class="rounded px-2 py-0.5 font-mono text-label"
-        :class="api.type === 'Unknown' ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent-text'"
-      >
-        {{ api.type }}
-      </span>
-      <span
+      <TypeTag :tone="api.type === 'Unknown' ? 'muted' : 'accent'">{{ api.type }}</TypeTag>
+      <TypeTag
         v-if="api.version?.version"
-        class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3"
+        tone="muted"
       >
         v{{ api.version.version }}
-      </span>
+      </TypeTag>
     </DetailHeader>
     <div class="flex flex-col gap-5 px-6 py-5">
       <DetailErrorBanner v-if="store.hasDetailError(api.apiId)" />

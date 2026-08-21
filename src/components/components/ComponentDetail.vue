@@ -9,6 +9,7 @@ import { useFindingsForResource } from '@/composables/useFindingsForResource'
 import SectionLabel from '@/components/SectionLabel.vue'
 import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
 import DetailHeader from '@/components/detail/DetailHeader.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import DetailFindingsSection from '@/components/detail/DetailFindingsSection.vue'
 import DetailAnnotationsSection from '@/components/detail/DetailAnnotationsSection.vue'
 import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
@@ -70,15 +71,13 @@ function openInstance(id: string) {
       :title="component.displayName"
       :version="component.version"
     >
-      <span class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent-text">
-        Component
-      </span>
-      <span
+      <TypeTag>Component</TypeTag>
+      <TypeTag
         v-if="component.version?.version"
-        class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3"
+        tone="muted"
       >
         v{{ component.version.version }}
-      </span>
+      </TypeTag>
     </DetailHeader>
     <div class="flex flex-col gap-5 px-6 py-5">
       <DetailErrorBanner v-if="store.hasDetailError(component.componentId)" />

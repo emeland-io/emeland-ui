@@ -4,6 +4,7 @@ import { useContextStore } from '@/stores/contexts'
 import { useFindingsStore } from '@/stores/findings'
 import { useSystemRefGroups } from '@/composables/useUnmappedGroups'
 import MappingTag from '@/components/MappingTag.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import UnmappedSection from '@/components/UnmappedSection.vue'
 import ResourceTreeRow from '@/components/list/ResourceTreeRow.vue'
 import FindingsBadge from '@/components/list/FindingsBadge.vue'
@@ -84,12 +85,9 @@ function mappingState(inst: SystemInstance) {
       @select="emit('select', $event)"
       @toggle-collapse="emit('toggle-collapse', $event)"
     >
-      <span
-        class="rounded px-1.5 py-0.5 font-mono text-meta"
-        :class="row.item.abstract ? 'bg-bg-2 text-text-3' : 'bg-accent/10 text-accent-text'"
-      >
+      <TypeTag :tone="row.item.abstract ? 'muted' : 'accent'">
         {{ store.getKindForSystem(row.item) }}
-      </span>
+      </TypeTag>
       <span
         v-if="row.item.version?.version"
         class="font-mono text-meta text-text-4"

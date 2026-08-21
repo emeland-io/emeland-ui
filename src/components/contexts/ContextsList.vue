@@ -6,6 +6,7 @@ import ResourceTreeRow from '@/components/list/ResourceTreeRow.vue'
 import FindingsBadge from '@/components/list/FindingsBadge.vue'
 import InstanceCountBadge from '@/components/list/InstanceCountBadge.vue'
 import ChildCountBars from '@/components/list/ChildCountBars.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import type { HierarchyRow } from '@/composables/useHierarchyRows'
 import type { Context } from '@/types/context'
 
@@ -57,12 +58,7 @@ function typeName(context: Context): string | undefined {
     @select="emit('select', $event)"
     @toggle-collapse="emit('toggle-collapse', $event)"
   >
-    <span
-      v-if="typeName(row.item)"
-      class="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent-text"
-    >
-      {{ typeName(row.item) }}
-    </span>
+    <TypeTag v-if="typeName(row.item)">{{ typeName(row.item) }}</TypeTag>
     <template #badges>
       <ChildCountBars
         :count="row.childCount"

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * Uppercase resource/kind tag shown next to resource names in detail drawers and
- * boards (e.g. "SYSTEM", "CONTEXT", "COMPONENTINSTANCE"). Autosizes to its text
- * with clean padding.
+ * Resource/kind tag shown next to resource names in lists, detail drawers and
+ * boards (e.g. "System", "Context", "ComponentInstance")
+ * Autosizes to its text with clean padding; values render as-is (title case)
  *
  *   <Tag>System</Tag>
  *   <Tag tone="error">Context</Tag>
@@ -19,13 +19,13 @@ withDefaults(
 
 <template>
   <span
-    class="inline-flex shrink-0 items-center justify-center gap-1 rounded px-2 py-0.5 font-mono text-meta font-semibold uppercase"
+    class="inline-flex shrink-0 items-center justify-center gap-1 rounded px-1.5 py-0.5 font-mono text-meta"
     :class="
       tone === 'error'
         ? 'bg-error/10 text-error'
         : tone === 'muted'
           ? 'bg-bg-2 text-text-3'
-          : 'bg-accent/10 text-accent-text'
+          : 'bg-accent/10 text-accent'
     "
   >
     <slot />

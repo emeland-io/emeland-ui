@@ -57,6 +57,7 @@ const emit = defineEmits<{
         v-if="badge"
         :tone="badgeError ? 'error' : badgeMuted ? 'muted' : 'accent'"
       >
+        <slot name="badge-icon" />
         {{ badge }}
       </TypeTag>
       <span

@@ -6,6 +6,7 @@ import { useFindingsStore } from '@/stores/findings'
 import { useInstanceContext } from '@/composables/useInstanceContext'
 import { useSystemInstanceGroups } from '@/composables/useUnmappedGroups'
 import MappingTag from '@/components/MappingTag.vue'
+import TypeTag from '@/components/TypeTag.vue'
 import UnmappedSection from '@/components/UnmappedSection.vue'
 import ResourceListRow from '@/components/list/ResourceListRow.vue'
 import FindingsBadge from '@/components/list/FindingsBadge.vue'
@@ -86,12 +87,7 @@ function mappingState(inst: ApiInstance) {
       :selected="api.apiId === selectedId"
       @select="emit('select', $event)"
     >
-      <span
-        class="rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta"
-        :class="api.type === 'Unknown' ? 'text-text-4' : 'text-text-3'"
-      >
-        {{ api.type }}
-      </span>
+      <TypeTag tone="muted">{{ api.type }}</TypeTag>
       <span
         v-if="systemName(api.system)"
         class="rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta text-text-3"
