@@ -1,5 +1,10 @@
 # Keeps dependencies current and opens PRs for security patches,
 # opened as soon as an advisory is published
+#
+# Minor/patch updates are bundled into a single grouped PR per ecosystem and
+# auto-merged once CI passes (see .github/workflows/dependabot-auto-merge.yml)
+# 
+# Major updates always come as their own PR for manual review
 version: 2
 updates:
   - package-ecosystem: npm
@@ -7,8 +12,25 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
+    groups:
+      npm-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+      npm-security:
+        applies-to: security-updates
+        update-types:
+          - minor
+          - patch
 
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: weekly
+    groups:
+      actions-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
