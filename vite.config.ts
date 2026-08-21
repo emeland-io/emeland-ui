@@ -2,10 +2,13 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
- 
+
+// vueDevTools only runs in the dev server
+import vueDevTools from 'vite-plugin-vue-devtools' 
+
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [vue(), tailwindcss()],
+export default defineConfig(({ command }) => ({
+  plugins: [vue(), tailwindcss(), ...(command === 'serve' ? [vueDevTools()] : [])],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -19,4 +22,4 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-})
+}))
