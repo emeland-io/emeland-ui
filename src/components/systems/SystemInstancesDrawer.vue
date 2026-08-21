@@ -88,7 +88,6 @@ const { navIndex, step: stepInstance } = useDrawerNav({
         <RelationRow
           :id="drawerInstance.system"
           badge="System"
-          fixed-badge
           :name="store.systemMap.get(drawerInstance.system)?.displayName ?? drawerInstance.system"
           clickable
           title="Go to system"

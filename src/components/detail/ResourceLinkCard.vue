@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { IconArrowUpRight } from '@tabler/icons-vue'
 import CopyButton from '@/components/CopyButton.vue'
+import TypeTag from '@/components/TypeTag.vue'
 
 /**
  * Stacked related-resource card in the detail panes:
@@ -13,7 +14,7 @@ withDefaults(
   defineProps<{
     name: string
     id: string
-    /** fixed-width uppercase badge; omit for badge-less rows */
+    /** uppercase tag; omit for tag-less rows */
     badge?: string
     /** muted badge tone (e.g. abstract systems) instead of accent */
     badgeMuted?: boolean
@@ -52,19 +53,12 @@ const emit = defineEmits<{
     @click="clickable && emit('click')"
   >
     <span class="group/row flex w-full items-center gap-3">
-      <span
+      <TypeTag
         v-if="badge"
-        class="w-28 shrink-0 rounded px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase"
-        :class="
-          badgeError
-            ? 'bg-error/10 text-error'
-            : badgeMuted
-              ? 'bg-bg-2 text-text-3'
-              : 'bg-accent/10 text-accent-text'
-        "
+        :tone="badgeError ? 'error' : badgeMuted ? 'muted' : 'accent'"
       >
         {{ badge }}
-      </span>
+      </TypeTag>
       <span
         class="min-w-0 truncate text-body transition-colors"
         :class="[

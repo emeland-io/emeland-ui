@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { IconArrowUpRight } from '@tabler/icons-vue'
 import CopyButton from '@/components/CopyButton.vue'
+import TypeTag from '@/components/TypeTag.vue'
 
 /**
  * A related-resource row in a drawer or detail pane: [badge] name  ... id
@@ -15,8 +16,6 @@ withDefaults(
     /** badge text; omitted = no badge (e.g. contexts without a type) */
     badge?: string
     badgeTone?: 'accent' | 'error'
-    /** fixed badge width so stacked rows align */
-    fixedBadge?: boolean
     nameTone?: 'default' | 'error'
     clickable?: boolean
     title?: string
@@ -24,7 +23,6 @@ withDefaults(
   {
     badge: undefined,
     badgeTone: 'accent',
-    fixedBadge: false,
     nameTone: 'default',
     clickable: false,
     title: undefined,
@@ -44,16 +42,12 @@ const emit = defineEmits<{
     :title="clickable ? title : undefined"
     @click="clickable && emit('click')"
   >
-    <span
+    <TypeTag
       v-if="badge"
-      class="shrink-0 rounded px-2 py-0.5 text-center font-mono text-meta font-semibold uppercase"
-      :class="[
-        fixedBadge ? 'w-28' : '',
-        badgeTone === 'error' ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent-text',
-      ]"
+      :tone="badgeTone"
     >
       {{ badge }}
-    </span>
+    </TypeTag>
     <span
       class="max-w-full truncate text-body transition-colors"
       :class="[

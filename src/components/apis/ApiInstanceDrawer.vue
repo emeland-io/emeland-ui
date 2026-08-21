@@ -129,7 +129,6 @@ const { navIndex, step: stepInstance } = useDrawerNav({
         <RelationRow
           :id="instance.api"
           badge="API"
-          fixed-badge
           :badge-tone="apiResolvable ? 'accent' : 'error'"
           :name="apiResolvable ? (apiName ?? instance.api) : 'Unresolved API'"
           :name-tone="apiResolvable ? 'default' : 'error'"
@@ -145,7 +144,6 @@ const { navIndex, step: stepInstance } = useDrawerNav({
         <RelationRow
           :id="instance.systemInstance"
           badge="Instance"
-          fixed-badge
           :name="systemInstance?.displayName ?? instance.systemInstance"
           :clickable="!!systemInstance?.system"
           title="Go to system"

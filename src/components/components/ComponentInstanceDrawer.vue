@@ -116,7 +116,6 @@ const { navIndex, step: stepInstance } = useDrawerNav({
         <RelationRow
           :id="instance.component"
           badge="Component"
-          fixed-badge
           :name="componentName ?? instance.component"
           clickable
           title="Go to component"
@@ -130,7 +129,6 @@ const { navIndex, step: stepInstance } = useDrawerNav({
         <RelationRow
           :id="instance.systemInstance"
           badge="Instance"
-          fixed-badge
           :name="systemInstance?.displayName ?? instance.systemInstance"
           :clickable="!!systemInstance?.system"
           title="Go to system"
