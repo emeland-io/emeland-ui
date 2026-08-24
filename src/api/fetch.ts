@@ -1,5 +1,7 @@
 import { getToken, login, getAuthConfig } from '@/auth'
 
+export const USE_MOCKS = import.meta.env.VITE_EMEL_DEV_USE_MOCKS === 'true'
+
 let authEnabled: boolean | null = null
 
 async function isAuthEnabled(): Promise<boolean> {
@@ -40,4 +42,10 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
   }
 
   return resp
+}
+
+export async function getJson<T>(path: string, what: string): Promise<T> {
+  const resp = await apiFetch(path)
+  if (!resp.ok) throw new Error(`Failed to load ${what}: ${resp.status}`)
+  return resp.json() as Promise<T>
 }

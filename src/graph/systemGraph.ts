@@ -1,6 +1,7 @@
 import type { System, SystemInstance } from '@/types/system'
 import type { GraphModel, GraphEdge } from '@/types/graph'
 import { layoutDag, type DagNode } from './layoutDag'
+import { containsEdges, findingData, instanceNameRefs } from './helpers'
 
 export interface SystemGraphInput {
   systems: System[]
@@ -18,40 +19,25 @@ export function buildSystemGraph({
   instanceUnresolved,
 }: SystemGraphInput): GraphModel {
   const allSystems = systems ?? []
-  const present = new Set(allSystems.map((s) => s.systemId))
 
-  const nodes: DagNode[] = allSystems.map((system) => {
-    const instances = instancesOf?.(system.systemId) ?? []
-    return {
-      id: system.systemId,
-      kind: 'system',
-      data: {
-        label: system.displayName,
-        abstract: system.abstract,
-        description: system.description || undefined,
-        version: system.version?.version || undefined,
-        findings: findingCountOf?.(system.systemId) || undefined,
-        findingKinds: findingKindsOf?.(system.systemId),
-        instanceNames: instances.length
-          ? instances.map((i) => ({
-              name: i.displayName,
-              unresolved: instanceUnresolved?.(i) || undefined,
-            }))
-          : undefined,
-      },
-    }
-  })
+  const nodes: DagNode[] = allSystems.map((system) => ({
+    id: system.systemId,
+    kind: 'system',
+    data: {
+      label: system.displayName,
+      abstract: system.abstract,
+      description: system.description || undefined,
+      version: system.version?.version || undefined,
+      ...findingData(system.systemId, findingCountOf, findingKindsOf),
+      instanceNames: instanceNameRefs(instancesOf?.(system.systemId) ?? [], instanceUnresolved),
+    },
+  }))
 
-  const edges: GraphEdge[] = []
-  for (const system of allSystems) {
-    if (!system.parent || !present.has(system.parent)) continue
-    edges.push({
-      id: `sub:${system.parent}:${system.systemId}`,
-      source: system.parent,
-      target: system.systemId,
-      kind: 'contains',
-    })
-  }
+  const edges: GraphEdge[] = containsEdges(
+    allSystems,
+    (s) => s.systemId,
+    (s) => s.parent,
+  )
 
   return layoutDag({ nodes, edges, direction: 'LR' })
 }

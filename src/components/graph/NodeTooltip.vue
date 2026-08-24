@@ -8,7 +8,8 @@ import {
 } from '@tabler/icons-vue'
 import type { GraphNode, GraphNodeKind, NodeInstanceRef } from '@/types/graph'
 import type { ResourceType } from '@/types/common'
-import TypeChip from '@/components/TypeChip.vue'
+import { pluralize } from '@/utils/text'
+import TypeGlyph from '@/components/TypeGlyph.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -115,10 +116,9 @@ const moreConsumers = computed(() => Math.max(0, props.consumers.length - MAX_RE
 
 const stats = computed(() => {
   if (props.node.kind !== 'api') return ''
-  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
   return [
-    props.incoming ? plural(props.incoming, 'provider') : '',
-    props.outgoing ? plural(props.outgoing, 'consumer') : '',
+    props.incoming ? pluralize(props.incoming, 'provider') : '',
+    props.outgoing ? pluralize(props.outgoing, 'consumer') : '',
   ]
     .filter(Boolean)
     .join(' · ')
@@ -202,13 +202,13 @@ const showStats = computed(() => stats.value !== '')
         :key="inst.name"
         class="flex items-center gap-1.5 py-px text-micro text-text-2"
       >
-        <TypeChip
+        <TypeGlyph
           v-if="parentType"
           :type="parentType"
           instance
           :tone="inst.unresolved ? 'error' : undefined"
         />
-        <TypeChip
+        <TypeGlyph
           v-else
           letter="I"
           label="Instance"
@@ -281,7 +281,7 @@ const showStats = computed(() => stats.value !== '')
       v-if="instanceCount || unresolvedCount || showStats"
       class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-border-1 pt-1.5 font-mono text-micro text-text-3"
     >
-      <span v-if="instanceCount">{{ instanceCount }} inst</span>
+      <span v-if="instanceCount">{{ pluralize(instanceCount, 'instance') }}</span>
       <span
         v-if="unresolvedCount"
         class="text-error"

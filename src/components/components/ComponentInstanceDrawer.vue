@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconArrowUpRight, IconArrowUp, IconArrowDown } from '@tabler/icons-vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
-import { useContextStore } from '@/stores/contexts'
 import { useInstanceContext } from '@/composables/useInstanceContext'
+import { useContextLabels } from '@/composables/useContextLabels'
 import { useResourceNav } from '@/composables/useResourceNav'
+import { useDrawerNav } from '@/composables/useDrawerNav'
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
-import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
-import TypeTag from '@/components/TypeTag.vue'
-import AnnotationsTable from '@/components/AnnotationsTable.vue'
 import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
 import MappingTag from '@/components/MappingTag.vue'
+import RelationRow from '@/components/RelationRow.vue'
+import DrawerIdRow from '@/components/drawer/DrawerIdRow.vue'
+import DrawerAnnotationsSection from '@/components/drawer/DrawerAnnotationsSection.vue'
+import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
+import ApiChipCloud from '@/components/apis/ApiChipCloud.vue'
 import { mappingStateOf } from '@/utils/mapping'
 
 const props = defineProps<{
@@ -31,7 +33,6 @@ const emit = defineEmits<{
 const store = useComponentStore()
 const systemStore = useSystemStore()
 const apiStore = useApiStore()
-const contextStore = useContextStore()
 const { contextForInstance } = useInstanceContext()
 const { goToResource } = useResourceNav()
 
@@ -57,14 +58,7 @@ const systemInstance = computed(() => {
 
 const context = computed(() => (instance.value ? contextForInstance(instance.value) : undefined))
 
-const contextType = computed(() => {
-  const id = context.value?.id
-  if (!id) return undefined
-  const ctx = contextStore.contextMap.get(id)
-  if (!ctx) return undefined
-  const type = contextStore.getTypeName(ctx)
-  return type === 'Unknown' ? undefined : type
-})
+const { contextType } = useContextLabels()
 
 const provides = computed(() =>
   (instance.value?.provides ?? []).map((id) => ({ id, name: apiStore.getApiName(id) ?? id })),
@@ -78,15 +72,12 @@ function navigate(type: 'Component' | 'System' | 'Context' | 'API', id: string) 
   goToResource(type, id)
 }
 
-const navIndex = computed(() => props.navIds?.indexOf(props.selectedInstanceId) ?? -1)
-
-function stepInstance(step: -1 | 1) {
-  const ids = props.navIds
-  if (!ids || navIndex.value < 0) return
-  const next = ids[navIndex.value + step]
-  if (next !== undefined) emit('navigate', next)
-  else emit('nav-exit', step)
-}
+const { navIndex, step: stepInstance } = useDrawerNav({
+  navIds: () => props.navIds,
+  current: () => props.selectedInstanceId,
+  onNavigate: (id) => emit('navigate', id),
+  onExit: (step) => emit('nav-exit', step),
+})
 </script>
 
 <template>
@@ -109,21 +100,10 @@ function stepInstance(step: -1 | 1) {
     >
       <!-- identity -->
       <div>
-        <div
-          class="grid gap-4 border-b border-border-1 py-0.5 text-data leading-snug"
-          style="grid-template-columns: minmax(160px, 30%) minmax(0, 1fr)"
-        >
-          <span class="text-text-3">Instance ID</span>
-          <span class="flex min-w-0 items-center gap-1.5">
-            <span class="break-all text-text-2">
-              {{ instance.componentInstanceId }}
-            </span>
-            <CopyButton
-              :value="instance.componentInstanceId"
-              :size="12"
-            />
-          </span>
-        </div>
+        <DrawerIdRow
+          label="Instance ID"
+          :value="instance.componentInstanceId"
+        />
         <WellKnownAnnotationsTable
           :annotations="instance.annotations"
           columns="minmax(160px, 30%) minmax(0, 1fr)"
@@ -133,161 +113,75 @@ function stepInstance(step: -1 | 1) {
       <!-- owning component -->
       <div v-if="instance.component">
         <SectionLabel>Component</SectionLabel>
-        <button
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
-          data-drawer-relation
+        <RelationRow
+          :id="instance.component"
+          badge="Component"
+          :name="componentName ?? instance.component"
+          clickable
           title="Go to component"
           @click="navigate('Component', instance.component)"
-        >
-          <TypeTag>Component</TypeTag>
-          <span
-            class="max-w-full truncate text-body text-text-2 transition-colors group-hover:text-accent"
-          >
-            {{ componentName ?? instance.component }}
-          </span>
-          <IconArrowUpRight
-            :size="16"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-          />
-          <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ instance.component }}</span>
-            <CopyButton
-              :value="instance.component"
-              :size="12"
-              @click.stop
-            />
-          </div>
-        </button>
+        />
       </div>
 
       <!-- system instance -->
       <div v-if="instance.systemInstance">
         <SectionLabel>System instance</SectionLabel>
-        <component
-          :is="systemInstance?.system ? 'button' : 'div'"
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
-          :data-drawer-relation="systemInstance?.system ? '' : undefined"
-          :title="systemInstance?.system ? 'Go to system' : undefined"
-          @click="systemInstance?.system && navigate('System', systemInstance.system)"
-        >
-          <TypeTag>Instance</TypeTag>
-          <span
-            class="max-w-full truncate text-body text-text-2 transition-colors"
-            :class="systemInstance?.system ? 'group-hover:text-accent' : ''"
-          >
-            {{ systemInstance?.displayName ?? instance.systemInstance }}
-          </span>
-          <IconArrowUpRight
-            v-if="systemInstance?.system"
-            :size="16"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-          />
-          <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ instance.systemInstance }}</span>
-            <CopyButton
-              :value="instance.systemInstance"
-              :size="12"
-              @click.stop
-            />
-          </div>
-        </component>
+        <RelationRow
+          :id="instance.systemInstance"
+          badge="Instance"
+          :name="systemInstance?.displayName ?? instance.systemInstance"
+          :clickable="!!systemInstance?.system"
+          title="Go to system"
+          @click="navigate('System', systemInstance!.system)"
+        />
       </div>
 
       <!-- context -->
       <div v-if="context?.id">
         <SectionLabel>Context</SectionLabel>
-        <button
-          class="group flex w-full items-center gap-3 border-b border-border-1 py-2 text-left last:border-b-0 focus-visible:bg-bg-2 focus-visible:outline-none"
-          data-drawer-relation
+        <RelationRow
+          :id="context.id"
+          :badge="contextType(context.id)"
+          :name="context.name ?? (context.unresolved ? 'Unresolved context' : context.id)"
+          :name-tone="context.unresolved ? 'error' : 'default'"
+          clickable
           title="Go to context"
-          @click="navigate('Context', context.id)"
-        >
-          <TypeTag v-if="contextType">{{ contextType }}</TypeTag>
-          <span
-            class="max-w-full truncate text-body transition-colors group-hover:text-accent"
-            :class="context.unresolved ? 'text-error' : 'text-text-2'"
-          >
-            {{ context.name ?? (context.unresolved ? 'Unresolved context' : context.id) }}
-          </span>
-          <IconArrowUpRight
-            :size="16"
-            :stroke-width="2"
-            class="shrink-0 text-text-4 transition-colors group-hover:text-accent"
-          />
-          <div class="ml-auto flex shrink-0 items-center gap-1.5">
-            <span class="font-mono text-meta text-text-4">{{ context.id }}</span>
-            <CopyButton
-              :value="context.id"
-              :size="12"
-              @click.stop
-            />
-          </div>
-        </button>
+          @click="navigate('Context', context!.id!)"
+        />
       </div>
 
       <!-- provides -->
       <div v-if="provides.length">
         <SectionLabel :count="provides.length">Provides APIs</SectionLabel>
-        <div class="flex flex-wrap gap-1.5">
-          <component
-            :is="apiStore.apiMap.has(api.id) ? 'button' : 'span'"
-            v-for="api in provides"
-            :key="api.id"
-            class="flex items-center gap-1 rounded bg-accent/10 px-1.5 py-0.5 font-mono text-meta text-accent-text transition-colors focus-visible:bg-accent/20 focus-visible:outline-none"
-            :class="apiStore.apiMap.has(api.id) ? 'hover:bg-accent/20' : ''"
-            :title="apiStore.apiMap.has(api.id) ? `Go to API — ${api.id}` : api.id"
-            :data-drawer-relation="apiStore.apiMap.has(api.id) ? '' : undefined"
-            @click="apiStore.apiMap.has(api.id) && navigate('API', api.id)"
-          >
-            <IconArrowUp
-              :size="11"
-              :stroke-width="2"
-            />
-            {{ api.name }}
-          </component>
-        </div>
+        <ApiChipCloud
+          :apis="provides"
+          direction="up"
+          size="meta"
+          mark-relations
+          @open="navigate('API', $event)"
+        />
       </div>
 
       <!-- consumes -->
       <div v-if="consumes.length">
         <SectionLabel :count="consumes.length">Consumes APIs</SectionLabel>
-        <div class="flex flex-wrap gap-1.5">
-          <component
-            :is="apiStore.apiMap.has(api.id) ? 'button' : 'span'"
-            v-for="api in consumes"
-            :key="api.id"
-            class="flex items-center gap-1 rounded bg-bg-2 px-1.5 py-0.5 font-mono text-meta text-text-3 transition-colors focus-visible:bg-bg-3 focus-visible:text-text-1 focus-visible:outline-none"
-            :class="apiStore.apiMap.has(api.id) ? 'hover:bg-bg-3 hover:text-text-1' : ''"
-            :title="apiStore.apiMap.has(api.id) ? `Go to API — ${api.id}` : api.id"
-            :data-drawer-relation="apiStore.apiMap.has(api.id) ? '' : undefined"
-            @click="apiStore.apiMap.has(api.id) && navigate('API', api.id)"
-          >
-            <IconArrowDown
-              :size="11"
-              :stroke-width="2"
-            />
-            {{ api.name }}
-          </component>
-        </div>
+        <ApiChipCloud
+          :apis="consumes"
+          tone="muted"
+          direction="down"
+          size="meta"
+          mark-relations
+          @open="navigate('API', $event)"
+        />
       </div>
 
       <!-- annotations -->
-      <div v-if="Object.keys(instance.annotations).length">
-        <SectionLabel>Annotations</SectionLabel>
-        <AnnotationsTable
-          :annotations="instance.annotations"
-          columns="minmax(180px, 30%) minmax(0, 1fr)"
-        />
-      </div>
+      <DrawerAnnotationsSection :annotations="instance.annotations" />
     </div>
 
-    <div
+    <DetailEmptyState
       v-else
-      class="flex flex-1 items-center justify-center"
-    >
-      <span class="font-mono text-label text-text-4">Instance not found</span>
-    </div>
+      label="Instance not found"
+    />
   </SlideOverDrawer>
 </template>

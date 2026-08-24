@@ -1,5 +1,6 @@
 import { toValue, type MaybeRefOrGetter } from 'vue'
 import { isEditableTarget } from '@/utils/dom'
+import { stepIndex } from '@/utils/stepIndex'
 import { useWindowKeydown } from '@/composables/useWindowKeydown'
 
 /** scrolls a list row (marked with data-row-id) into view */
@@ -28,22 +29,15 @@ export function useListKeyboardNav(
     if (isEditableTarget(e.target)) return
 
     const ids = toValue(rowIds)
-    const index = ids.indexOf(toValue(selectedId))
-    const next =
-      index < 0
-        ? e.key === 'ArrowUp'
-          ? ids.length - 1
-          : 0
-        : e.key === 'ArrowUp'
-          ? index - 1
-          : index + 1
+    const dir = e.key === 'ArrowUp' ? -1 : 1
     e.preventDefault()
     e.stopImmediatePropagation()
-    if (next >= ids.length && e.key === 'ArrowDown') {
-      onNextOverflow?.()
+    const next = stepIndex(ids, toValue(selectedId), dir)
+    if (next < 0) {
+      // stepping down past the last row (or in an empty list) moves focus onward
+      if (dir === 1) onNextOverflow?.()
       return
     }
-    if (next < 0 || next >= ids.length) return
 
     const id = ids[next]
     select(id)

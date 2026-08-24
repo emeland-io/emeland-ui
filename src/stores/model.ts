@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { fetchModel } from '@/api/model'
 import type { Model } from '@/types/model'
+import { loadOnce } from './support'
 
 export const useModelStore = defineStore('model', () => {
   const model = ref<Model | null>(null)
@@ -10,17 +11,13 @@ export const useModelStore = defineStore('model', () => {
   const error = ref<string | null>(null)
 
   async function load() {
-    if (loaded.value || loading.value) return
-    loading.value = true
-    error.value = null
-    try {
-      model.value = await fetchModel()
-      loaded.value = true
-    } catch (e) {
-      error.value = (e as Error).message
-    } finally {
-      loading.value = false
-    }
+    await loadOnce(
+      { loading, loaded, error },
+      async () => {
+        model.value = await fetchModel()
+      },
+      { resetError: true },
+    )
   }
 
   return { model, loading, loaded, error, load }

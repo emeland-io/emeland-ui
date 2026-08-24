@@ -9,6 +9,7 @@ import type {
   ContextGraphNode,
   InstanceNodeData,
 } from '@/types/graph'
+import { UNMAPPED_FRAME_ID } from './ids'
 
 /**
  * Generic directed-graph layout via dagre
@@ -164,7 +165,7 @@ export function frameUnmappedNodes(
   const laneX = graphMinX - LANE_GAP - laneWidth
 
   const frame: ContextGraphNode = {
-    id: 'frame:unmapped',
+    id: UNMAPPED_FRAME_ID,
     kind: 'context',
     position: { x: laneX, y: graphMinY - PAD_TOP },
     size: { width: laneWidth, height: PAD_TOP + laneHeight + PAD_BOTTOM },
@@ -175,7 +176,7 @@ export function frameUnmappedNodes(
   const placed: GraphNode[] = []
   let innerX = PAD_X
   for (const g of groups) {
-    const frameId = `frame:unmapped:${g.key || 'none'}`
+    const frameId = `${UNMAPPED_FRAME_ID}:${g.key || 'none'}`
     placed.push({
       id: frameId,
       kind: 'context',

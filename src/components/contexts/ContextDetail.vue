@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconArrowUpRight, IconAlertTriangle } from '@tabler/icons-vue'
+import { IconAlertTriangle } from '@tabler/icons-vue'
 import { useContextStore } from '@/stores/contexts'
 import { useSystemStore } from '@/stores/systems'
 import { useFindingsStore } from '@/stores/findings'
 import { useResourceNav } from '@/composables/useResourceNav'
+import { useFindingsForResource } from '@/composables/useFindingsForResource'
 import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
+import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
+import DetailHeader from '@/components/detail/DetailHeader.vue'
 import TypeTag from '@/components/TypeTag.vue'
-import AnnotationsTable from '@/components/AnnotationsTable.vue'
+import DetailFindingsSection from '@/components/detail/DetailFindingsSection.vue'
+import DetailAnnotationsSection from '@/components/detail/DetailAnnotationsSection.vue'
+import ResourceLinkCard from '@/components/detail/ResourceLinkCard.vue'
 import type { Context } from '@/types/context'
 import type { SystemInstance } from '@/types/system'
 
@@ -24,7 +29,7 @@ const emit = defineEmits<{
 const store = useContextStore()
 const systemStore = useSystemStore()
 const findingsStore = useFindingsStore()
-const { goToFinding, goToResource } = useResourceNav()
+const { goToResource } = useResourceNav()
 
 const typeUnknown = computed(() => store.getTypeName(props.context) === 'Unknown')
 
@@ -48,10 +53,9 @@ const systemInstances = computed(() =>
     ),
 )
 
-const relatedFindings = computed(() =>
-  findingsStore.findings.filter((f) =>
-    f.resources.some((r) => r.resourceId === props.context.contextId),
-  ),
+const relatedFindings = useFindingsForResource(
+  () => findingsStore.findings,
+  () => props.context.contextId,
 )
 </script>
 
@@ -60,56 +64,29 @@ const relatedFindings = computed(() =>
     v-if="context"
     class="@container flex-1 overflow-y-auto"
   >
-    <div class="border-b border-border-1 px-6 py-4">
-      <div class="flex items-start justify-between gap-4">
-        <div class="min-w-0">
-          <h2 class="text-title font-medium text-text-1">
-            {{ context.displayName }}
-          </h2>
-          <div class="mt-2">
-            <button
-              v-if="context.contextTypeId"
-              class="group inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-label transition-opacity hover:opacity-80"
-              :class="typeUnknown ? 'bg-error/10 text-error' : 'bg-accent/10 text-accent-text'"
-              title="Show context type"
-              @click="emit('open-type', context.contextTypeId)"
-            >
-              {{ store.getTypeName(context) }}
-            </button>
-            <span
-              v-else
-              class="rounded bg-error/10 px-2 py-0.5 font-mono text-label text-error"
-            >
-              Unknown
-            </span>
-          </div>
-        </div>
-        <div class="shrink-0 text-right">
-          <div class="flex items-center justify-end gap-1.5">
-            <span class="font-mono text-label text-text-4">
-              {{ context.contextId }}
-            </span>
-            <CopyButton
-              :value="context.contextId"
-              :size="13"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="flex flex-col gap-5 px-6 py-5">
-      <!-- detail load failed -->
-      <div
-        v-if="store.hasDetailError(context.contextId)"
-        class="flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
+    <DetailHeader
+      :id="context.contextId"
+      :title="context.displayName"
+    >
+      <button
+        v-if="context.contextTypeId"
+        class="transition-opacity hover:opacity-80"
+        title="Show context type"
+        @click="emit('open-type', context.contextTypeId)"
       >
-        <div class="min-w-0">
-          <div class="text-body text-error">Could not load full details</div>
-          <div class="mt-0.5 font-mono text-meta text-error/80">
-            Showing basic info only — the detail request failed.
-          </div>
-        </div>
-      </div>
+        <TypeTag :tone="typeUnknown ? 'error' : 'accent'">
+          {{ store.getTypeName(context) }}
+        </TypeTag>
+      </button>
+      <TypeTag
+        v-else
+        tone="error"
+      >
+        Unknown
+      </TypeTag>
+    </DetailHeader>
+    <div class="flex flex-col gap-5 px-6 py-5">
+      <DetailErrorBanner v-if="store.hasDetailError(context.contextId)" />
       <div
         class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3 @3xl:[&>*:nth-child(2)]:border-l @3xl:[&>*:nth-child(2)]:border-border-1/50 @3xl:[&>*:nth-child(2)]:pl-8 @3xl:[&>*:nth-child(3)]:border-l @3xl:[&>*:nth-child(3)]:border-border-1/50 @3xl:[&>*:nth-child(3)]:pl-8"
       >
@@ -141,26 +118,15 @@ const relatedFindings = computed(() =>
               v-for="inst in systemInstances"
               :key="inst.systemInstanceId"
             >
-              <button
+              <ResourceLinkCard
                 v-if="systemNameOf(inst)"
-                class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+                :id="inst.system"
+                badge="System"
+                :name="systemNameOf(inst)!"
                 title="Go to system"
                 @click="goToResource('System', inst.system)"
               >
-                <span class="group/row flex w-full items-center gap-3">
-                  <TypeTag>System</TypeTag>
-                  <span
-                    class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                  >
-                    {{ systemNameOf(inst) }}
-                  </span>
-                  <IconArrowUpRight
-                    :size="16"
-                    :stroke-width="2"
-                    class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                  />
-                </span>
-                <span class="flex items-center gap-1.5">
+                <template #subline>
                   <span class="min-w-0 truncate font-mono text-meta text-text-4">
                     {{ inst.displayName }}
                   </span>
@@ -172,20 +138,19 @@ const relatedFindings = computed(() =>
                     :size="12"
                     @click.stop
                   />
-                </span>
-              </button>
+                </template>
+              </ResourceLinkCard>
               <!-- instance without a resolvable system -->
-              <div
+              <ResourceLinkCard
                 v-else
-                class="flex w-full flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
+                :id="inst.system"
+                badge="System"
+                badge-error
+                :name="inst.system ? 'Unresolved system' : 'No system'"
+                name-error
+                :clickable="false"
               >
-                <span class="flex w-full items-center gap-3">
-                  <TypeTag tone="error">System</TypeTag>
-                  <span class="min-w-0 truncate text-body text-error">
-                    {{ inst.system ? 'Unresolved system' : 'No system' }}
-                  </span>
-                </span>
-                <span class="flex items-center gap-1.5">
+                <template #subline>
                   <span class="min-w-0 truncate font-mono text-meta text-text-4">
                     {{ inst.displayName }}
                   </span>
@@ -195,8 +160,8 @@ const relatedFindings = computed(() =>
                   >
                     {{ inst.system }}
                   </span>
-                </span>
-              </div>
+                </template>
+              </ResourceLinkCard>
             </template>
           </div>
         </div>
@@ -209,106 +174,42 @@ const relatedFindings = computed(() =>
             >
               No parent context.
             </p>
-            <button
+            <ResourceLinkCard
               v-else-if="!store.isParentUnresolved(context)"
-              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+              :id="context.parentId"
+              badge="Context"
+              :name="store.getParentName(context) ?? context.parentId"
               title="Go to parent context"
-              @click="emit('navigate-parent', context.parentId)"
+              @click="emit('navigate-parent', context.parentId!)"
+            />
+            <!-- unresolved parent -->
+            <ResourceLinkCard
+              v-else
+              :id="context.parentId!"
+              badge="Context"
+              badge-error
+              name="Unresolved parent"
+              name-error
+              :clickable="false"
+              :copyable="false"
             >
-              <span class="group/row flex w-full items-center gap-3">
-                <TypeTag>Context</TypeTag>
-                <span
-                  class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                >
-                  {{ store.getParentName(context) }}
-                </span>
-                <IconArrowUpRight
-                  :size="16"
+              <template #badge-icon>
+                <IconAlertTriangle
+                  :size="12"
                   :stroke-width="2"
-                  class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
                 />
-              </span>
-              <span class="flex items-center gap-1.5">
-                <span class="font-mono text-meta text-text-4">
+              </template>
+              <template #subline>
+                <span class="min-w-0 truncate text-meta text-error/80">
+                  References a parent context that does not exist.
+                </span>
+                <span class="ml-auto shrink-0 font-mono text-meta text-text-4">
                   {{ context.parentId }}
                 </span>
-                <CopyButton
-                  :value="context.parentId"
-                  :size="12"
-                  @click.stop
-                />
-              </span>
-            </button>
-            <!-- unresolved parent -->
-            <div
-              v-else
-              class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
-            >
-              <span class="flex w-full items-center gap-3">
-                <TypeTag tone="error">
-                  <IconAlertTriangle
-                    :size="12"
-                    :stroke-width="2"
-                  />
-                  Context
-                </TypeTag>
-                <span class="min-w-0 truncate text-body text-error">Unresolved parent</span>
-              </span>
-              <span class="text-meta text-error/80">
-                References a parent context that does not exist.
-              </span>
-              <span class="font-mono text-meta text-text-4">
-                {{ context.parentId }}
-              </span>
-            </div>
+              </template>
+            </ResourceLinkCard>
           </div>
-          <div>
-            <SectionLabel
-              :count="relatedFindings.length"
-              tone="warning"
-            >
-              Findings
-            </SectionLabel>
-            <p
-              v-if="relatedFindings.length === 0"
-              class="text-data leading-snug text-text-4"
-            >
-              No findings.
-            </p>
-            <button
-              v-for="f in relatedFindings"
-              :key="f.findingId"
-              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
-              title="Go to finding"
-              @click="goToFinding(f.findingId)"
-            >
-              <span class="group/row flex w-full items-center gap-2.5">
-                <span
-                  class="shrink-0 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
-                >
-                  {{ findingsStore.getKindForFinding(f) }}
-                </span>
-                <span
-                  class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                >
-                  {{ f.displayName }}
-                </span>
-                <IconArrowUpRight
-                  :size="15"
-                  :stroke-width="2"
-                  class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                />
-              </span>
-              <span class="flex items-center gap-1.5">
-                <span class="font-mono text-meta text-text-4">{{ f.findingId }}</span>
-                <CopyButton
-                  :value="f.findingId"
-                  :size="12"
-                  @click.stop
-                />
-              </span>
-            </button>
-          </div>
+          <DetailFindingsSection :findings="relatedFindings" />
         </div>
         <div class="flex flex-col gap-6">
           <div>
@@ -319,53 +220,18 @@ const relatedFindings = computed(() =>
             >
               No sub-contexts.
             </p>
-            <button
+            <ResourceLinkCard
               v-for="child in children"
+              :id="child.contextId"
               :key="child.contextId"
-              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+              badge="Context"
+              :name="child.displayName"
               title="Go to sub-context"
               @click="emit('navigate-parent', child.contextId)"
-            >
-              <span class="group/row flex w-full items-center gap-3">
-                <TypeTag>Context</TypeTag>
-                <span
-                  class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                >
-                  {{ child.displayName }}
-                </span>
-                <IconArrowUpRight
-                  :size="16"
-                  :stroke-width="2"
-                  class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                />
-              </span>
-              <span class="flex items-center gap-1.5">
-                <span class="font-mono text-meta text-text-4">{{ child.contextId }}</span>
-                <CopyButton
-                  :value="child.contextId"
-                  :size="12"
-                  @click.stop
-                />
-              </span>
-            </button>
-          </div>
-          <div>
-            <!-- Annotations -->
-            <SectionLabel :count="Object.keys(context.annotations).length">
-              Annotations
-            </SectionLabel>
-            <p
-              v-if="Object.keys(context.annotations).length === 0"
-              class="text-data leading-snug text-text-4"
-            >
-              No annotations.
-            </p>
-            <AnnotationsTable
-              v-else
-              :annotations="context.annotations"
-              layout="stacked"
             />
           </div>
+          <!-- Annotations -->
+          <DetailAnnotationsSection :annotations="context.annotations" />
         </div>
       </div>
     </div>

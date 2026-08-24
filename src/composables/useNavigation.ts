@@ -1,4 +1,5 @@
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { useFindingsStore } from '@/stores/findings'
 import type { ResourceType } from '@/types/common'
 
@@ -89,4 +90,17 @@ export function useNavigation() {
   ]
 
   return { headerNavigation, phaseNavigation }
+}
+
+export function useNavEntry() {
+  const route = useRoute()
+  const { headerNavigation, phaseNavigation } = useNavigation()
+
+  return computed<{ item: NavItem; section: NavSection } | undefined>(() => {
+    for (const section of [...headerNavigation.value, ...phaseNavigation]) {
+      const item = section.items.find((i) => i.route === route.path)
+      if (item) return { item, section }
+    }
+    return undefined
+  })
 }

@@ -1,4 +1,4 @@
-import type { UUID } from './common'
+import type { UUID, Annotations } from './common'
 
 export interface Model {
   modelId: UUID
@@ -10,5 +10,5 @@ export interface Model {
   status?: 'online' | 'offline' | 'unknown'
   host?: string
   region?: string
-  annotations?: Record<string, string>
+  annotations?: Annotations
 }

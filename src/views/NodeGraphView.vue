@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { IconArrowsMaximize, IconPlus, IconMinus } from '@tabler/icons-vue'
+import NotReadyNotice from '@/components/view/NotReadyNotice.vue'
 </script>
 
 <template>
@@ -12,6 +13,8 @@ import { IconArrowsMaximize, IconPlus, IconMinus } from '@tabler/icons-vue'
           background-size: 20px 20px;
         "
       />
+
+      <NotReadyNotice class="absolute inset-0" />
 
       <div class="absolute bottom-3 left-3 flex items-center gap-1">
         <button

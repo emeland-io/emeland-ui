@@ -20,7 +20,7 @@ import FlowHandles from './FlowHandles.vue'
 import ChannelEdge from './ChannelEdge.vue'
 import NodeTooltip from './NodeTooltip.vue'
 import MappingTag from '@/components/MappingTag.vue'
-import TypeChip from '@/components/TypeChip.vue'
+import TypeGlyph from '@/components/TypeGlyph.vue'
 import type {
   GraphNode,
   GraphEdge,
@@ -400,17 +400,10 @@ const tooltip = computed(() => {
     .slice()
     .sort((a, b) => (b.unresolved ? 1 : 0) - (a.unresolved ? 1 : 0) || a.name.localeCompare(b.name))
 
-  // api nodes: names of providing/consuming components, derived from the edges
-  // (mirrors how instance names are derived above)
-  const neighboursOf = (dir: 'in' | 'out') =>
-    props.edges
-      .filter((e) => (dir === 'in' ? e.target : e.source) === node.id)
-      .map((e) => byId.get(dir === 'in' ? e.source : e.target))
-      .filter((n) => n?.kind === 'component')
-      .map((n) => n!.data.label)
-      .sort((a, b) => a.localeCompare(b))
-  const providers = node.kind === 'api' ? neighboursOf('in') : []
-  const consumers = node.kind === 'api' ? neighboursOf('out') : []
+  // provider/consumer names are emitted by the builders (ApiNodeData)
+  const apiData = node.data as { providers?: string[]; consumers?: string[] }
+  const providers = apiData.providers ?? []
+  const consumers = apiData.consumers ?? []
 
   // Place the tooltip where it fits: above, below, right or left of the node
   const { x, y, zoom } = viewport.value
@@ -727,7 +720,7 @@ function onNodeClick({ event, node }: NodeMouseEvent) {
             class="mt-0.5 flex items-center gap-1 overflow-hidden font-mono text-micro text-text-3"
           >
             <template v-if="(data as InstanceNodeData).systemInstance">
-              <TypeChip type="SystemInstance" />
+              <TypeGlyph type="SystemInstance" />
               <span
                 class="min-w-0 shrink truncate"
                 :title="(data as InstanceNodeData).systemInstance"
@@ -736,7 +729,7 @@ function onNodeClick({ event, node }: NodeMouseEvent) {
               </span>
             </template>
             <template v-if="(data as InstanceNodeData).context">
-              <TypeChip type="Context" />
+              <TypeGlyph type="Context" />
               <span class="min-w-0 flex-1 truncate">{{ (data as InstanceNodeData).context }}</span>
             </template>
           </div>
@@ -758,14 +751,14 @@ function onNodeClick({ event, node }: NodeMouseEvent) {
               v-if="(data as InstanceNodeData).context"
               class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-3"
             >
-              <TypeChip type="Context" />
+              <TypeGlyph type="Context" />
               <span class="truncate">{{ (data as InstanceNodeData).context }}</span>
             </div>
             <div
               v-else-if="(data as InstanceNodeData).system"
               class="mt-0.5 flex items-center gap-1 font-mono text-micro text-text-3"
             >
-              <TypeChip type="System" />
+              <TypeGlyph type="System" />
               <span class="truncate">{{ (data as InstanceNodeData).system }}</span>
             </div>
           </div>

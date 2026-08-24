@@ -2,14 +2,9 @@
  * Context types matching the EmELand OpenAPI spec (EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3).
  */
 
-import type { UUID } from './common'
+import type { UUID, Annotations, TypeEntity } from './common'
 
-export interface ContextType {
-  contextTypeId: UUID
-  displayName: string
-  description?: string
-  annotations: Record<string, string>
-}
+export type ContextType = TypeEntity<'contextTypeId'>
 
 export interface Context {
   contextId: UUID
@@ -17,5 +12,5 @@ export interface Context {
   description?: string
   contextTypeId?: UUID
   parentId?: UUID
-  annotations: Record<string, string>
+  annotations: Annotations
 }

@@ -1,17 +1,26 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import { IconCircleCheck, IconLoader2 } from '@tabler/icons-vue'
+import { ref, computed, onMounted } from 'vue'
 import { useFindingsStore } from '@/stores/findings'
 import FindingsToolbar from '@/components/findings/FindingsToolbar.vue'
 import FindingsList from '@/components/findings/FindingsList.vue'
 import FindingDetail from '@/components/findings/FindingDetail.vue'
 import ListDetail from '@/components/ListDetail.vue'
-import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
+import TypesDrawerShell from '@/components/drawer/TypesDrawerShell.vue'
+import DetailAnnotationsSection from '@/components/detail/DetailAnnotationsSection.vue'
+import ResourceViewShell from '@/components/view/ResourceViewShell.vue'
 import CopyButton from '@/components/CopyButton.vue'
-import SectionLabel from '@/components/SectionLabel.vue'
-import AnnotationsTable from '@/components/AnnotationsTable.vue'
-import { useResourceNav, useSelectQuery } from '@/composables/useResourceNav'
+import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
+import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
+import ViewHeader from '@/components/view/ViewHeader.vue'
+import EmptyState from '@/components/view/EmptyState.vue'
+import ListPaneBar from '@/components/view/ListPaneBar.vue'
+import { useResourceNav } from '@/composables/useResourceNav'
 import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
+import { useResourceSelection } from '@/composables/useResourceSelection'
+import { useTypesDrawer } from '@/composables/useTypesDrawer'
+import { toggledSet } from '@/utils/set'
+import { matchesQuery } from '@/utils/search'
+import type { Finding, FindingType } from '@/types/finding'
 
 const store = useFindingsStore()
 const { goToResource } = useResourceNav()
@@ -27,12 +36,7 @@ const allResourceTypes = computed(() => [
 
 const filteredFindings = computed(() =>
   store.findings.filter((f) => {
-    const q = search.value.toLowerCase()
-    if (q) {
-      const inName = f.displayName.toLowerCase().includes(q)
-      const inDescription = (f.description ?? '').toLowerCase().includes(q)
-      if (!inName && !inDescription) return false
-    }
+    if (!matchesQuery(search.value, f.displayName, f.description)) return false
     if (activeTypes.value.size > 0 && !activeTypes.value.has(store.getKindForFinding(f)))
       return false
     if (
@@ -45,22 +49,10 @@ const filteredFindings = computed(() =>
 )
 
 function toggleType(kind: string) {
-  const s = new Set(activeTypes.value)
-  if (s.has(kind)) {
-    s.delete(kind)
-  } else {
-    s.add(kind)
-  }
-  activeTypes.value = s
+  activeTypes.value = toggledSet(activeTypes.value, kind)
 }
 function toggleResourceType(rt: string) {
-  const s = new Set(activeResourceTypes.value)
-  if (s.has(rt)) {
-    s.delete(rt)
-  } else {
-    s.add(rt)
-  }
-  activeResourceTypes.value = s
+  activeResourceTypes.value = toggledSet(activeResourceTypes.value, rt)
 }
 function clearFilters() {
   search.value = ''
@@ -68,76 +60,29 @@ function clearFilters() {
   activeResourceTypes.value = new Set()
 }
 
-const selectedId = ref('')
-const selectedFinding = computed(() => store.findings.find((f) => f.findingId === selectedId.value))
-
-// Preselect a finding when arriving via ?select=<id> (e.g. from a node).
-function selectFinding(id: string) {
-  selectedId.value = id
-  if (id) store.loadFindingDetail(id)
-}
-
-useSelectQuery(
+const {
   selectedId,
-  computed(() => store.findings),
-  (f) => f.findingId,
-)
-
-watch(
-  filteredFindings,
-  (list) => {
-    if (list.length === 0) {
-      selectedId.value = ''
-    } else if (!list.some((f) => f.findingId === selectedId.value)) {
-      selectFinding(list[0].findingId)
-    }
-  },
-  { immediate: true },
-)
-
-watch(selectedId, (id) => {
-  if (id) store.loadFindingDetail(id)
+  selected: selectedFinding,
+  select: selectFinding,
+} = useResourceSelection<Finding>({
+  items: () => store.findings,
+  filtered: () => filteredFindings.value,
+  idOf: (f) => f.findingId,
+  loadDetail: (id) => store.loadFindingDetail(id),
 })
 
 onMounted(() => store.load())
 
 // Finding Types drawer
-const typesDrawerOpen = ref(false)
-const selectedTypeId = ref('')
-
-const selectedType = computed(() => {
-  const detail = store.selectedTypeDetail
-  if (detail && detail.findingTypeId === selectedTypeId.value) return detail
-  return store.findingTypes.find((t) => t.findingTypeId === selectedTypeId.value)
+const typesDrawer = useTypesDrawer({
+  types: () => store.findingTypes,
+  idOf: (t) => t.findingTypeId,
+  detail: () => store.selectedTypeDetail,
+  load: store.loadFindingTypes,
+  loadDetail: store.loadFindingTypeDetail,
+  currentTypeId: () => selectedFinding.value?.findingType?.findingTypeId,
 })
-
-async function openTypesDrawer() {
-  typesDrawerOpen.value = true
-  await store.loadFindingTypes()
-  const typeId = selectedFinding.value?.findingType?.findingTypeId
-  if (typeId && store.findingTypes.some((t) => t.findingTypeId === typeId)) {
-    selectTypeInDrawer(typeId)
-  } else if (!selectedTypeId.value && store.findingTypes.length > 0) {
-    selectTypeInDrawer(store.findingTypes[0].findingTypeId)
-  }
-}
-
-function selectTypeInDrawer(id: string) {
-  selectedTypeId.value = id
-  if (id) store.loadFindingTypeDetail(id)
-}
-
-async function openTypeInDrawer(findingTypeId: string) {
-  typesDrawerOpen.value = true
-  await store.loadFindingTypes()
-  if (store.findingTypes.some((t) => t.findingTypeId === findingTypeId)) {
-    selectTypeInDrawer(findingTypeId)
-  }
-}
-
-function closeTypesDrawer() {
-  typesDrawerOpen.value = false
-}
+const { open: typesDrawerOpen, selectedTypeId, selectedType } = typesDrawer
 
 useListKeyboardNav(
   computed(() => filteredFindings.value.map((f) => f.findingId)),
@@ -145,251 +90,161 @@ useListKeyboardNav(
   selectFinding,
   typesDrawerOpen,
 )
-
-useListKeyboardNav(
-  computed(() => store.findingTypes.map((t) => t.findingTypeId)),
-  selectedTypeId,
-  selectTypeInDrawer,
-  computed(() => !typesDrawerOpen.value),
-)
 </script>
 
 <template>
-  <div class="relative flex h-full flex-col">
-    <!-- Header -->
-    <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
-      <div class="flex min-w-44 items-center gap-3">
-        <h1 class="text-title font-medium text-text-1">Findings</h1>
-        <span class="rounded-full bg-bg-2 px-2.5 py-0.5 font-mono text-label text-text-3">
-          {{ store.findings.length }}
-        </span>
-      </div>
-      <button
-        class="ml-auto flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
-        :class="
-          typesDrawerOpen
-            ? 'bg-accent/10 text-accent-text'
-            : 'text-text-3 hover:bg-bg-3 hover:text-text-1'
-        "
-        @click="openTypesDrawer"
+  <ResourceViewShell
+    :loading="store.loading"
+    loading-label="Loading findings..."
+    :error="store.error"
+    :error-list-empty="store.findings.length === 0"
+  >
+    <template #header>
+      <ViewHeader
+        title="Findings"
+        :count="store.findings.length"
       >
-        Finding types
-        <span
-          v-if="store.typesLoaded"
-          class="font-mono text-micro text-text-4"
-        >
-          {{ store.findingTypes.length }}
-        </span>
-      </button>
-    </div>
-    <!-- Loading -->
-    <div
-      v-if="store.loading"
-      class="flex flex-1 items-center justify-center"
-    >
-      <div class="flex items-center gap-2 text-text-3">
-        <IconLoader2
-          :size="16"
-          :stroke-width="1.5"
-          class="animate-spin"
-        />
-        <span class="text-body">Loading findings...</span>
-      </div>
-    </div>
-    <!-- Error -->
-    <div
-      v-else-if="store.error && store.findings.length === 0"
-      class="flex flex-1 items-center justify-center"
-    >
-      <p class="text-body text-error">{{ store.error }}</p>
-    </div>
-    <template v-else>
-      <!-- Toolbar -->
-      <FindingsToolbar
-        :search="search"
-        :types="allTypes"
-        :resource-types="allResourceTypes"
-        :active-types="activeTypes"
-        :active-resource-types="activeResourceTypes"
-        @update:search="search = $event"
-        @toggle-type="toggleType"
-        @toggle-resource-type="toggleResourceType"
-        @clear="clearFilters"
-      />
-      <!-- Empty state -->
-      <div
-        v-if="filteredFindings.length === 0"
-        class="flex flex-1 items-center justify-center"
-      >
-        <div class="text-center">
-          <IconCircleCheck
-            :size="32"
-            :stroke-width="1.5"
-            class="mx-auto text-accent"
-          />
-          <p class="mt-3 text-body text-text-2">No findings</p>
-          <p class="mt-1 text-label text-text-4">
-            All rules passed or no results for current filters
-          </p>
-        </div>
-      </div>
-      <!-- List-Detail -->
-      <ListDetail v-else>
-        <template #list>
-          <div class="flex h-full flex-col">
-            <div class="flex h-9 shrink-0 items-center border-b border-border-1 bg-bg-1 px-2">
-              <span class="flex items-center gap-1.5">
-                <span class="text-micro font-medium uppercase tracking-wider text-text-4">
-                  List
-                </span>
-                <span
-                  class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3"
-                >
-                  {{ filteredFindings.length }}
-                  <span
-                    v-if="filteredFindings.length !== store.findings.length"
-                    class="text-text-4"
-                  >
-                    of {{ store.findings.length }}
-                  </span>
-                </span>
-              </span>
-            </div>
-            <div class="min-h-0 flex-1 overflow-y-auto">
-              <FindingsList
-                :findings="filteredFindings"
-                :selected-id="selectedId"
-                :kind-for="store.getKindForFinding"
-                @select="selectFinding"
-              />
-            </div>
-          </div>
-        </template>
-
-        <template #detail>
-          <div
-            v-if="selectedFinding"
-            class="flex flex-1 flex-col overflow-hidden"
-          >
-            <!-- detail load failed -->
-            <div
-              v-if="store.hasDetailError(selectedFinding.findingId)"
-              class="m-4 mb-0 flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
-            >
-              <div class="min-w-0">
-                <div class="text-body text-error">Could not load full details</div>
-                <div class="mt-0.5 font-mono text-meta text-error/80">
-                  Showing basic info only — the detail request failed.
-                </div>
-              </div>
-            </div>
-            <FindingDetail
-              class="flex-1"
-              :finding="selectedFinding"
-              :kind="store.getKindForFinding(selectedFinding)"
-              @navigate-resource="goToResource"
-              @open-type="openTypeInDrawer"
-            />
-          </div>
-          <div
-            v-else
-            class="flex flex-1 items-center justify-center"
-          >
-            <span class="font-mono text-label text-text-id">Select a finding to inspect</span>
-          </div>
-        </template>
-      </ListDetail>
-    </template>
-    <!-- Finding Types slide-over drawer -->
-    <SlideOverDrawer
-      :open="typesDrawerOpen"
-      title="Finding types"
-      subtitle="FindingType"
-      :count="store.typesLoaded ? store.findingTypes.length : undefined"
-      @close="closeTypesDrawer"
-    >
-      <!-- Loading -->
-      <div
-        v-if="store.typesLoading"
-        class="flex flex-1 items-center justify-center"
-      >
-        <div class="flex items-center gap-2 text-text-3">
-          <IconLoader2
-            :size="16"
-            :stroke-width="1.5"
-            class="animate-spin"
-          />
-          <span class="text-body">Loading types...</span>
-        </div>
-      </div>
-      <!-- Type list -->
-      <template v-else>
-        <div class="w-56 shrink-0 overflow-y-auto border-r border-border-1">
-          <div
-            v-for="type in store.findingTypes"
-            :key="type.findingTypeId"
-            :data-row-id="type.findingTypeId"
-            class="cursor-pointer border-b border-border-1 border-l-2 px-4 py-3 transition-colors"
+        <template #actions>
+          <button
+            class="ml-auto flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
             :class="
-              type.findingTypeId === selectedTypeId
-                ? 'border-l-accent bg-accent/5'
-                : 'border-l-transparent hover:bg-bg-1'
+              typesDrawerOpen
+                ? 'bg-accent/10 text-accent-text'
+                : 'text-text-3 hover:bg-bg-3 hover:text-text-1'
             "
-            @click="selectTypeInDrawer(type.findingTypeId)"
+            @click="typesDrawer.openDrawer()"
           >
-            <div
-              class="text-body font-medium"
-              :class="type.findingTypeId === selectedTypeId ? 'text-accent-text' : 'text-text-1'"
+            Finding types
+            <span
+              v-if="store.typesLoaded"
+              class="font-mono text-micro text-text-4"
             >
-              {{ type.displayName }}
-            </div>
-            <div
-              v-if="type.description"
-              class="mt-1 truncate text-meta text-text-id"
-            >
-              {{ type.description }}
-            </div>
-          </div>
-        </div>
-        <!-- Type detail -->
-        <div
-          v-if="selectedType"
-          class="flex-1 overflow-y-auto px-6 py-5"
-        >
-          <h3 class="text-title font-medium text-text-1">{{ selectedType.displayName }}</h3>
-          <div class="mt-2 flex items-center gap-2">
-            <span class="font-mono text-label text-text-id">{{ selectedType.findingTypeId }}</span>
-            <CopyButton
-              :value="selectedType.findingTypeId"
-              :size="13"
+              {{ store.findingTypes.length }}
+            </span>
+          </button>
+        </template>
+      </ViewHeader>
+    </template>
+
+    <!-- Toolbar -->
+    <FindingsToolbar
+      :search="search"
+      :types="allTypes"
+      :resource-types="allResourceTypes"
+      :active-types="activeTypes"
+      :active-resource-types="activeResourceTypes"
+      @update:search="search = $event"
+      @toggle-type="toggleType"
+      @toggle-resource-type="toggleResourceType"
+      @clear="clearFilters"
+    />
+    <EmptyState
+      v-if="filteredFindings.length === 0"
+      title="No findings"
+      hint="All rules passed or no results for current filters"
+      variant="ok"
+    />
+    <!-- List-Detail -->
+    <ListDetail v-else>
+      <template #list>
+        <div class="flex h-full flex-col">
+          <ListPaneBar
+            :count="filteredFindings.length"
+            :total="store.findings.length"
+          />
+          <div class="min-h-0 flex-1 overflow-y-auto">
+            <FindingsList
+              :findings="filteredFindings"
+              :selected-id="selectedId"
+              :kind-for="store.getKindForFinding"
+              @select="selectFinding"
             />
           </div>
-          <p
-            v-if="selectedType.description"
-            class="mt-4 text-body leading-relaxed text-text-2"
-          >
-            {{ selectedType.description }}
-          </p>
-          <div
-            v-if="Object.keys(selectedType.annotations).length > 0"
-            class="mt-6"
-          >
-            <SectionLabel :count="Object.keys(selectedType.annotations).length">
-              Annotations
-            </SectionLabel>
-            <AnnotationsTable
-              :annotations="selectedType.annotations"
-              layout="stacked"
-            />
-          </div>
-        </div>
-        <div
-          v-else
-          class="flex flex-1 items-center justify-center"
-        >
-          <span class="font-mono text-label text-text-id">Select a finding type</span>
         </div>
       </template>
-    </SlideOverDrawer>
-  </div>
+
+      <template #detail>
+        <div
+          v-if="selectedFinding"
+          class="flex flex-1 flex-col overflow-hidden"
+        >
+          <DetailErrorBanner
+            v-if="store.hasDetailError(selectedFinding.findingId)"
+            class="m-4 mb-0"
+          />
+          <FindingDetail
+            class="flex-1"
+            :finding="selectedFinding"
+            :kind="store.getKindForFinding(selectedFinding)"
+            @navigate-resource="goToResource"
+            @open-type="typesDrawer.openType"
+          />
+        </div>
+        <DetailEmptyState
+          v-else
+          label="Select a finding to inspect"
+        />
+      </template>
+    </ListDetail>
+
+    <template #drawers>
+      <!-- Finding Types slide-over drawer -->
+      <TypesDrawerShell
+        :open="typesDrawerOpen"
+        title="Finding types"
+        subtitle="FindingType"
+        :count="store.typesLoaded ? store.findingTypes.length : undefined"
+        :loading="store.typesLoading"
+        :types="store.findingTypes"
+        :id-of="(t: FindingType) => t.findingTypeId"
+        :selected-id="selectedTypeId"
+        :has-detail="!!selectedType"
+        empty-label="Select a finding type"
+        list-width="w-56"
+        row-class="px-4 py-3"
+        @close="typesDrawer.close()"
+        @select="typesDrawer.select"
+      >
+        <template #row="{ type, selected }">
+          <div
+            class="text-body font-medium"
+            :class="selected ? 'text-accent-text' : 'text-text-1'"
+          >
+            {{ type.displayName }}
+          </div>
+          <div
+            v-if="type.description"
+            class="mt-1 truncate text-meta text-text-3"
+          >
+            {{ type.description }}
+          </div>
+        </template>
+        <template #detail>
+          <template v-if="selectedType">
+            <h3 class="text-title font-medium text-text-1">{{ selectedType.displayName }}</h3>
+            <div class="mt-2 flex items-center gap-2">
+              <span class="font-mono text-label text-text-3">
+                {{ selectedType.findingTypeId }}
+              </span>
+              <CopyButton
+                :value="selectedType.findingTypeId"
+                :size="13"
+              />
+            </div>
+            <p
+              v-if="selectedType.description"
+              class="mt-4 text-body leading-relaxed text-text-2"
+            >
+              {{ selectedType.description }}
+            </p>
+            <DetailAnnotationsSection
+              v-if="Object.keys(selectedType.annotations).length > 0"
+              class="mt-6"
+              :annotations="selectedType.annotations"
+            />
+          </template>
+        </template>
+      </TypesDrawerShell>
+    </template>
+  </ResourceViewShell>
 </template>

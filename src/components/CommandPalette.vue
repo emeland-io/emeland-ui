@@ -11,7 +11,7 @@ import { useSystemStore } from '@/stores/systems'
 import { useComponentStore } from '@/stores/components'
 import { useApiStore } from '@/stores/apis'
 import { buildPaletteResults, type PaletteSourceItem, type PaletteItem } from '@/utils/palette'
-import TypeChip from '@/components/TypeChip.vue'
+import TypeGlyph from '@/components/TypeGlyph.vue'
 
 const { open, toggle, close } = useCommandPalette()
 const { goToResource } = useResourceNav()
@@ -238,7 +238,7 @@ useWindowKeydown(onKeydown)
                 @click="openItem(item)"
               >
                 <div class="flex items-center gap-2">
-                  <TypeChip :type="item.type" />
+                  <TypeGlyph :type="item.type" />
                   <span
                     class="truncate text-body text-text-1"
                     :title="item.label"

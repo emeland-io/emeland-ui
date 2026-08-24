@@ -64,6 +64,11 @@ export const API = {
   MERGE_RULES: resource('/merge-rules'),
 } as const
 
+/** The deployment's model endpoint (NOT under `/landscape`). */
+export const MODEL_API = {
+  model: '/model',
+} as const
+
 /**
  * Event subscription endpoints. These live under `/api/events` (NOT
  * `/landscape`).

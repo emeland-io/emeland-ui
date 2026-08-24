@@ -1,4 +1,5 @@
 import { ref, watchEffect } from 'vue'
+import { safeStorage } from '@/utils/storage'
 
 export type ThemeMode = 'system' | 'light' | 'dark'
 
@@ -7,7 +8,7 @@ export const THEME_MODES: Exclude<ThemeMode, 'system'>[] = ['light', 'dark']
 const STORAGE_KEY = 'emeland-theme'
 
 function readStored(): ThemeMode {
-  const v = localStorage.getItem(STORAGE_KEY)
+  const v = safeStorage()?.getItem(STORAGE_KEY)
   return v === 'system' || (v && (THEME_MODES as string[]).includes(v))
     ? (v as ThemeMode)
     : 'system'
@@ -22,7 +23,7 @@ function resolved(): string {
 }
 
 watchEffect(() => {
-  localStorage.setItem(STORAGE_KEY, theme.value)
+  safeStorage()?.setItem(STORAGE_KEY, theme.value)
   document.documentElement.setAttribute('data-theme', resolved())
 })
 

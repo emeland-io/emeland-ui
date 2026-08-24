@@ -1,13 +1,9 @@
-import { ref } from 'vue'
+import { useSingletonOverlay } from '@/composables/useSingletonOverlay'
 
 // app-wide singleton: the overlay is mounted once (in BaseLayout) but any
-// component, e.g. the topbar trigger. can open it through this shared state
-const open = ref(false)
+// component, e.g. the topbar trigger, can open it through this shared state
+const overlay = useSingletonOverlay()
 
 export function useShortcutsHelp() {
-  return {
-    open,
-    toggle: () => (open.value = !open.value),
-    close: () => (open.value = false),
-  }
+  return overlay
 }

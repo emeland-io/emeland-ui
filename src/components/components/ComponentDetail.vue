@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { IconArrowUpRight } from '@tabler/icons-vue'
 import { useComponentStore } from '@/stores/components'
 import { useSystemStore } from '@/stores/systems'
 import { useApiStore } from '@/stores/apis'
 import { useFindingsStore } from '@/stores/findings'
 import { useResourceNav } from '@/composables/useResourceNav'
-import CopyButton from '@/components/CopyButton.vue'
+import { useFindingsForResource } from '@/composables/useFindingsForResource'
 import SectionLabel from '@/components/SectionLabel.vue'
+import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
+import DetailHeader from '@/components/detail/DetailHeader.vue'
 import TypeTag from '@/components/TypeTag.vue'
-import AnnotationsTable from '@/components/AnnotationsTable.vue'
+import DetailFindingsSection from '@/components/detail/DetailFindingsSection.vue'
+import DetailAnnotationsSection from '@/components/detail/DetailAnnotationsSection.vue'
+import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
+import ResourceLinkCard from '@/components/detail/ResourceLinkCard.vue'
+import ApiChipCloud from '@/components/apis/ApiChipCloud.vue'
 import ComponentInstancesBoard from '@/components/components/ComponentInstancesBoard.vue'
 import ComponentInstanceDrawer from '@/components/components/ComponentInstanceDrawer.vue'
 import type { Component } from '@/types/component'
@@ -22,7 +27,7 @@ const store = useComponentStore()
 const systemStore = useSystemStore()
 const apiStore = useApiStore()
 const findingsStore = useFindingsStore()
-const { goToResource, goToFinding } = useResourceNav()
+const { goToResource } = useResourceNav()
 
 const systemName = computed(() =>
   props.component ? systemStore.systemMap.get(props.component.system)?.displayName : undefined,
@@ -38,15 +43,10 @@ const consumes = computed(() =>
   (props.component?.consumes ?? []).map((id) => ({ id, name: apiStore.getApiName(id) ?? id })),
 )
 
-function apiKnown(id: string): boolean {
-  return apiStore.apiMap.has(id)
-}
-
-const relatedFindings = computed(() => {
-  const id = props.component?.componentId
-  if (!id) return []
-  return findingsStore.findings.filter((f) => f.resources.some((r) => r.resourceId === id))
-})
+const relatedFindings = useFindingsForResource(
+  () => findingsStore.findings,
+  () => props.component?.componentId ?? '',
+)
 
 const instances = computed(() =>
   props.component ? store.getInstancesForComponent(props.component.componentId) : [],
@@ -59,16 +59,6 @@ function openInstance(id: string) {
   selectedInstanceId.value = id
   drawerOpen.value = true
 }
-
-function versionDates(c: Component | undefined): [string, string][] {
-  if (!c?.version) return []
-  const v = c.version
-  const rows: [string, string][] = []
-  if (v.availableFrom) rows.push(['Available from', v.availableFrom])
-  if (v.deprecatedFrom) rows.push(['Deprecated from', v.deprecatedFrom])
-  if (v.terminatedFrom) rows.push(['Terminated from', v.terminatedFrom])
-  return rows
-}
 </script>
 
 <template>
@@ -76,54 +66,21 @@ function versionDates(c: Component | undefined): [string, string][] {
     v-if="component"
     class="@container flex-1 overflow-y-auto"
   >
-    <div class="border-b border-border-1 px-6 py-4">
-      <div class="flex items-start justify-between gap-4">
-        <div class="min-w-0">
-          <h2 class="text-title font-medium text-text-1">{{ component.displayName }}</h2>
-          <div class="mt-2 flex items-center gap-2">
-            <span class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent-text">
-              Component
-            </span>
-            <span
-              v-if="component.version?.version"
-              class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3"
-            >
-              v{{ component.version.version }}
-            </span>
-          </div>
-        </div>
-        <div class="shrink-0 text-right">
-          <div class="flex items-center justify-end gap-1.5">
-            <span class="font-mono text-label text-text-4">{{ component.componentId }}</span>
-            <CopyButton
-              :value="component.componentId"
-              :size="13"
-            />
-          </div>
-          <div
-            v-for="[label, value] in versionDates(component)"
-            :key="label"
-            class="mt-1 flex items-baseline justify-end gap-3 font-mono text-micro text-text-4"
-          >
-            <span>{{ label }}</span>
-            <span class="tabular-nums text-text-3">{{ value }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="flex flex-col gap-5 px-6 py-5">
-      <!-- detail load failed -->
-      <div
-        v-if="store.hasDetailError(component.componentId)"
-        class="flex items-start gap-2 rounded border border-error/20 bg-error/5 px-3 py-2"
+    <DetailHeader
+      :id="component.componentId"
+      :title="component.displayName"
+      :version="component.version"
+    >
+      <TypeTag>Component</TypeTag>
+      <TypeTag
+        v-if="component.version?.version"
+        tone="muted"
       >
-        <div class="min-w-0">
-          <div class="text-body text-error">Could not load full details</div>
-          <div class="mt-0.5 font-mono text-meta text-error/80">
-            Showing basic info only — the detail request failed.
-          </div>
-        </div>
-      </div>
+        v{{ component.version.version }}
+      </TypeTag>
+    </DetailHeader>
+    <div class="flex flex-col gap-5 px-6 py-5">
+      <DetailErrorBanner v-if="store.hasDetailError(component.componentId)" />
       <div
         class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3 @3xl:[&>*:nth-child(2)]:border-l @3xl:[&>*:nth-child(2)]:border-border-1/50 @3xl:[&>*:nth-child(2)]:pl-8 @3xl:[&>*:nth-child(3)]:border-l @3xl:[&>*:nth-child(3)]:border-border-1/50 @3xl:[&>*:nth-child(3)]:pl-8"
       >
@@ -145,44 +102,24 @@ function versionDates(c: Component | undefined): [string, string][] {
             >
               No system.
             </p>
-            <button
+            <ResourceLinkCard
               v-else-if="!systemUnresolved"
-              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
+              :id="component.system"
+              badge="System"
+              :name="systemName ?? component.system"
               title="Go to system"
               @click="goToResource('System', component.system)"
-            >
-              <span class="group/row flex w-full items-center gap-3">
-                <TypeTag>System</TypeTag>
-                <span
-                  class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                >
-                  {{ systemName }}
-                </span>
-                <IconArrowUpRight
-                  :size="16"
-                  :stroke-width="2"
-                  class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                />
-              </span>
-              <span class="flex items-center gap-1.5">
-                <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
-                <CopyButton
-                  :value="component.system"
-                  :size="12"
-                  @click.stop
-                />
-              </span>
-            </button>
-            <div
+            />
+            <ResourceLinkCard
               v-else
-              class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
-            >
-              <div class="flex items-center gap-3">
-                <TypeTag tone="error">System</TypeTag>
-                <span class="min-w-0 truncate text-body text-error">Unresolved system</span>
-              </div>
-              <span class="font-mono text-meta text-text-4">{{ component.system }}</span>
-            </div>
+              :id="component.system"
+              badge="System"
+              badge-error
+              name="Unresolved system"
+              name-error
+              :clickable="false"
+              :copyable="false"
+            />
           </div>
         </div>
         <div class="flex flex-col gap-6">
@@ -195,72 +132,15 @@ function versionDates(c: Component | undefined): [string, string][] {
               >
                 Provides no interfaces.
               </p>
-              <div
+              <ApiChipCloud
                 v-else
-                class="flex flex-wrap gap-1.5"
-              >
-                <component
-                  :is="apiKnown(api.id) ? 'button' : 'span'"
-                  v-for="api in provides"
-                  :key="api.id"
-                  class="rounded bg-accent/10 px-2 py-0.5 font-mono text-label text-accent-text transition-colors"
-                  :class="apiKnown(api.id) ? 'hover:bg-accent/20' : ''"
-                  :title="apiKnown(api.id) ? `Go to API — ${api.id}` : api.id"
-                  @click="apiKnown(api.id) && goToResource('API', api.id)"
-                >
-                  {{ api.name }}
-                </component>
-              </div>
+                :apis="provides"
+                @open="goToResource('API', $event)"
+              />
             </div>
           </div>
           <!-- Related findings -->
-          <div>
-            <SectionLabel
-              :count="relatedFindings.length"
-              tone="warning"
-            >
-              Findings
-            </SectionLabel>
-            <p
-              v-if="relatedFindings.length === 0"
-              class="text-data leading-snug text-text-4"
-            >
-              No findings.
-            </p>
-            <button
-              v-for="f in relatedFindings"
-              :key="f.findingId"
-              class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
-              title="Go to finding"
-              @click="goToFinding(f.findingId)"
-            >
-              <span class="group/row flex w-full items-center gap-2.5">
-                <span
-                  class="shrink-0 rounded border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro text-warning"
-                >
-                  {{ findingsStore.getKindForFinding(f) }}
-                </span>
-                <span
-                  class="min-w-0 truncate text-body text-text-2 transition-colors group-hover/row:text-accent"
-                >
-                  {{ f.displayName }}
-                </span>
-                <IconArrowUpRight
-                  :size="15"
-                  :stroke-width="2"
-                  class="shrink-0 text-text-4 transition-colors group-hover/row:text-accent"
-                />
-              </span>
-              <span class="flex items-center gap-1.5">
-                <span class="font-mono text-meta text-text-4">{{ f.findingId }}</span>
-                <CopyButton
-                  :value="f.findingId"
-                  :size="12"
-                  @click.stop
-                />
-              </span>
-            </button>
-          </div>
+          <DetailFindingsSection :findings="relatedFindings" />
         </div>
         <div class="flex flex-col gap-6 @3xl:row-span-2">
           <div>
@@ -273,40 +153,17 @@ function versionDates(c: Component | undefined): [string, string][] {
               >
                 Consumes no interfaces.
               </p>
-              <div
+              <ApiChipCloud
                 v-else
-                class="flex flex-wrap gap-1.5"
-              >
-                <component
-                  :is="apiKnown(api.id) ? 'button' : 'span'"
-                  v-for="api in consumes"
-                  :key="api.id"
-                  class="rounded bg-bg-2 px-2 py-0.5 font-mono text-label text-text-3 transition-colors"
-                  :class="apiKnown(api.id) ? 'hover:bg-bg-3 hover:text-text-1' : ''"
-                  :title="apiKnown(api.id) ? `Go to API — ${api.id}` : api.id"
-                  @click="apiKnown(api.id) && goToResource('API', api.id)"
-                >
-                  {{ api.name }}
-                </component>
-              </div>
+                :apis="consumes"
+                tone="muted"
+                @open="goToResource('API', $event)"
+              />
             </div>
           </div>
           <div class="@3xl:col-start-3">
             <!-- Annotations -->
-            <SectionLabel :count="Object.keys(component.annotations).length">
-              Annotations
-            </SectionLabel>
-            <p
-              v-if="Object.keys(component.annotations).length === 0"
-              class="text-data leading-snug text-text-4"
-            >
-              No annotations.
-            </p>
-            <AnnotationsTable
-              v-else
-              :annotations="component.annotations"
-              layout="stacked"
-            />
+            <DetailAnnotationsSection :annotations="component.annotations" />
           </div>
         </div>
         <div class="@3xl:col-span-2">
@@ -329,10 +186,8 @@ function versionDates(c: Component | undefined): [string, string][] {
       @navigate="(id) => (selectedInstanceId = id)"
     />
   </div>
-  <div
+  <DetailEmptyState
     v-else
-    class="flex flex-1 items-center justify-center"
-  >
-    <span class="font-mono text-label text-text-4">Select a component to inspect</span>
-  </div>
+    label="Select a component to inspect"
+  />
 </template>

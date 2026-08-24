@@ -24,14 +24,17 @@ export interface NodeInstanceRef {
   unresolved?: boolean
 }
 
-export interface SystemNodeData {
+export interface BaseNodeData {
   label: string
-  abstract: boolean
   description?: string
-  version?: string
   findings?: number
   findingKinds?: string[]
   instanceNames?: NodeInstanceRef[]
+}
+
+export interface SystemNodeData extends BaseNodeData {
+  abstract: boolean
+  version?: string
 }
 export interface InstanceNodeData {
   label: string
@@ -53,34 +56,23 @@ export interface ContextNodeData {
   /** tooltip override for the frame tab (e.g. the full unresolved reference) */
   title?: string
 }
-export interface ContextItemNodeData {
-  label: string
-  description?: string
+export interface ContextItemNodeData extends BaseNodeData {
   type?: string
   instances?: number
-  instanceNames?: NodeInstanceRef[]
-  findings?: number
-  findingKinds?: string[]
 }
-export interface ApiNodeData {
-  label: string
-  description?: string
+export interface ApiNodeData extends BaseNodeData {
   version?: string
   /** true when the API is consumed in a context it is not provided in */
   crosses?: boolean
   /** number of contexts the API is consumed in but not provided in */
   crossCount?: number
-  findings?: number
-  findingKinds?: string[]
-  instanceNames?: NodeInstanceRef[]
+  /** display names of providing components (tooltip relation section) */
+  providers?: string[]
+  /** display names of consuming components (tooltip relation section) */
+  consumers?: string[]
 }
-export interface ComponentNodeData {
-  label: string
-  description?: string
+export interface ComponentNodeData extends BaseNodeData {
   system?: string
-  findings?: number
-  findingKinds?: string[]
-  instanceNames?: NodeInstanceRef[]
 }
 
 export interface SystemGraphNode extends BaseGraphNode {
