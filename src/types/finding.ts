@@ -4,11 +4,6 @@ export type FindingTypeRef = EntityRef<'findingTypeId'>
 export type FindingKind =
   'ContextTypeMissing' | 'ContextParentNotFound' | 'NodeTypeMissing' | string
 
-export interface FindingTypeRef {
-  findingTypeId: string
-  displayName: string
-}
-
 export interface FindingResource {
   resourceId: string
   displayName: string
