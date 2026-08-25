@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Regenerate src/api/gen (zod schemas + types) from the modelsrv OpenAPI spec.
+ * Regenerate src/api/gen (zod schemas + types) from the EmELand OpenAPI spec.
  *
  * Source selection (see USAGE below):
  *   --remote (default)  newest *.yaml in the modelsrv GitHub repo's

@@ -1,6 +1,6 @@
 # Scripts
 
-Development scripts, run through their npm script entries (see `package.json`).
+Development scripts, run through their npm script entries (also see `package.json`).
 
 ## api-gen.mjs — OpenAPI code generator
 
@@ -30,7 +30,6 @@ Environment:
 
 - `GITHUB_TOKEN` / `GH_TOKEN` — used for GitHub API calls when set.
   Anonymous calls are rate-limited to 60/hour per IP, which can bite on CI.
-- `EMELAND_OAPI_SPEC` — legacy equivalent of `--spec`; flags win.
 
 ### What it writes
 
@@ -56,7 +55,7 @@ unchanged spec produces an empty diff, so a dirty diff always means the spec
 
 The boundary validates **shape, not string formats**. The spec's
 `format: uuid` / `format: uri` / `format: date-time` would map to RFC-strict
-`z.uuid()` / `z.url()` / `z.iso.datetime()`; the script rewrites them
+`z.uuid()` / `z.url()` / `z.iso.datetime()`, the script rewrites them
 post-generation to plain (non-empty where ids) strings, because backend ids
 are not RFC-strict in practice and `z.iso.datetime()` rejects
 numeric-offset timestamps (`…T00:00:00+02:00`) that common serializers emit.
@@ -74,6 +73,6 @@ npm run type-check && npm test -- --run
 ```
 
 Type errors after a regen usually mean a decoder in `src/api/*` needs to
-follow the contract change; test failures in `tests/api/` usually mean the
+follow the contract change, test failures in `tests/api/` usually mean the
 wire-format mocks in `src/mocks/` do. Commit the regenerated files together
 with those adaptations.
