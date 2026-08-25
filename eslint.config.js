@@ -6,7 +6,7 @@ import eslintConfigPrettier from 'eslint-config-prettier'
 
 export default [
     {
-        ignores: ['dist/**', 'node_modules/**','.vite/**', '*.config.js', '*nb.config.ts'],
+        ignores: ['dist/**', 'node_modules/**','.vite/**', '*.config.js', '*nb.config.ts', 'src/api/gen/**'],
     },
 
     js.configs.recommended,
@@ -39,6 +39,19 @@ export default [
             'vue/block-order': ['error', { order: ['script', 'template', 'style'] }],
             'vue/component-api-style': ['error', ['script-setup']],
             'vue/no-unused-refs': 'warn',
+        },
+    },
+
+    // node scripts (e.g. the api:gen generator) run in plain node
+    {
+        files: ['scripts/**/*.mjs'],
+        languageOptions: {
+            globals: {
+                ...globals.node,
+            },
+        },
+        rules: {
+            'no-console': 'off',
         },
     },
 
