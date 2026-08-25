@@ -1,7 +1,6 @@
 # Scripts
 
-Development scripts, run through their npm script entries — see `package.json`.
-One section per script.
+Development scripts, run through their npm script entries (see `package.json`).
 
 ## api-gen.mjs — OpenAPI code generator
 
