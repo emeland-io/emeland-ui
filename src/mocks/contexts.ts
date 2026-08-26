@@ -1,4 +1,4 @@
-import type { Context, ContextType } from '@/types/context'
+import type { Context as ContextWire, ContextType as ContextTypeWire } from '@/api/gen/types.gen'
 
 const T = {
   organization: '1a2b3c4d-0001-4211-8000-000000000001',
@@ -25,186 +25,186 @@ const C = {
 
 const MISSING_PARENT = 'ffffffff-0000-4211-8000-0000000000ff'
 
-export const contextTypes: ContextType[] = [
+export const contextTypes = [
   {
     contextTypeId: T.organization,
     displayName: 'Organization',
     description: 'Die oberste Organisation.',
-    annotations: { 'emeland.io/organization': 'root' },
+    annotations: [{ key: 'emeland.io/organization', value: 'root' }],
   },
   {
     contextTypeId: T.businessDomain,
     displayName: 'Business domain',
     description: 'Ein Geschäftsbereich, der Systeme und Teams gruppiert.',
-    annotations: {},
+    annotations: [],
   },
   {
     contextTypeId: T.environment,
     displayName: 'Environment',
     description:
       'Eine Deployment-Umgebung (prod, staging, dev), abgebildet auf einen Mandanten der Private Cloud.',
-    annotations: {},
+    annotations: [],
   },
   {
     contextTypeId: T.region,
     displayName: 'Region',
     description:
       'Ein Rechenzentrums-Standort innerhalb einer Umgebung (Berlin, Strausberg), georedundant.',
-    annotations: {},
+    annotations: [],
   },
   {
     contextTypeId: T.tenant,
     displayName: 'Tenant',
     description: 'Eine isolierte fachliche Einheit innerhalb eines Geschäftsbereichs.',
-    annotations: {},
+    annotations: [],
   },
-]
+] satisfies ContextTypeWire[]
 
-export const contexts: Context[] = [
+export const contexts = [
   {
     contextId: C.org,
     displayName: 'BWI GmbH',
     description: 'Root-Context der BWI.',
-    contextTypeId: T.organization,
-    annotations: {
-      'eximpl.emeland.io/org-id': 'bwi',
-      'eximpl.emeland.io/legal-entity': 'BWI GmbH',
-      'eximpl.emeland.io/sitz': 'Berlin',
-      'eximpl.emeland.io/traeger': 'Bund',
-      'eximpl.emeland.io/datenschutz': 'DSGVO',
-    },
+    type: T.organization,
+    annotations: [
+      { key: 'eximpl.emeland.io/org-id', value: 'bwi' },
+      { key: 'eximpl.emeland.io/legal-entity', value: 'BWI GmbH' },
+      { key: 'eximpl.emeland.io/sitz', value: 'Berlin' },
+      { key: 'eximpl.emeland.io/traeger', value: 'Bund' },
+      { key: 'eximpl.emeland.io/datenschutz', value: 'DSGVO' },
+    ],
   },
   {
     contextId: C.betriebsplattform,
     displayName: 'Betriebsplattform',
     description: 'Betreibt die gemeinsame Infrastruktur, CI/CD und die pCloud der Bundeswehr.',
-    contextTypeId: T.businessDomain,
-    parentId: C.org,
-    annotations: {
-      'eximpl.emeland.io/owner': 'team-betrieb',
-      'eximpl.emeland.io/kostenstelle': 'KST-1001',
-      'eximpl.emeland.io/einstufung': 'offen',
-    },
+    type: T.businessDomain,
+    parent: C.org,
+    annotations: [
+      { key: 'eximpl.emeland.io/owner', value: 'team-betrieb' },
+      { key: 'eximpl.emeland.io/kostenstelle', value: 'KST-1001' },
+      { key: 'eximpl.emeland.io/einstufung', value: 'offen' },
+    ],
   },
   {
     contextId: C.datenmanagement,
     displayName: 'Datenmanagement',
     description: 'Betreibt Data-Lake, Streaming und Analyse-Plattform.',
-    contextTypeId: T.businessDomain,
-    parentId: C.org,
-    annotations: {
-      'eximpl.emeland.io/owner': 'team-daten',
-      'eximpl.emeland.io/kostenstelle': 'KST-1002',
-      'eximpl.emeland.io/einstufung': 'offen',
-    },
+    type: T.businessDomain,
+    parent: C.org,
+    annotations: [
+      { key: 'eximpl.emeland.io/owner', value: 'team-daten' },
+      { key: 'eximpl.emeland.io/kostenstelle', value: 'KST-1002' },
+      { key: 'eximpl.emeland.io/einstufung', value: 'offen' },
+    ],
   },
   {
     contextId: C.identitaetsmgmt,
     displayName: 'Identitätsmanagement',
     description: 'Geschäftsbereich für Identitäts- und Zugriffsverwaltung.',
-    contextTypeId: T.businessDomain,
-    parentId: C.org,
-    annotations: {
-      'eximpl.emeland.io/owner': 'team-iam',
-      'eximpl.emeland.io/kostenstelle': 'KST-2002',
-      'eximpl.emeland.io/compliance': 'BSI',
-    },
+    type: T.businessDomain,
+    parent: C.org,
+    annotations: [
+      { key: 'eximpl.emeland.io/owner', value: 'team-iam' },
+      { key: 'eximpl.emeland.io/kostenstelle', value: 'KST-2002' },
+      { key: 'eximpl.emeland.io/compliance', value: 'BSI' },
+    ],
   },
   {
     contextId: C.production,
     displayName: 'Production',
     description: 'Primäre Produktionsumgebung auf der Private Cloud der Bundeswehr.',
-    contextTypeId: T.environment,
-    parentId: C.betriebsplattform,
-    annotations: {
-      'eximpl.emeland.io/tier': 'prod',
-      'eximpl.emeland.io/cloud': 'pcloud-bw',
-      'eximpl.emeland.io/network-zone': 'bw-netz',
-      'eximpl.emeland.io/einstufung': 'VS-NfD',
-      'eximpl.emeland.io/sla': '99.9',
-      'eximpl.emeland.io/compliance': 'BSI',
-    },
+    type: T.environment,
+    parent: C.betriebsplattform,
+    annotations: [
+      { key: 'eximpl.emeland.io/tier', value: 'prod' },
+      { key: 'eximpl.emeland.io/cloud', value: 'pcloud-bw' },
+      { key: 'eximpl.emeland.io/network-zone', value: 'bw-netz' },
+      { key: 'eximpl.emeland.io/einstufung', value: 'VS-NfD' },
+      { key: 'eximpl.emeland.io/sla', value: '99.9' },
+      { key: 'eximpl.emeland.io/compliance', value: 'BSI' },
+    ],
   },
   {
     contextId: C.berlin,
     displayName: 'Berlin',
     description: 'Rechenzentrum Berlin (ber), Primärstandort der Produktion.',
-    contextTypeId: T.region,
-    parentId: C.production,
-    annotations: {
-      'eximpl.emeland.io/standort': 'ber',
-      'eximpl.emeland.io/rechenzentrum': 'RZ-BER-1',
-      'eximpl.emeland.io/stadt': 'Berlin',
-      'eximpl.emeland.io/data-residency': 'DE',
-      'eximpl.emeland.io/georedundanz': 'primär',
-    },
+    type: T.region,
+    parent: C.production,
+    annotations: [
+      { key: 'eximpl.emeland.io/standort', value: 'ber' },
+      { key: 'eximpl.emeland.io/rechenzentrum', value: 'RZ-BER-1' },
+      { key: 'eximpl.emeland.io/stadt', value: 'Berlin' },
+      { key: 'eximpl.emeland.io/data-residency', value: 'DE' },
+      { key: 'eximpl.emeland.io/georedundanz', value: 'primär' },
+    ],
   },
   {
     contextId: C.strausberg,
     displayName: 'Strausberg',
     description: 'Rechenzentrum Strausberg (srb), georedundanter Sekundärstandort.',
-    contextTypeId: T.region,
-    parentId: C.production,
-    annotations: {
-      'eximpl.emeland.io/standort': 'srb',
-      'eximpl.emeland.io/rechenzentrum': 'RZ-SRB-2',
-      'eximpl.emeland.io/stadt': 'Strausberg',
-      'eximpl.emeland.io/data-residency': 'DE',
-      'eximpl.emeland.io/georedundanz': 'sekundär',
-    },
+    type: T.region,
+    parent: C.production,
+    annotations: [
+      { key: 'eximpl.emeland.io/standort', value: 'srb' },
+      { key: 'eximpl.emeland.io/rechenzentrum', value: 'RZ-SRB-2' },
+      { key: 'eximpl.emeland.io/stadt', value: 'Strausberg' },
+      { key: 'eximpl.emeland.io/data-residency', value: 'DE' },
+      { key: 'eximpl.emeland.io/georedundanz', value: 'sekundär' },
+    ],
   },
   {
     contextId: C.staging,
     displayName: 'Staging',
     description: 'Pre-Production-Umgebung, spiegelt die Produktionstopologie.',
-    contextTypeId: T.environment,
-    parentId: C.production,
-    annotations: {
-      'eximpl.emeland.io/tier': 'staging',
-      'eximpl.emeland.io/cloud': 'pcloud-bw',
-      'eximpl.emeland.io/mandant': 'bw-staging',
-      'eximpl.emeland.io/standort': 'srb',
-      'eximpl.emeland.io/deploy-strategy': 'rolling',
-    },
+    type: T.environment,
+    parent: C.production,
+    annotations: [
+      { key: 'eximpl.emeland.io/tier', value: 'staging' },
+      { key: 'eximpl.emeland.io/cloud', value: 'pcloud-bw' },
+      { key: 'eximpl.emeland.io/mandant', value: 'bw-staging' },
+      { key: 'eximpl.emeland.io/standort', value: 'srb' },
+      { key: 'eximpl.emeland.io/deploy-strategy', value: 'rolling' },
+    ],
   },
   {
     contextId: C.development,
     displayName: 'Development',
     description: 'Gemeinsame Entwicklungs- und Integrationsumgebung.',
-    contextTypeId: T.environment,
-    parentId: C.staging,
-    annotations: {
-      'eximpl.emeland.io/tier': 'dev',
-      'eximpl.emeland.io/cloud': 'pcloud-bw',
-      'eximpl.emeland.io/mandant': 'bw-dev',
-      'eximpl.emeland.io/standort': 'ber',
-    },
+    type: T.environment,
+    parent: C.staging,
+    annotations: [
+      { key: 'eximpl.emeland.io/tier', value: 'dev' },
+      { key: 'eximpl.emeland.io/cloud', value: 'pcloud-bw' },
+      { key: 'eximpl.emeland.io/mandant', value: 'bw-dev' },
+      { key: 'eximpl.emeland.io/standort', value: 'ber' },
+    ],
   },
   {
     contextId: C.analyseSandbox,
     displayName: 'Analyse-Sandbox',
     description: 'Isolierte Sandbox für Datenanalyse-Experimente.',
-    contextTypeId: T.environment,
-    parentId: C.datenmanagement,
-    annotations: {
-      'eximpl.emeland.io/tier': 'sandbox',
-      'eximpl.emeland.io/cloud': 'pcloud-bw',
-      'eximpl.emeland.io/mandant': 'bw-analyse',
-      'eximpl.emeland.io/einstufung': 'offen',
-      'eximpl.emeland.io/budget-cap-eur': '4000',
-    },
+    type: T.environment,
+    parent: C.datenmanagement,
+    annotations: [
+      { key: 'eximpl.emeland.io/tier', value: 'sandbox' },
+      { key: 'eximpl.emeland.io/cloud', value: 'pcloud-bw' },
+      { key: 'eximpl.emeland.io/mandant', value: 'bw-analyse' },
+      { key: 'eximpl.emeland.io/einstufung', value: 'offen' },
+      { key: 'eximpl.emeland.io/budget-cap-eur', value: '4000' },
+    ],
   },
   {
     contextId: C.altsystem,
     displayName: 'Altsystem',
     description: 'Abzulösende Alt-Infrastruktur, übergeordneter Context noch nicht modelliert.',
-    contextTypeId: T.environment,
-    parentId: MISSING_PARENT,
-    annotations: {
-      'eximpl.emeland.io/tier': 'legacy',
-      'eximpl.emeland.io/betrieb': 'alt-vertrag',
-      'eximpl.emeland.io/standort': 'RZ Berlin',
-      'eximpl.emeland.io/abschaltung-geplant': '2027-Q2',
-    },
+    type: T.environment,
+    parent: MISSING_PARENT,
+    annotations: [
+      { key: 'eximpl.emeland.io/tier', value: 'legacy' },
+      { key: 'eximpl.emeland.io/betrieb', value: 'alt-vertrag' },
+      { key: 'eximpl.emeland.io/standort', value: 'RZ Berlin' },
+      { key: 'eximpl.emeland.io/abschaltung-geplant', value: '2027-Q2' },
+    ],
   },
-]
+] satisfies ContextWire[]

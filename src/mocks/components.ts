@@ -1,4 +1,7 @@
-import type { Component, ComponentInstance } from '@/types/component'
+import type {
+  Component as ComponentWire,
+  ComponentInstance as ComponentInstanceWire,
+} from '@/api/gen/types.gen'
 
 /**
  * Components mockups
@@ -15,7 +18,7 @@ import type { Component, ComponentInstance } from '@/types/component'
  *   dns-resolve:      bb8c9d1e-2f3a-4b4c-5d6e-7f8a9b1c2d3e
  *   postgres-conn:    bc9d1e2f-3a4b-4c5d-6e7f-8a9b1c2d3e4f
  */
-export const components: Component[] = [
+export const components = [
   {
     componentId: 'ca1b2c3d-4e5f-4a6b-8c9d-1e2f3a4b5c6d',
     displayName: 'App Frontend',
@@ -27,7 +30,10 @@ export const components: Component[] = [
       'ab2c3d4e-5f6a-4b7c-9d1e-2f3a4b5c6d7e', // query-api
     ],
     provides: [],
-    annotations: { 'emeland.io/owner': 'platform-team', 'emeland.io/runtime': 'nginx' },
+    annotations: [
+      { key: 'emeland.io/owner', value: 'platform-team' },
+      { key: 'emeland.io/runtime', value: 'nginx' },
+    ],
   },
   {
     componentId: 'cb2c3d4e-5f6a-4b7c-9d1e-2f3a4b5c6d7e',
@@ -46,7 +52,10 @@ export const components: Component[] = [
       'ac3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f', // event-bus
       'af6a7b8c-9d1e-4f2a-3b4c-5d6e7f8a9b1c', // metrics-scrape
     ],
-    annotations: { 'emeland.io/owner': 'platform-team', 'emeland.io/runtime': 'go' },
+    annotations: [
+      { key: 'emeland.io/owner', value: 'platform-team' },
+      { key: 'emeland.io/runtime', value: 'go' },
+    ],
   },
   {
     componentId: 'cc3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f',
@@ -62,7 +71,10 @@ export const components: Component[] = [
       'ad4e5f6a-7b8c-4d9e-1f2a-3b4c5d6e7f8a', // public-gateway
       'af6a7b8c-9d1e-4f2a-3b4c-5d6e7f8a9b1c', // metrics-scrape
     ],
-    annotations: { 'emeland.io/owner': 'infra-team', 'emeland.io/runtime': 'nginx/openresty' },
+    annotations: [
+      { key: 'emeland.io/owner', value: 'infra-team' },
+      { key: 'emeland.io/runtime', value: 'nginx/openresty' },
+    ],
   },
   {
     componentId: 'cd4e5f6a-7b8c-4d9e-1f2a-3b4c5d6e7f8a',
@@ -77,7 +89,10 @@ export const components: Component[] = [
       'ba7b8c9d-1e2f-4a3b-4c5d-6e7f8a9b1c2d', // datasource-api
       'af6a7b8c-9d1e-4f2a-3b4c-5d6e7f8a9b1c', // metrics-scrape
     ],
-    annotations: { 'emeland.io/owner': 'obs-team', 'emeland.io/runtime': 'go' },
+    annotations: [
+      { key: 'emeland.io/owner', value: 'obs-team' },
+      { key: 'emeland.io/runtime', value: 'go' },
+    ],
   },
   {
     componentId: 'ce5f6a7b-8c9d-4e1f-2a3b-4c5d6e7f8a9b',
@@ -91,7 +106,10 @@ export const components: Component[] = [
     provides: [
       'ae5f6a7b-8c9d-4e1f-2a3b-4c5d6e7f8a9b', // promql-api
     ],
-    annotations: { 'emeland.io/owner': 'obs-team', 'emeland.io/runtime': 'go' },
+    annotations: [
+      { key: 'emeland.io/owner', value: 'obs-team' },
+      { key: 'emeland.io/runtime', value: 'go' },
+    ],
   },
   {
     componentId: 'cf6a7b8c-9d1e-4f2a-3b4c-5d6e7f8a9b1c',
@@ -103,11 +121,18 @@ export const components: Component[] = [
     provides: [
       'af6a7b8c-9d1e-4f2a-3b4c-5d6e7f8a9b1c', // metrics-scrape
     ],
-    annotations: { 'emeland.io/owner': 'obs-team', 'emeland.io/runtime': 'go' },
+    annotations: [
+      { key: 'emeland.io/owner', value: 'obs-team' },
+      { key: 'emeland.io/runtime', value: 'go' },
+    ],
   },
-]
+] satisfies ComponentWire[]
 
-export const componentInstances: ComponentInstance[] = [
+// dangling references for unmapped-instance demos (the spec requires the fields)
+const MISSING_COMPONENT = 'ffffffff-0000-4c2d-9c00-0000000000cc'
+const MISSING_SYSINST = 'ffffffff-0000-4c2d-9c00-0000000000dd'
+
+export const componentInstances = [
   {
     componentInstanceId: 'd1a1b2c3-0000-4d5e-8f00-000000000001',
     displayName: 'App Frontend (prod-eu)',
@@ -115,11 +140,11 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e',
     consumes: [],
     provides: [],
-    annotations: {
-      'eximpl.emeland.io/last-update': '2026-05-28T09:24:11Z',
-      'emeland.io/cluster': 'ber-prod',
-      'emeland.io/namespace': 'app',
-    },
+    annotations: [
+      { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:11Z' },
+      { key: 'emeland.io/cluster', value: 'ber-prod' },
+      { key: 'emeland.io/namespace', value: 'app' },
+    ],
   },
   {
     componentInstanceId: 'd2a1b2c3-0000-4d5e-8f00-000000000002',
@@ -128,11 +153,11 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: 'e8b9c1d2-0000-4b5c-8d7e-8f9a1b2c3d02',
     consumes: [],
     provides: [],
-    annotations: {
-      'eximpl.emeland.io/last-update': '2026-05-28T09:20:44Z',
-      'emeland.io/cluster': 'ber-staging',
-      'emeland.io/namespace': 'app',
-    },
+    annotations: [
+      { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:20:44Z' },
+      { key: 'emeland.io/cluster', value: 'ber-staging' },
+      { key: 'emeland.io/namespace', value: 'app' },
+    ],
   },
   {
     componentInstanceId: 'd3a1b2c3-0000-4d5e-8f00-000000000003',
@@ -141,11 +166,11 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e',
     consumes: [],
     provides: [],
-    annotations: {
-      'eximpl.emeland.io/last-update': '2026-05-28T09:24:11Z',
-      'emeland.io/cluster': 'ber-prod',
-      'emeland.io/namespace': 'app',
-    },
+    annotations: [
+      { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:11Z' },
+      { key: 'emeland.io/cluster', value: 'ber-prod' },
+      { key: 'emeland.io/namespace', value: 'app' },
+    ],
   },
   {
     componentInstanceId: 'd4a1b2c3-0000-4d5e-8f00-000000000004',
@@ -154,11 +179,11 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: 'e8b9c1d2-0000-4b5c-8d7e-8f9a1b2c3d02',
     consumes: [],
     provides: [],
-    annotations: {
-      'eximpl.emeland.io/last-update': '2026-05-28T09:20:44Z',
-      'emeland.io/cluster': 'ber-staging',
-      'emeland.io/namespace': 'app',
-    },
+    annotations: [
+      { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:20:44Z' },
+      { key: 'emeland.io/cluster', value: 'ber-staging' },
+      { key: 'emeland.io/namespace', value: 'app' },
+    ],
   },
   {
     componentInstanceId: 'd5a1b2c3-0000-4d5e-8f00-000000000005',
@@ -167,11 +192,11 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f',
     consumes: [],
     provides: [],
-    annotations: {
-      'eximpl.emeland.io/last-update': '2026-05-28T09:24:08Z',
-      'emeland.io/cluster': 'ber-prod',
-      'emeland.io/namespace': 'kong',
-    },
+    annotations: [
+      { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:08Z' },
+      { key: 'emeland.io/cluster', value: 'ber-prod' },
+      { key: 'emeland.io/namespace', value: 'kong' },
+    ],
   },
   {
     componentInstanceId: 'd6a1b2c3-0000-4d5e-8f00-000000000006',
@@ -180,11 +205,11 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: 'f9c1d2e3-0000-4c6d-8e8f-9a1b2c3d4e02',
     consumes: [],
     provides: [],
-    annotations: {
-      'eximpl.emeland.io/last-update': '2026-05-28T09:21:02Z',
-      'emeland.io/cluster': 'ber-staging',
-      'emeland.io/namespace': 'kong',
-    },
+    annotations: [
+      { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:21:02Z' },
+      { key: 'emeland.io/cluster', value: 'ber-staging' },
+      { key: 'emeland.io/namespace', value: 'kong' },
+    ],
   },
   {
     componentInstanceId: 'd7a1b2c3-0000-4d5e-8f00-000000000007',
@@ -193,11 +218,11 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: '1a2b3c4d-5e6f-4a7b-8c9d-1e2f3a4b5c6d',
     consumes: [],
     provides: [],
-    annotations: {
-      'eximpl.emeland.io/last-update': '2026-05-28T09:23:55Z',
-      'emeland.io/cluster': 'ber-prod',
-      'emeland.io/namespace': 'monitoring',
-    },
+    annotations: [
+      { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:23:55Z' },
+      { key: 'emeland.io/cluster', value: 'ber-prod' },
+      { key: 'emeland.io/namespace', value: 'monitoring' },
+    ],
   },
   {
     componentInstanceId: 'd8a1b2c3-0000-4d5e-8f00-000000000008',
@@ -206,11 +231,11 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: '1a2b3c4d-0000-4a8c-8d1e-2f3a4b5c6d02',
     consumes: [],
     provides: [],
-    annotations: {
-      'eximpl.emeland.io/last-update': '2026-05-28T09:22:19Z',
-      'emeland.io/cluster': 'ber-staging',
-      'emeland.io/namespace': 'monitoring',
-    },
+    annotations: [
+      { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:22:19Z' },
+      { key: 'emeland.io/cluster', value: 'ber-staging' },
+      { key: 'emeland.io/namespace', value: 'monitoring' },
+    ],
   },
   {
     componentInstanceId: 'd9a1b2c3-0000-4d5e-8f00-000000000009',
@@ -219,11 +244,11 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: '2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e',
     consumes: [],
     provides: [],
-    annotations: {
-      'eximpl.emeland.io/last-update': '2026-05-28T09:24:01Z',
-      'emeland.io/cluster': 'ber-prod',
-      'emeland.io/namespace': 'monitoring',
-    },
+    annotations: [
+      { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:01Z' },
+      { key: 'emeland.io/cluster', value: 'ber-prod' },
+      { key: 'emeland.io/namespace', value: 'monitoring' },
+    ],
   },
   {
     componentInstanceId: 'd10a1b2c3-0000-4d5e-8f00-00000000000a',
@@ -232,11 +257,11 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: '3c4d5e6f-7a8b-4c9d-1e2f-3a4b5c6d7e8f',
     consumes: [],
     provides: [],
-    annotations: {
-      'eximpl.emeland.io/last-update': '2026-05-28T09:24:03Z',
-      'emeland.io/cluster': 'ber-prod',
-      'emeland.io/namespace': 'monitoring',
-    },
+    annotations: [
+      { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:03Z' },
+      { key: 'emeland.io/cluster', value: 'ber-prod' },
+      { key: 'emeland.io/namespace', value: 'monitoring' },
+    ],
   },
 
   // Unmapped instances — grouped below by their broken component reference:
@@ -246,15 +271,15 @@ export const componentInstances: ComponentInstance[] = [
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a1',
     displayName: 'Mystery Container',
-    component: '', // no parent component
+    component: MISSING_COMPONENT, // dangling reference (unmapped demo)
     systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (prod-eu)
     consumes: [],
     provides: [],
-    annotations: {
-      'eximpl.emeland.io/last-update': '2026-05-28T09:25:02Z',
-      'emeland.io/cluster': 'ber-prod',
-      'emeland.io/namespace': 'kong',
-    },
+    annotations: [
+      { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:25:02Z' },
+      { key: 'emeland.io/cluster', value: 'ber-prod' },
+      { key: 'emeland.io/namespace', value: 'kong' },
+    ],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a2',
@@ -263,7 +288,7 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: '2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e', // Prometheus (prod)
     consumes: [],
     provides: [],
-    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a3',
@@ -272,34 +297,34 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: '2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e', // Prometheus (prod)
     consumes: [],
     provides: [],
-    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a4',
     displayName: 'Legacy Scheduler',
     component: 'ffffffff-0000-4211-8000-0000000000cc',
-    systemInstance: '', // not tracked on any system instance
+    systemInstance: MISSING_SYSINST, // dangling reference (unmapped demo)
     consumes: [],
     provides: [],
-    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a5',
     displayName: 'Legacy File Importer',
     component: 'ffffffff-0000-4211-8000-0000000000cc',
-    systemInstance: '',
+    systemInstance: MISSING_SYSINST, // dangling reference (unmapped demo)
     consumes: [],
     provides: [],
-    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a6',
     displayName: 'Legacy Mail Relay',
     component: 'ffffffff-0000-4211-8000-0000000000cc',
-    systemInstance: '',
+    systemInstance: MISSING_SYSINST, // dangling reference (unmapped demo)
     consumes: [],
     provides: [],
-    annotations: { 'emeland.io/p1-system-status': 'legacy' },
+    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000b1',
@@ -308,7 +333,10 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
     consumes: [],
     provides: [],
-    annotations: { 'emeland.io/cluster': 'ber-prod', 'emeland.io/namespace': 'data' },
+    annotations: [
+      { key: 'emeland.io/cluster', value: 'ber-prod' },
+      { key: 'emeland.io/namespace', value: 'data' },
+    ],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000b2',
@@ -317,7 +345,10 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (prod-eu)
     consumes: [],
     provides: [],
-    annotations: { 'emeland.io/cluster': 'ber-prod', 'emeland.io/namespace': 'kong' },
+    annotations: [
+      { key: 'emeland.io/cluster', value: 'ber-prod' },
+      { key: 'emeland.io/namespace', value: 'kong' },
+    ],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000b3',
@@ -326,7 +357,10 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: '1a2b3c4d-5e6f-4a7b-8c9d-1e2f3a4b5c6d', // Grafana (prod)
     consumes: [],
     provides: [],
-    annotations: { 'emeland.io/cluster': 'ber-prod', 'emeland.io/namespace': 'monitoring' },
+    annotations: [
+      { key: 'emeland.io/cluster', value: 'ber-prod' },
+      { key: 'emeland.io/namespace', value: 'monitoring' },
+    ],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000b4',
@@ -335,24 +369,27 @@ export const componentInstances: ComponentInstance[] = [
     systemInstance: 'e8b9c1d2-0000-4b5c-8d7e-8f9a1b2c3d02', // Application (staging)
     consumes: [],
     provides: [],
-    annotations: { 'emeland.io/cluster': 'ber-staging', 'emeland.io/namespace': 'batch' },
+    annotations: [
+      { key: 'emeland.io/cluster', value: 'ber-staging' },
+      { key: 'emeland.io/namespace', value: 'batch' },
+    ],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000c1',
     displayName: 'Unknown Daemon',
-    component: '', // no parent component
-    systemInstance: '',
+    component: MISSING_COMPONENT, // dangling reference (unmapped demo)
+    systemInstance: MISSING_SYSINST, // dangling reference (unmapped demo)
     consumes: [],
     provides: [],
-    annotations: {},
+    annotations: [],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000c2',
     displayName: 'Orphan Pod',
-    component: '', // no parent component
+    component: MISSING_COMPONENT, // dangling reference (unmapped demo)
     systemInstance: 'e8b9c1d2-0000-4b5c-8d7e-8f9a1b2c3d02', // Application (staging)
     consumes: [],
     provides: [],
-    annotations: { 'emeland.io/cluster': 'ber-staging' },
+    annotations: [{ key: 'emeland.io/cluster', value: 'ber-staging' }],
   },
-]
+] satisfies ComponentInstanceWire[]
