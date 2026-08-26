@@ -1,22 +1,14 @@
 import { API } from '@/constants/api'
 import type { Component, ComponentInstance } from '@/types/component'
-import type { Version } from '@/types/common'
-import { decodeAnnotations, decodeVersion, type AnnotationsResponse } from './decode'
-import { makeResourceApi, responseId } from './resource'
+import { decodeAnnotations, decodeVersion } from './decode'
+import { MINIMAL_LIST_FIELDS, makeResourceApi, responseId } from './resource'
+import type {
+  Component as ComponentWire,
+  ComponentInstance as ComponentInstanceWire,
+} from './gen/types.gen'
+import { zComponent, zComponentInstance, zInstanceListItem } from './gen/zod.gen'
 
-interface ComponentResponse {
-  componentId?: string
-  instanceId?: string
-  displayName?: string
-  description?: string
-  version?: Version
-  system?: string
-  consumes?: string[]
-  provides?: string[]
-  annotations?: AnnotationsResponse
-}
-
-function decodeComponent(res: ComponentResponse): Component {
+function decodeComponent(res: ComponentWire): Component {
   return {
     componentId: responseId(res, 'componentId'),
     displayName: res.displayName ?? '',
@@ -29,31 +21,24 @@ function decodeComponent(res: ComponentResponse): Component {
   }
 }
 
-const components = makeResourceApi<Component, ComponentResponse>({
+const components = makeResourceApi<Component, ComponentWire>({
   name: 'Component',
   namePlural: 'components',
   listPath: API.COMPONENTS.list,
   byIdPath: API.COMPONENTS.byId,
   mocks: async () => (await import('@/mocks/components')).components,
+  idKey: 'componentId',
   idOf: (c) => c.componentId,
+  listSchema: zInstanceListItem,
+  requireListFields: MINIMAL_LIST_FIELDS,
+  responseSchema: zComponent,
   decode: decodeComponent,
 })
 
 export const fetchComponents = components.fetchAll
 export const fetchComponentById = components.fetchById
 
-interface ComponentInstanceResponse {
-  componentInstanceId?: string
-  instanceId?: string
-  displayName?: string
-  component?: string
-  systemInstance?: string
-  consumes?: string[]
-  provides?: string[]
-  annotations?: AnnotationsResponse
-}
-
-function decodeComponentInstance(res: ComponentInstanceResponse): ComponentInstance {
+function decodeComponentInstance(res: ComponentInstanceWire): ComponentInstance {
   return {
     componentInstanceId: responseId(res, 'componentInstanceId'),
     displayName: res.displayName ?? '',
@@ -65,13 +50,17 @@ function decodeComponentInstance(res: ComponentInstanceResponse): ComponentInsta
   }
 }
 
-const componentInstances = makeResourceApi<ComponentInstance, ComponentInstanceResponse>({
+const componentInstances = makeResourceApi<ComponentInstance, ComponentInstanceWire>({
   name: 'Component instance',
   namePlural: 'component instances',
   listPath: API.COMPONENT_INSTANCES.list,
   byIdPath: API.COMPONENT_INSTANCES.byId,
   mocks: async () => (await import('@/mocks/components')).componentInstances,
+  idKey: 'componentInstanceId',
   idOf: (i) => i.componentInstanceId,
+  listSchema: zInstanceListItem,
+  requireListFields: MINIMAL_LIST_FIELDS,
+  responseSchema: zComponentInstance,
   decode: decodeComponentInstance,
 })
 

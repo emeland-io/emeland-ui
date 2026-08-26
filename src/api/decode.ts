@@ -1,12 +1,12 @@
+import { z } from 'zod'
 import type { Version } from '@/types/common'
 
-export interface InstanceListItem {
-  instanceId: string
-  displayName: string
-  reference: string
-}
-
 export type AnnotationsResponse = { key: string; value: string }[] | Record<string, string>
+
+export const annotationsResponseSchema = z.union([
+  z.array(z.object({ key: z.string(), value: z.string() })),
+  z.record(z.string(), z.string()),
+])
 
 export function decodeAnnotations(raw: AnnotationsResponse | undefined): Record<string, string> {
   if (!raw) return {}

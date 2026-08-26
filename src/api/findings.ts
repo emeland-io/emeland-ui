@@ -1,42 +1,24 @@
 import { API } from '@/constants/api'
 import type { Finding, FindingResource, FindingType } from '@/types/finding'
-import { decodeAnnotations, type AnnotationsResponse } from './decode'
+import { decodeAnnotations } from './decode'
 import { decodeTypeEntity, makeResourceApi } from './resource'
+import type {
+  FindingView as FindingWire,
+  FindingType as FindingTypeWire,
+  ResourceView as ResourceWire,
+} from './gen/types.gen'
+import { zFindingType, zFindingView } from './gen/zod.gen'
 
-interface FindingResponse {
-  findingId: string
-  displayName: string
-  description?: string
-  findingType?: { findingTypeId: string; displayName: string }
-  resources?: ResourceResponse[]
-  resource?: ResourceResponse
-  reference?: string
-  annotations?: AnnotationsResponse
-}
-
-interface ResourceResponse {
-  id: string
-  displayName?: string
-  resourceType: string
-}
-
-// Unlike the other resources, the finding-type list endpoint keys by findingTypeId
-interface FindingTypeListItem {
-  findingTypeId: string
-  displayName: string
-  reference: string
-}
-
-function decodeResources(res: FindingResponse): FindingResource[] {
-  const list = res.resources ?? (res.resource ? [res.resource] : [])
-  return list.map((r) => ({
+function decodeResources(res: FindingWire): FindingResource[] {
+  const list = res.resources ?? []
+  return list.map((r: ResourceWire) => ({
     resourceId: r.id,
     displayName: r.displayName ?? '',
     resourceType: r.resourceType as FindingResource['resourceType'],
   }))
 }
 
-function decodeFinding(res: FindingResponse): Finding {
+function decodeFinding(res: FindingWire): Finding {
   return {
     findingId: res.findingId,
     displayName: res.displayName ?? '',
@@ -50,33 +32,38 @@ function decodeFinding(res: FindingResponse): Finding {
   }
 }
 
-// the finding list endpoint returns full findings, not minimal list items
-const findings = makeResourceApi<Finding, FindingResponse, FindingResponse>({
+// the finding list endpoint returns full finding views, not minimal list items
+const findings = makeResourceApi<Finding, FindingWire, FindingWire>({
   name: 'Finding',
   namePlural: 'findings',
   listPath: API.FINDINGS.list,
   byIdPath: API.FINDINGS.byId,
   mocks: async () => (await import('@/mocks/findings')).findings,
+  idKey: 'findingId',
   idOf: (f) => f.findingId,
+  listSchema: zFindingView,
   fromList: decodeFinding,
+  responseSchema: zFindingView,
   decode: decodeFinding,
 })
 
 export const fetchFindings = findings.fetchAll
 export const fetchFindingById = findings.fetchById
 
-const findingTypes = makeResourceApi<FindingType, Record<string, unknown>, FindingTypeListItem>({
+// the finding-type list returns full types (minimal payloads also pass:
+// the schema requires only findingTypeId + displayName)
+const findingTypes = makeResourceApi<FindingType, FindingTypeWire>({
   name: 'Finding type',
   namePlural: 'finding types',
   listPath: API.FINDING_TYPES.list,
   byIdPath: API.FINDING_TYPES.byId,
   mocks: async () => (await import('@/mocks/findings')).findingTypes,
+  idKey: 'findingTypeId',
   idOf: (t) => t.findingTypeId,
-  fromList: (item) =>
-    decodeTypeEntity('findingTypeId', {
-      findingTypeId: item.findingTypeId,
-      displayName: item.displayName,
-    }),
+  listSchema: zFindingType,
+  requireListFields: ['findingTypeId', 'displayName'],
+  responseSchema: zFindingType,
+  fromList: (item) => decodeTypeEntity('findingTypeId', item),
   decode: (res) => decodeTypeEntity('findingTypeId', res),
 })
 
