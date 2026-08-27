@@ -1,0 +1,84 @@
+# Verifies the API contract chain: modelsrv spec -> src/api/gen -> FE logic
+#
+# Regenerates the schemas from the current modelsrv spec and distinguishes
+# two failure modes:
+#   drift:    the spec changed upstream, committed src/api/gen is stale
+#             -> if type-check + tests still pass, `npm run api:gen` + commit
+#   breakage: the FE no longer works against the regenerated contract
+#             (decoders type-error, wire mocks / boundary tests fail)
+#             -> the contract change needs FE work, not just a regen
+#
+# Runs on PRs and main pushes (the committed gen must represent the spec)
+# and on a daily schedule (drift is caught even without repo activity)
+name: API contract verification
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '30 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api-contract:
+    name: api contract chain verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      # write-free drift probe, generates into a temp dir and compares
+      - name: Detect spec drift
+        id: drift
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if npm run api:gen -- --check; then
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::src/api/gen is stale — the modelsrv spec changed upstream."
+          fi
+
+      # drift path: regenerates so the classify steps see the new
+      # contract (a genuine generator/network error that slipped through
+      # the probe fails loudly here)
+      - name: Regenerate schemas from the current spec
+        if: steps.drift.outputs.drift == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm run api:gen
+          git --no-pager diff --stat src/api/gen
+
+      # only needed on drift: without it, the committed gen was already
+      # type-checked and tested by the CI workflow on the same commit
+      - name: Type-check FE against the regenerated contract
+        if: steps.drift.outputs.drift == 'true'
+        id: typecheck
+        continue-on-error: true
+        run: npm run type-check
+
+      - name: Test FE against the regenerated contract
+        if: steps.drift.outputs.drift == 'true'
+        id: test
+        continue-on-error: true
+        run: npm run test:run
+
+      - name: Verdict
+        if: steps.drift.outputs.drift == 'true'
+        run: |
+          if [ "${{ steps.typecheck.outcome }}" = "success" ] && [ "${{ steps.test.outcome }}" = "success" ]; then
+            echo "::error::Spec drift, FE compatible: run 'npm run api:gen' and commit src/api/gen."
+          else
+            echo "::error::Spec drift AND the FE breaks against the new contract (type-check: ${{ steps.typecheck.outcome }}, tests: ${{ steps.test.outcome }}). The contract change needs FE work."
+          fi
+          exit 1
