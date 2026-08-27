@@ -80,7 +80,8 @@ async function readErrorDetail(resp: Response): Promise<string | undefined> {
       if (typeof parsed === 'string') return parsed
       if (parsed && typeof parsed === 'object') {
         const rec = parsed as Record<string, unknown>
-        return String(rec.message ?? rec.detail ?? rec.title ?? raw)
+        const known = rec.message ?? rec.detail ?? rec.title
+        return typeof known === 'string' ? known : raw
       }
       return raw
     } catch {

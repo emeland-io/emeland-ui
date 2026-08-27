@@ -22,6 +22,10 @@ import type { InstanceListItem } from './gen/types.gen'
  * to decoding a minimal response, since every decoder fills defaults.
  * The bundled mocks are wire-format fixtures and go through the same
  * validate -> decode pipeline as live responses
+ *
+ * Lists fail fast: one malformed item rejects the whole list (a partial
+ * render of a landscape is worse than an error banner). Revisit here if a
+ * flaky backend ever makes per-item tolerance the better trade.
  */
 export function makeResourceApi<
   T,
@@ -43,7 +47,7 @@ export function makeResourceApi<
   /** validates the byId response */
   responseSchema: z.ZodType<R>
   /** fields every list item must carry, non-empty (the minimal list endpoints) */
-  requireListFields?: string[]
+  requireListFields?: readonly string[]
   /** expand a minimal list item; defaults to decoding it as a minimal response */
   fromList?: (item: L) => T
   /** decode the byId response; omit when it already matches the type */
@@ -78,23 +82,29 @@ export function makeResourceApi<
     return wire.map((w) => decodeDetail(w, what))
   }
 
+  // mocks are static for the session: validate+decode once, not per fetch
+  let mockCache: T[] | null = null
+  async function loadMocks(what: string): Promise<T[]> {
+    if (!mockCache) mockCache = decodeMocks(await config.mocks(), what)
+    return mockCache
+  }
+
   async function fetchAll(): Promise<T[]> {
-    if (USE_MOCKS) return decodeMocks(await config.mocks(), config.namePlural)
+    if (USE_MOCKS) return loadMocks(config.namePlural)
     const data = await getJson<unknown>(config.listPath, config.namePlural)
     const items = parseApiResponse(z.array(config.listSchema), data, config.namePlural)
     // drift check on the first item (the array-level parse sees the whole list)
     if (Array.isArray(data)) warnOnUnknownKeys(data[0], items[0], config.namePlural)
-    if (config.requireListFields) {
-      items.forEach((item, i) =>
-        requireListFields(item, config.requireListFields!, i, config.namePlural),
-      )
+    const required = config.requireListFields
+    if (required) {
+      items.forEach((item, i) => requireListFields(item, required, i, config.namePlural))
     }
     return items.map(fromList)
   }
 
   async function fetchById(id: string): Promise<T> {
     if (USE_MOCKS) {
-      const found = decodeMocks(await config.mocks(), `${config.name} ${id}`).find(
+      const found = (await loadMocks(`${config.name} ${id}`)).find(
         (item) => config.idOf(item) === id,
       )
       if (!found) throw new Error(`${config.name} ${id} not found in mocks`)
@@ -108,7 +118,7 @@ export function makeResourceApi<
 }
 
 /** The fields the minimal list endpoints (zInstanceListItem) must carry */
-export const MINIMAL_LIST_FIELDS = ['instanceId', 'displayName']
+export const MINIMAL_LIST_FIELDS = ['instanceId', 'displayName'] as const
 
 /**
  * Detail payloads must carry a non-empty id (own key or instanceId fallback);
@@ -128,7 +138,7 @@ export function requireResourceId(res: unknown, idKey: string, what: string): st
 /** List items of the minimal list endpoints must carry these fields, non-empty */
 export function requireListFields(
   item: object,
-  fields: string[],
+  fields: readonly string[],
   index: number,
   what: string,
 ): void {
