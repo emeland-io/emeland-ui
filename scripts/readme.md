@@ -49,7 +49,9 @@ link). In `--local` mode the commit comes from the local git checkout, and
 uncommitted spec changes are flagged both in the log and in the header.
 Headers deliberately carry **no wall-clock timestamp**: regenerating from an
 unchanged spec produces an empty diff, so a dirty diff always means the spec
-(or the generator) actually changed.
+(or the generator) actually changed. Output is formatted with the repo's
+prettier config, so regeneration is byte-stable against the committed files —
+the API contract workflow (`.github/workflows/api-contract.yml`) depends on this.
 
 ### Format shim (boundary policy)
 

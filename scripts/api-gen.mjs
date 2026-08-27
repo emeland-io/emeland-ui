@@ -6,7 +6,7 @@
  *   --remote (default)  newest *.yaml in the modelsrv GitHub repo's
  *                       api/openapi/ directory (version parsed from the name)
  *   --local <path>      newest spec in a local modelsrv checkout at <path>
- *                       (required); provenance from local git
+ *                       (required), provenance from local git
  *   --spec <url|file>   exact source, no resolution
  *   EMELAND_OAPI_SPEC   legacy env equivalent of --spec (flags win)
  *
@@ -18,7 +18,8 @@
 import { parseArgs } from 'node:util'
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 
 const USAGE = `Usage: npm run api:gen [-- <flags>]
@@ -28,6 +29,7 @@ const USAGE = `Usage: npm run api:gen [-- <flags>]
                       path is required: the checkout root, the spec
                       directory, or a spec file
   --spec <url|file>   exact spec source, no newest-version resolution
+  --check             generate into a temp dir and fail on drift
   -h, --help          this help
 
   GITHUB_TOKEN/GH_TOKEN are used for GitHub API calls when set
@@ -55,6 +57,7 @@ try {
       local: { type: 'boolean' },
       spec: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
+      check: { type: 'boolean' },
     },
     allowPositionals: true, // the optional path after --local
   })
@@ -89,9 +92,11 @@ function cmpSemver(a, b) {
   return 0
 }
 
+// only names carrying a spec version (X.Y.Z) participate — an unversioned
+// yaml would otherwise sort as [0,0,0] and could win on tie order
 function newestByVersion(names) {
   return names
-    .filter((n) => /\.ya?ml$/.test(n))
+    .filter((n) => /\.ya?ml$/.test(n) && /\d+\.\d+\.\d+/.test(n))
     .map((n) => ({ name: n, version: semverOf(n) }))
     .sort((a, b) => cmpSemver(b.version, a.version))[0]
 }
@@ -217,15 +222,21 @@ if (spec.commit) {
 
 // ------------------------------------------------------ generation
 
+// --check: generate into a temp dir and diff — no writes to src/api/gen
+const outDir = flags.check
+  ? mkdtempSync(join(tmpdir(), 'emeland-api-gen-'))
+  : GEN_DIR
+
 const { createClient } = await import('@hey-api/openapi-ts')
 await createClient({
   input: spec.input,
-  output: { path: GEN_DIR },
+  output: { path: outDir },
   // schemas + types only: the hand-written fetch/resource layer stays
   plugins: ['@hey-api/typescript', { name: 'zod' }],
 })
 
-const shimmed = readFileSync(ZOD_GEN, 'utf8')
+const zodFile = join(outDir, 'zod.gen.ts')
+const shimmed = readFileSync(zodFile, 'utf8')
   .replaceAll('z.uuid()', 'z.string().min(1)')
   .replaceAll('z.url()', 'z.string()')
   .replaceAll('z.iso.datetime()', 'z.string()')
@@ -236,7 +247,7 @@ if (leftover) {
     `format shim missed generator output (update the replacements): ${[...new Set(leftover)].join(', ')}`,
   )
 }
-writeFileSync(ZOD_GEN, shimmed)
+writeFileSync(zodFile, shimmed)
 console.log('[api:gen] applied format shim (z.uuid/z.url/z.iso.datetime -> string) in zod.gen.ts')
 
 const generatorVersion = createRequire(import.meta.url)('@hey-api/openapi-ts/package.json').version
@@ -257,10 +268,37 @@ const provenance = [
   '',
 ].join('\n')
 
-for (const file of GEN_FILES) {
-  const body = readFileSync(file, 'utf8').replace(/^\/\/ This file is auto-generated.*\n/, '')
+const outFiles = GEN_FILES.map((f) => join(outDir, basename(f)))
+for (const file of outFiles) {
+  const content = readFileSync(file, 'utf8')
+  // strip the generator's own banner only when it is the one we know,
+  // if the generator ever changes it, we prepend ours rather than double-strip
+  const known = content.match(/^\/\/ This file is auto-generated.*\n/)
+  const body = known ? content.slice(known[0].length) : content
   writeFileSync(file, provenance + body)
 }
-console.log(`[api:gen] wrote provenance headers to ${GEN_FILES.length} files`)
 
+// format with the repo's prettier config: keeps the committed files
+// format:check-clean and regeneration byte-stable (drift checks depend on it).
+// --config is explicit because prettier resolves config by file location,
+// and --check writes to a temp dir outside the repo
+execFileSync(
+  'npx',
+  ['prettier', '--write', '--log-level', 'warn', '--config', '.prettierrc', ...outFiles],
+  { stdio: 'inherit' },
+)
+
+if (flags.check) {
+  const drifted = GEN_FILES.filter(
+    (f) => readFileSync(f, 'utf8') !== readFileSync(join(outDir, basename(f)), 'utf8'),
+  )
+  if (drifted.length) {
+    console.error(`[api:gen] drift in ${drifted.join(', ')} — run 'npm run api:gen' and commit`)
+    process.exit(1)
+  }
+  console.log('[api:gen] src/api/gen is up to date with the newest spec')
+  process.exit(0)
+}
+console.log(`[api:gen] wrote provenance headers to ${outFiles.length} files`)
+console.log('[api:gen] formatted generated files with prettier')
 console.log('[api:gen] wrote src/api/gen — review the diff and commit')
