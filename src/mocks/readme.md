@@ -18,7 +18,7 @@ All mock data uses inline UUIDs. References between files are documented in comm
 
 ## Types
 
-All types in `src/types/` are aligned to the [EmELand OpenAPI spec](https://github.com/emeland-io/modelsrv/blob/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml) in `modelsrv`. The mock data matches these types exactly.
+Mock data is authored in **wire format** — the exact shape the backend sends per the [EmELand OpenAPI spec](https://github.com/emeland-io/modelsrv/blob/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml) in `modelsrv`: annotations as `{key, value}` entry lists, finding resources keyed by `id`, context fields `type`/`parent` (not the domain's `contextTypeId`/`parentId`). The api layer validates the mocks against the generated schemas (`src/api/gen/`) and decodes them like live responses, so mock drift fails tests by construction. Wire types come from `src/api/gen/types.gen.ts`; domain types live in `src/types/`.
 
 ## When to remove
 

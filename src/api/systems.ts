@@ -1,21 +1,11 @@
 import { API } from '@/constants/api'
 import type { System, SystemInstance } from '@/types/system'
-import type { Version } from '@/types/common'
-import { decodeAnnotations, decodeVersion, type AnnotationsResponse } from './decode'
-import { makeResourceApi, responseId } from './resource'
+import { decodeAnnotations, decodeVersion } from './decode'
+import { MINIMAL_LIST_FIELDS, makeResourceApi, responseId } from './resource'
+import type { System as SystemWire, SystemInstance as SystemInstanceWire } from './gen/types.gen'
+import { zInstanceListItem, zSystem, zSystemInstance } from './gen/zod.gen'
 
-interface SystemResponse {
-  systemId?: string
-  instanceId?: string
-  displayName?: string
-  description?: string
-  version?: Version
-  abstract?: boolean
-  parent?: string
-  annotations?: AnnotationsResponse
-}
-
-function decodeSystem(res: SystemResponse): System {
+function decodeSystem(res: SystemWire): System {
   return {
     systemId: responseId(res, 'systemId'),
     displayName: res.displayName ?? '',
@@ -27,29 +17,24 @@ function decodeSystem(res: SystemResponse): System {
   }
 }
 
-const systems = makeResourceApi<System, SystemResponse>({
+const systems = makeResourceApi<System, SystemWire>({
   name: 'System',
   namePlural: 'systems',
   listPath: API.SYSTEMS.list,
   byIdPath: API.SYSTEMS.byId,
   mocks: async () => (await import('@/mocks/systems')).systems,
+  idKey: 'systemId',
   idOf: (s) => s.systemId,
+  listSchema: zInstanceListItem,
+  requireListFields: MINIMAL_LIST_FIELDS,
+  responseSchema: zSystem,
   decode: decodeSystem,
 })
 
 export const fetchSystems = systems.fetchAll
 export const fetchSystemById = systems.fetchById
 
-interface SystemInstanceResponse {
-  systemInstanceId?: string
-  instanceId?: string
-  displayName?: string
-  system?: string
-  context?: string
-  annotations?: AnnotationsResponse
-}
-
-function decodeSystemInstance(res: SystemInstanceResponse): SystemInstance {
+function decodeSystemInstance(res: SystemInstanceWire): SystemInstance {
   return {
     systemInstanceId: responseId(res, 'systemInstanceId'),
     displayName: res.displayName ?? '',
@@ -59,13 +44,17 @@ function decodeSystemInstance(res: SystemInstanceResponse): SystemInstance {
   }
 }
 
-const systemInstances = makeResourceApi<SystemInstance, SystemInstanceResponse>({
+const systemInstances = makeResourceApi<SystemInstance, SystemInstanceWire>({
   name: 'System instance',
   namePlural: 'system instances',
   listPath: API.SYSTEM_INSTANCES.list,
   byIdPath: API.SYSTEM_INSTANCES.byId,
   mocks: async () => (await import('@/mocks/systems')).systemInstances,
+  idKey: 'systemInstanceId',
   idOf: (i) => i.systemInstanceId,
+  listSchema: zInstanceListItem,
+  requireListFields: MINIMAL_LIST_FIELDS,
+  responseSchema: zSystemInstance,
   decode: decodeSystemInstance,
 })
 

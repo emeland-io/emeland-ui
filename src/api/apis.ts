@@ -1,21 +1,11 @@
 import { API } from '@/constants/api'
-import type { Api, ApiInstance, ApiType } from '@/types/api'
-import type { Version } from '@/types/common'
-import { decodeAnnotations, decodeVersion, type AnnotationsResponse } from './decode'
-import { makeResourceApi, responseId } from './resource'
+import type { Api, ApiInstance } from '@/types/api'
+import { decodeAnnotations, decodeVersion } from './decode'
+import { MINIMAL_LIST_FIELDS, makeResourceApi, responseId } from './resource'
+import type { Api as ApiWire, ApiInstance as ApiInstanceWire } from './gen/types.gen'
+import { zApi, zApiInstance, zInstanceListItem } from './gen/zod.gen'
 
-interface ApiResponse {
-  apiId?: string
-  instanceId?: string
-  displayName?: string
-  description?: string
-  version?: Version
-  type?: ApiType
-  system?: string
-  annotations?: AnnotationsResponse
-}
-
-function decodeApi(res: ApiResponse): Api {
+function decodeApi(res: ApiWire): Api {
   return {
     apiId: responseId(res, 'apiId'),
     displayName: res.displayName ?? '',
@@ -27,29 +17,24 @@ function decodeApi(res: ApiResponse): Api {
   }
 }
 
-const apis = makeResourceApi<Api, ApiResponse>({
+const apis = makeResourceApi<Api, ApiWire>({
   name: 'API',
   namePlural: 'APIs',
   listPath: API.APIS.list,
   byIdPath: API.APIS.byId,
   mocks: async () => (await import('@/mocks/api')).apis,
+  idKey: 'apiId',
   idOf: (a) => a.apiId,
+  listSchema: zInstanceListItem,
+  requireListFields: MINIMAL_LIST_FIELDS,
+  responseSchema: zApi,
   decode: decodeApi,
 })
 
 export const fetchApis = apis.fetchAll
 export const fetchApiById = apis.fetchById
 
-interface ApiInstanceResponse {
-  apiInstanceId?: string
-  instanceId?: string
-  displayName?: string
-  api?: string
-  systemInstance?: string
-  annotations?: AnnotationsResponse
-}
-
-function decodeApiInstance(res: ApiInstanceResponse): ApiInstance {
+function decodeApiInstance(res: ApiInstanceWire): ApiInstance {
   return {
     apiInstanceId: responseId(res, 'apiInstanceId'),
     displayName: res.displayName ?? '',
@@ -59,13 +44,17 @@ function decodeApiInstance(res: ApiInstanceResponse): ApiInstance {
   }
 }
 
-const apiInstances = makeResourceApi<ApiInstance, ApiInstanceResponse>({
+const apiInstances = makeResourceApi<ApiInstance, ApiInstanceWire>({
   name: 'API instance',
   namePlural: 'API instances',
   listPath: API.API_INSTANCES.list,
   byIdPath: API.API_INSTANCES.byId,
   mocks: async () => (await import('@/mocks/api')).apiInstances,
+  idKey: 'apiInstanceId',
   idOf: (i) => i.apiInstanceId,
+  listSchema: zInstanceListItem,
+  requireListFields: MINIMAL_LIST_FIELDS,
+  responseSchema: zApiInstance,
   decode: decodeApiInstance,
 })
 
