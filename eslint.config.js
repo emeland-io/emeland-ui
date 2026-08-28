@@ -34,6 +34,8 @@ export default [
             '@typescript-eslint/no-explicit-any': 'warn',
             '@typescript-eslint/consistent-type-imports': 'error',
 
+            'vue/no-v-html': 'error',
+
             'vue/multi-word-component-names': 'off',
             'vue/define-macros-order': ['error', { order: ['defineProps', 'defineEmits'] }],
             'vue/block-order': ['error', { order: ['script', 'template', 'style'] }],
