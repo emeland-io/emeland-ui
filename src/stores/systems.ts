@@ -61,6 +61,7 @@ export const useSystemStore = defineStore('system', () => {
     getInstancesForSystem: res.instances.getFor,
     getKindForSystem,
     hasDetailError: res.hasDetailError,
+    detailErrorMessage: res.detailErrorMessage,
     load: res.load,
     loadSystemDetail: res.loadDetail,
     loadAllDetails: res.loadAllDetails,

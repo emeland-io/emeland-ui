@@ -76,6 +76,7 @@ export const useFindingsStore = defineStore('findings', () => {
     getTypeForFinding,
     getKindForFinding,
     hasDetailError: res.hasDetailError,
+    detailErrorMessage: res.detailErrorMessage,
     load: res.load,
     loadFindingDetail: res.loadDetail,
     loadFindingTypes: res.types.load,

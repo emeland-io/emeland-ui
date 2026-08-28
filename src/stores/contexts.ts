@@ -78,6 +78,7 @@ export const useContextStore = defineStore('context', () => {
     getParentName,
     isParentUnresolved,
     hasDetailError: res.hasDetailError,
+    detailErrorMessage: res.detailErrorMessage,
     ensureContextType,
     ensureHydrated,
     load: res.load,

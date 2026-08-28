@@ -46,6 +46,7 @@ export const useComponentStore = defineStore('component', () => {
     componentsBySystem,
     getComponentsForSystem,
     hasDetailError: res.hasDetailError,
+    detailErrorMessage: res.detailErrorMessage,
     load: res.load,
     loadComponentDetail: res.loadDetail,
     loadAllDetails: res.loadAllDetails,
