@@ -1,4 +1,5 @@
 import type { Ref } from 'vue'
+import { reportError } from '@/utils/errors'
 
 export interface LoadFlags {
   loading: Ref<boolean>
@@ -22,7 +23,7 @@ export async function loadOnce(
     await fn()
     flags.loaded.value = true
   } catch (e) {
-    flags.error.value = (e as Error).message
+    flags.error.value = reportError('store.load', e)
   } finally {
     flags.loading.value = false
   }
@@ -33,7 +34,8 @@ export async function loadDetailRef<T>(target: Ref<T | null>, fetcher: () => Pro
   target.value = null
   try {
     target.value = await fetcher()
-  } catch {
+  } catch (e) {
+    reportError('store.detail', e)
     target.value = null
   }
 }

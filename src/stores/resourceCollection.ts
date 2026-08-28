@@ -1,5 +1,6 @@
 import { ref, computed, type Ref } from 'vue'
 import { useResourceErrors, loadDetailInto } from '@/composables/useResourceErrors'
+import { reportError } from '@/utils/errors'
 import { loadOnce, loadDetailRef, groupBy } from './support'
 
 /**
@@ -107,7 +108,12 @@ export function createResourceCollection<T, TInst = unknown, TType = unknown>(op
       const list = await inst.fetchAll()
       // the list endpoint is minimal, so hydrate each instance by id
       instanceItems.value = await Promise.all(
-        list.map((i) => inst.fetchById(inst.idOf(i)).catch(() => i)),
+        list.map((i) =>
+          inst.fetchById(inst.idOf(i)).catch((e: unknown) => {
+            errs.markDetailError(inst.idOf(i), reportError('store.instances', e))
+            return i
+          }),
+        ),
       )
     })
   }
@@ -146,6 +152,7 @@ export function createResourceCollection<T, TInst = unknown, TType = unknown>(op
     /** detail/missing error tracking (hasDetailError; also markMissing/isMissing) */
     errs,
     hasDetailError: errs.hasDetailError,
+    detailErrorMessage: errs.detailErrorMessage,
     instances: {
       items: instanceItems,
       loading: instancesLoading,

@@ -7,6 +7,7 @@ import {
   fetchContextTypeById,
 } from '@/api/contexts'
 import type { Context, ContextType } from '@/types/context'
+import { reportError } from '@/utils/errors'
 import { createResourceCollection } from './resourceCollection'
 
 export const useContextStore = defineStore('context', () => {
@@ -48,7 +49,8 @@ export const useContextStore = defineStore('context', () => {
     try {
       const full = await fetchContextTypeById(id)
       typeDetailCache.value = { ...typeDetailCache.value, [id]: full }
-    } catch {
+    } catch (e) {
+      reportError('store.contextType', e)
       res.errs.markMissing(id)
     }
   }
