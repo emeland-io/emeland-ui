@@ -1,6 +1,7 @@
 import { ref, computed, type Ref } from 'vue'
 import { useResourceErrors, loadDetailInto } from '@/composables/useResourceErrors'
 import { reportError } from '@/utils/errors'
+import { useToasts } from '@/composables/useToasts'
 import { loadOnce, loadDetailRef, groupBy } from './support'
 
 /**
@@ -106,15 +107,22 @@ export function createResourceCollection<T, TInst = unknown, TType = unknown>(op
     if (!inst) return
     await loadOnce({ loading: instancesLoading, loaded: instancesLoaded, error }, async () => {
       const list = await inst.fetchAll()
-      // the list endpoint is minimal, so hydrate each instance by id
+      // the list endpoint is minimal, so hydrate each instance by id;
+      // a failed hydration keeps the minimal item, logged and recorded
+      let failed = 0
       instanceItems.value = await Promise.all(
         list.map((i) =>
           inst.fetchById(inst.idOf(i)).catch((e: unknown) => {
+            failed++
             errs.markDetailError(inst.idOf(i), reportError('store.instances', e))
             return i
           }),
         ),
       )
+      // background bulk failures have no inline surface; notify once, not per item
+      if (failed > 0) {
+        useToasts().push(`${failed} of ${list.length} instance details failed to load`, 'warning')
+      }
     })
   }
 

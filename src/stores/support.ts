@@ -1,5 +1,6 @@
 import type { Ref } from 'vue'
 import { reportError } from '@/utils/errors'
+import { useToasts } from '@/composables/useToasts'
 
 export interface LoadFlags {
   loading: Ref<boolean>
@@ -29,13 +30,18 @@ export async function loadOnce(
   }
 }
 
-/** Replace `target` with a freshly fetched detail, clearing it on failure. */
+/**
+ * Replace `target` with a freshly fetched detail, clearing it on failure.
+ * The failure has no inline surface (type drawers, instance details), so it
+ * notifies via toast in addition to the error log
+ */
 export async function loadDetailRef<T>(target: Ref<T | null>, fetcher: () => Promise<T>) {
   target.value = null
   try {
     target.value = await fetcher()
   } catch (e) {
-    reportError('store.detail', e)
+    const message = reportError('store.detail', e)
+    useToasts().pushError(`Could not load detail: ${message}`)
     target.value = null
   }
 }

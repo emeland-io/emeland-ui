@@ -239,6 +239,8 @@ onMounted(async () => {
     loading-label="Loading systems..."
     :error="store.error"
     :error-list-empty="store.systems.length === 0"
+    retry-label="Retry"
+    @retry="store.load()"
   >
     <template #header>
       <ViewHeader

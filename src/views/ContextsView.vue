@@ -149,6 +149,8 @@ onMounted(async () => {
     loading-label="Loading contexts..."
     :error="store.error"
     :error-list-empty="store.contexts.length === 0"
+    retry-label="Retry"
+    @retry="store.load()"
   >
     <template #header>
       <ViewHeader

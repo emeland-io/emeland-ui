@@ -86,7 +86,10 @@ const relatedFindings = useFindingsForResource(
       </TypeTag>
     </DetailHeader>
     <div class="flex flex-col gap-5 px-6 py-5">
-      <DetailErrorBanner v-if="store.hasDetailError(context.contextId)" />
+      <DetailErrorBanner
+        v-if="store.hasDetailError(context.contextId)"
+        :message="store.detailErrorMessage(context.contextId)"
+      />
       <div
         class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3 @3xl:[&>*:nth-child(2)]:border-l @3xl:[&>*:nth-child(2)]:border-border-1/50 @3xl:[&>*:nth-child(2)]:pl-8 @3xl:[&>*:nth-child(3)]:border-l @3xl:[&>*:nth-child(3)]:border-border-1/50 @3xl:[&>*:nth-child(3)]:pl-8"
       >

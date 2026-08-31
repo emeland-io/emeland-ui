@@ -112,6 +112,8 @@ useListKeyboardNav(
     loading-label="Loading nodes..."
     :error="store.error"
     :error-list-empty="store.nodes.length === 0"
+    retry-label="Retry"
+    @retry="store.load()"
   >
     <template #header>
       <ViewHeader
@@ -261,7 +263,10 @@ useListKeyboardNav(
             </div>
           </div>
           <div class="flex flex-col gap-5 px-6 py-5">
-            <DetailErrorBanner v-if="store.hasDetailError(selectedNode.nodeId)" />
+            <DetailErrorBanner
+              v-if="store.hasDetailError(selectedNode.nodeId)"
+              :message="store.detailErrorMessage(selectedNode.nodeId)"
+            />
             <div
               class="grid gap-x-8 gap-y-5 @3xl:grid-cols-3 @3xl:[&>*:nth-child(2)]:border-l @3xl:[&>*:nth-child(2)]:border-border-1/50 @3xl:[&>*:nth-child(2)]:pl-8 @3xl:[&>*:nth-child(3)]:border-l @3xl:[&>*:nth-child(3)]:border-border-1/50 @3xl:[&>*:nth-child(3)]:pl-8"
             >

@@ -11,6 +11,11 @@ defineProps<{
   loadingLabel: string
   error: string | null
   errorListEmpty: boolean
+  retryLabel?: string
+}>()
+
+const emit = defineEmits<{
+  retry: []
 }>()
 </script>
 
@@ -24,6 +29,8 @@ defineProps<{
     <ErrorState
       v-else-if="error && errorListEmpty"
       :message="error"
+      :retry-label="retryLabel"
+      @retry="emit('retry')"
     />
     <template v-else>
       <slot />
