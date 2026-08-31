@@ -82,6 +82,7 @@ export const useContextStore = defineStore('context', () => {
     ensureContextType,
     ensureHydrated,
     load: res.load,
+    reload: res.reload,
     loadContextDetail: res.loadDetail,
     loadAllDetails: res.loadAllDetails,
     loadContextTypes: res.types.load,

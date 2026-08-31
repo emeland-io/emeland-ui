@@ -63,6 +63,7 @@ export const useSystemStore = defineStore('system', () => {
     hasDetailError: res.hasDetailError,
     detailErrorMessage: res.detailErrorMessage,
     load: res.load,
+    reload: res.reload,
     loadSystemDetail: res.loadDetail,
     loadAllDetails: res.loadAllDetails,
     loadSystemInstances: res.instances.load,

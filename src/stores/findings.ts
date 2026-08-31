@@ -78,6 +78,7 @@ export const useFindingsStore = defineStore('findings', () => {
     hasDetailError: res.hasDetailError,
     detailErrorMessage: res.detailErrorMessage,
     load: res.load,
+    reload: res.reload,
     loadFindingDetail: res.loadDetail,
     loadFindingTypes: res.types.load,
     loadFindingTypeDetail: res.types.loadDetail,

@@ -43,6 +43,7 @@ export const useNodesStore = defineStore('nodes', () => {
     hasDetailError: res.hasDetailError,
     detailErrorMessage: res.detailErrorMessage,
     load: res.load,
+    reload: res.reload,
     loadNodeDetail: res.loadDetail,
     loadNodeTypes: res.types.load,
     loadNodeTypeDetail: res.types.loadDetail,

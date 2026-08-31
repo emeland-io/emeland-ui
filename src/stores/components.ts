@@ -48,6 +48,7 @@ export const useComponentStore = defineStore('component', () => {
     hasDetailError: res.hasDetailError,
     detailErrorMessage: res.detailErrorMessage,
     load: res.load,
+    reload: res.reload,
     loadComponentDetail: res.loadDetail,
     loadAllDetails: res.loadAllDetails,
   }

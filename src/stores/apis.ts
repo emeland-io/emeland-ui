@@ -38,6 +38,7 @@ export const useApiStore = defineStore('api', () => {
     hasDetailError: res.hasDetailError,
     detailErrorMessage: res.detailErrorMessage,
     load: res.load,
+    reload: res.reload,
     loadApiDetail: res.loadDetail,
     loadAllDetails: res.loadAllDetails,
   }
