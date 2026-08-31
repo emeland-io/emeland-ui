@@ -2,10 +2,10 @@
 // spec:        EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml (v0.1.0)
 // source:      https://raw.githubusercontent.com/emeland-io/modelsrv/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
 // spec page:   https://github.com/emeland-io/modelsrv/blob/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
-// blob sha:    7ec9f6fd6c053a15702366e9511969bbf0fdbc75
-// spec commit: e527511b605b2d19180c3f9003cc008d9a90c08a (2026-06-30T12:38:09Z)
-//              Add Capacity and CapacityResourceType codegen and OpenAPI schemas.
-// commit url:  https://github.com/emeland-io/modelsrv/commit/e527511b605b2d19180c3f9003cc008d9a90c08a
+// blob sha:    a91cfd5ed3e0b3163a5338183b7444e834edc253
+// spec commit: 0bad63d54b48152d9ea99ca7cc62aea16a82c5e6 (2026-08-25T14:18:36Z)
+//              Add Metric, Threshold, and MetricValue as first-class landscape resources.
+// commit url:  https://github.com/emeland-io/modelsrv/commit/0bad63d54b48152d9ea99ca7cc62aea16a82c5e6
 // regenerate:  npm run api:gen
 
 export type ClientOptions = {
@@ -86,6 +86,9 @@ export type ResourceView = {
     | 'MergeRule'
     | 'Capacity'
     | 'CapacityResourceType'
+    | 'Metric'
+    | 'Threshold'
+    | 'MetricValue'
   /**
    * The human-readable name of the resource referenced.
    */
@@ -240,6 +243,9 @@ export type ResourceRef = {
     | 'Parameter'
     | 'Capacity'
     | 'CapacityResourceType'
+    | 'Metric'
+    | 'Threshold'
+    | 'MetricValue'
   /**
    * A URI reference to the resource.
    */
@@ -951,6 +957,52 @@ export type Capacity = {
 }
 
 /**
+ * Reference to a Metric vocabulary entry.
+ */
+export type MetricRef = {
+  metricId: string
+}
+
+/**
+ * Abstract measurement with business value. Metrics are not time series; they may also name a compound metric whose formula lives in annotations.
+ *
+ */
+export type Metric = {
+  metricId: string
+  displayName: string
+  description?: string
+  annotations?: Array<Annotation>
+}
+
+/**
+ * Condition of arbitrary complexity attached to a Metric. The condition itself lives in annotations (emeland.io/threshold.expression), not as schema fields.
+ *
+ */
+export type Threshold = {
+  thresholdId: string
+  displayName: string
+  description?: string
+  metricRef: MetricRef
+  annotations?: Array<Annotation>
+}
+
+/**
+ * Current reading of a Metric. The value field is the current value only, not a timeline.
+ *
+ */
+export type MetricValue = {
+  metricValueId: string
+  displayName: string
+  description?: string
+  metricRef: MetricRef
+  /**
+   * Current value of the metric (unvalidated string).
+   */
+  value: string
+  annotations?: Array<Annotation>
+}
+
+/**
  * Represents a change in the landscape model for event replication between servers.
  */
 export type Event = {
@@ -1434,6 +1486,144 @@ export type GetLandscapeFindingTypesByFindingTypeIdResponses = {
 
 export type GetLandscapeFindingTypesByFindingTypeIdResponse =
   GetLandscapeFindingTypesByFindingTypeIdResponses[keyof GetLandscapeFindingTypesByFindingTypeIdResponses]
+
+export type GetLandscapeMetricsData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/landscape/metrics'
+}
+
+export type GetLandscapeMetricsResponses = {
+  /**
+   * OK
+   */
+  200: InstanceList
+}
+
+export type GetLandscapeMetricsResponse =
+  GetLandscapeMetricsResponses[keyof GetLandscapeMetricsResponses]
+
+export type GetLandscapeMetricsByMetricIdData = {
+  body?: never
+  path: {
+    metricId: string
+  }
+  query?: never
+  url: '/landscape/metrics/{metricId}'
+}
+
+export type GetLandscapeMetricsByMetricIdErrors = {
+  /**
+   * Not Found
+   */
+  404: ErrorString
+}
+
+export type GetLandscapeMetricsByMetricIdError =
+  GetLandscapeMetricsByMetricIdErrors[keyof GetLandscapeMetricsByMetricIdErrors]
+
+export type GetLandscapeMetricsByMetricIdResponses = {
+  /**
+   * OK
+   */
+  200: Metric
+}
+
+export type GetLandscapeMetricsByMetricIdResponse =
+  GetLandscapeMetricsByMetricIdResponses[keyof GetLandscapeMetricsByMetricIdResponses]
+
+export type GetLandscapeThresholdsData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/landscape/thresholds'
+}
+
+export type GetLandscapeThresholdsResponses = {
+  /**
+   * OK
+   */
+  200: InstanceList
+}
+
+export type GetLandscapeThresholdsResponse =
+  GetLandscapeThresholdsResponses[keyof GetLandscapeThresholdsResponses]
+
+export type GetLandscapeThresholdsByThresholdIdData = {
+  body?: never
+  path: {
+    thresholdId: string
+  }
+  query?: never
+  url: '/landscape/thresholds/{thresholdId}'
+}
+
+export type GetLandscapeThresholdsByThresholdIdErrors = {
+  /**
+   * Not Found
+   */
+  404: ErrorString
+}
+
+export type GetLandscapeThresholdsByThresholdIdError =
+  GetLandscapeThresholdsByThresholdIdErrors[keyof GetLandscapeThresholdsByThresholdIdErrors]
+
+export type GetLandscapeThresholdsByThresholdIdResponses = {
+  /**
+   * OK
+   */
+  200: Threshold
+}
+
+export type GetLandscapeThresholdsByThresholdIdResponse =
+  GetLandscapeThresholdsByThresholdIdResponses[keyof GetLandscapeThresholdsByThresholdIdResponses]
+
+export type GetLandscapeMetricValuesData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/landscape/metricValues'
+}
+
+export type GetLandscapeMetricValuesResponses = {
+  /**
+   * OK
+   */
+  200: InstanceList
+}
+
+export type GetLandscapeMetricValuesResponse =
+  GetLandscapeMetricValuesResponses[keyof GetLandscapeMetricValuesResponses]
+
+export type GetLandscapeMetricValuesByMetricValueIdData = {
+  body?: never
+  path: {
+    metricValueId: string
+  }
+  query?: never
+  url: '/landscape/metricValues/{metricValueId}'
+}
+
+export type GetLandscapeMetricValuesByMetricValueIdErrors = {
+  /**
+   * Not Found
+   */
+  404: ErrorString
+}
+
+export type GetLandscapeMetricValuesByMetricValueIdError =
+  GetLandscapeMetricValuesByMetricValueIdErrors[keyof GetLandscapeMetricValuesByMetricValueIdErrors]
+
+export type GetLandscapeMetricValuesByMetricValueIdResponses = {
+  /**
+   * OK
+   */
+  200: MetricValue
+}
+
+export type GetLandscapeMetricValuesByMetricValueIdResponse =
+  GetLandscapeMetricValuesByMetricValueIdResponses[keyof GetLandscapeMetricValuesByMetricValueIdResponses]
 
 export type GetLandscapeCapacityResourceTypesData = {
   body?: never
