@@ -6,22 +6,22 @@ const { toasts, dismiss } = useToasts()
 
 const TONE_CLASSES: Record<ToastTone, { wrap: string; icon: string }> = {
   error: {
-    wrap: 'border-error/20 bg-error/5 text-error',
+    wrap: 'border-error/20 bg-error/20 text-error',
     icon: 'text-error',
   },
   info: {
-    wrap: 'border-accent/30 bg-accent/10 text-accent',
+    wrap: 'border-accent/30 bg-accent/20 text-accent',
     icon: 'text-accent',
   },
   warning: {
-    wrap: 'border-warning/20 bg-warning/10 text-warning',
+    wrap: 'border-warning/20 bg-warning/20 text-warning',
     icon: 'text-warning',
   },
 }
 </script>
 
 <template>
-  <div class="pointer-events-none fixed bottom-4 right-4 z-50 flex w-80 flex-col gap-2">
+  <div class="pointer-events-none fixed top-12 right-4 z-50 flex w-80 flex-col gap-2">
     <div
       v-for="toast in toasts"
       :key="toast.id"
