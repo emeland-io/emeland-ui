@@ -33,6 +33,18 @@ describe('errorMessage', () => {
     cyclic.self = cyclic
     expect(errorMessage(cyclic)).toBe(String(cyclic))
   })
+
+  it('never throws, even for objects whose toString() throws', () => {
+    const hostile = {
+      toJSON() {
+        throw new Error('no json')
+      },
+      toString() {
+        throw new Error('no string')
+      },
+    }
+    expect(errorMessage(hostile)).toBe('unknown error')
+  })
 })
 
 describe('reportError', () => {
