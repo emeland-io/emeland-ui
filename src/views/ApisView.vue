@@ -271,6 +271,8 @@ onMounted(async () => {
     loading-label="Loading APIs..."
     :error="store.error"
     :error-list-empty="store.apis.length === 0"
+    retry-label="Retry"
+    @retry="store.load()"
   >
     <template #header>
       <ViewHeader

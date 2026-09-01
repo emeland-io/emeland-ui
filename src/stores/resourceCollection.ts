@@ -1,5 +1,7 @@
 import { ref, computed, type Ref } from 'vue'
 import { useResourceErrors, loadDetailInto } from '@/composables/useResourceErrors'
+import { reportError } from '@/utils/errors'
+import { useToasts } from '@/composables/useToasts'
 import { loadOnce, loadDetailRef, groupBy } from './support'
 
 /**
@@ -78,6 +80,26 @@ export function createResourceCollection<T, TInst = unknown, TType = unknown>(op
     detailsHydrated.value = true
   }
 
+  /**
+   * Refetch everything for this resource: clears the load-once and hydration
+   * guards, then reloads the list, all details, instances and types. Current
+   * items stay visible while reloading, the error state is reset by load()
+   */
+  async function reload(): Promise<void> {
+    loaded.value = false
+    detailsHydrated.value = false
+    hydrated.clear()
+    inflightDetail.clear()
+    if (inst) instancesLoaded.value = false
+    if (typ) typesLoaded.value = false
+    await load()
+    await Promise.all([
+      loadAllDetails(),
+      inst ? loadInstances() : Promise.resolve(),
+      typ ? loadTypes() : Promise.resolve(),
+    ])
+  }
+
   // ---- optional instances sub-collection ----
   const inst = options.instances
   const instanceItems = ref<TInst[]>([]) as Ref<TInst[]>
@@ -105,10 +127,22 @@ export function createResourceCollection<T, TInst = unknown, TType = unknown>(op
     if (!inst) return
     await loadOnce({ loading: instancesLoading, loaded: instancesLoaded, error }, async () => {
       const list = await inst.fetchAll()
-      // the list endpoint is minimal, so hydrate each instance by id
+      // the list endpoint is minimal, so hydrate each instance by id;
+      // a failed hydration keeps the minimal item, logged and recorded
+      let failed = 0
       instanceItems.value = await Promise.all(
-        list.map((i) => inst.fetchById(inst.idOf(i)).catch(() => i)),
+        list.map((i) =>
+          inst.fetchById(inst.idOf(i)).catch((e: unknown) => {
+            failed++
+            errs.markDetailError(inst.idOf(i), reportError('store.instances', e))
+            return i
+          }),
+        ),
       )
+      // background bulk failures have no inline surface; notify once, not per item
+      if (failed > 0) {
+        useToasts().push(`${failed} of ${list.length} instance details failed to load`, 'warning')
+      }
     })
   }
 
@@ -143,9 +177,11 @@ export function createResourceCollection<T, TInst = unknown, TType = unknown>(op
     load,
     loadDetail,
     loadAllDetails,
+    reload,
     /** detail/missing error tracking (hasDetailError; also markMissing/isMissing) */
     errs,
     hasDetailError: errs.hasDetailError,
+    detailErrorMessage: errs.detailErrorMessage,
     instances: {
       items: instanceItems,
       loading: instancesLoading,

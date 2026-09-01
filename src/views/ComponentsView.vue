@@ -223,6 +223,8 @@ onMounted(async () => {
     loading-label="Loading components..."
     :error="store.error"
     :error-list-empty="store.components.length === 0"
+    retry-label="Retry"
+    @retry="store.load()"
   >
     <template #header>
       <ViewHeader

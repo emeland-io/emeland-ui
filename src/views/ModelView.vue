@@ -34,6 +34,8 @@ onMounted(() => store.load())
     <ErrorState
       v-else-if="store.error"
       :message="store.error"
+      retry-label="Retry"
+      @retry="store.load()"
     />
 
     <!-- Detail -->

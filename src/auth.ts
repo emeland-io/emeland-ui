@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { reportError } from '@/utils/errors'
 /**
  * Minimal OIDC Authorization Code flow (with PKCE).
  *
@@ -19,14 +20,27 @@ export interface AuthConfig {
 
 let cachedConfig: AuthConfig | null = null
 
+function safeIssuerUrl(url: unknown): string {
+  if (typeof url !== 'string' || url === '') return ''
+  try {
+    const u = new URL(url)
+    if (u.protocol === 'https:' || u.protocol === 'http:') return url
+  } catch {
+    // not an absolute URL
+  }
+  reportError('auth.config', new Error(`rejected issuerUrl (not absolute http(s)): ${url}`))
+  return ''
+}
+
 export async function getAuthConfig(): Promise<AuthConfig> {
   if (cachedConfig) return cachedConfig
 
   try {
     const resp = await fetch('/auth/config.json')
     if (resp.ok) {
-      cachedConfig = await resp.json()
-      return cachedConfig!
+      const raw = (await resp.json()) as AuthConfig
+      cachedConfig = { ...raw, issuerUrl: safeIssuerUrl(raw.issuerUrl) }
+      return cachedConfig
     }
   } catch {
     // fall through to defaults

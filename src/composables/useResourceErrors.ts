@@ -1,23 +1,28 @@
 import { ref } from 'vue'
+import { reportError } from '@/utils/errors'
 
 export function useResourceErrors() {
-  const detailErrorIds = ref<Set<string>>(new Set())
+  const detailErrors = ref<Map<string, string>>(new Map())
   const missingIds = ref<Set<string>>(new Set())
 
   function hasDetailError(id: string): boolean {
-    return detailErrorIds.value.has(id)
+    return detailErrors.value.has(id)
   }
 
-  function markDetailError(id: string): void {
-    if (detailErrorIds.value.has(id)) return
-    detailErrorIds.value = new Set(detailErrorIds.value).add(id)
+  function detailErrorMessage(id: string): string | undefined {
+    return detailErrors.value.get(id)
+  }
+
+  function markDetailError(id: string, message: string): void {
+    if (detailErrors.value.get(id) === message) return
+    detailErrors.value = new Map(detailErrors.value).set(id, message)
   }
 
   function clearDetailError(id: string): void {
-    if (!detailErrorIds.value.has(id)) return
-    const s = new Set(detailErrorIds.value)
-    s.delete(id)
-    detailErrorIds.value = s
+    if (!detailErrors.value.has(id)) return
+    const m = new Map(detailErrors.value)
+    m.delete(id)
+    detailErrors.value = m
   }
 
   function isMissing(id: string): boolean {
@@ -30,9 +35,10 @@ export function useResourceErrors() {
   }
 
   return {
-    detailErrorIds,
+    detailErrors,
     missingIds,
     hasDetailError,
+    detailErrorMessage,
     markDetailError,
     clearDetailError,
     isMissing,
@@ -49,7 +55,7 @@ export async function loadDetailInto<T>(
   try {
     apply(await fetcher(id))
     errors.clearDetailError(id)
-  } catch {
-    errors.markDetailError(id)
+  } catch (e) {
+    errors.markDetailError(id, reportError('store.detail', e))
   }
 }

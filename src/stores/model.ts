@@ -20,5 +20,11 @@ export const useModelStore = defineStore('model', () => {
     )
   }
 
-  return { model, loading, loaded, error, load }
+  /** Refetch the model (the load-once guard is reset). */
+  async function reload(): Promise<void> {
+    loaded.value = false
+    await load()
+  }
+
+  return { model, loading, loaded, error, load, reload }
 })

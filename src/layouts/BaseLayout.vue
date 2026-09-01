@@ -3,6 +3,7 @@ import AppSidebar from '@/components/AppSidebar.vue'
 import AppTopbar from '@/components/AppTopbar.vue'
 import ShortcutsHelp from '@/components/ShortcutsHelp.vue'
 import CommandPalette from '@/components/CommandPalette.vue'
+import ToastHost from '@/components/ToastHost.vue'
 import { useFocusSearch } from '@/composables/useFocusSearch'
 import { useSidebarNav } from '@/composables/useSidebarNav'
 import { useTabGuard } from '@/composables/useTabGuard'
@@ -27,5 +28,6 @@ useTabGuard()
     </div>
     <ShortcutsHelp />
     <CommandPalette />
+    <ToastHost />
   </div>
 </template>

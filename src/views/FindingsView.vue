@@ -98,6 +98,8 @@ useListKeyboardNav(
     loading-label="Loading findings..."
     :error="store.error"
     :error-list-empty="store.findings.length === 0"
+    retry-label="Retry"
+    @retry="store.load()"
   >
     <template #header>
       <ViewHeader
@@ -171,6 +173,7 @@ useListKeyboardNav(
           <DetailErrorBanner
             v-if="store.hasDetailError(selectedFinding.findingId)"
             class="m-4 mb-0"
+            :message="store.detailErrorMessage(selectedFinding.findingId)"
           />
           <FindingDetail
             class="flex-1"

@@ -2,10 +2,10 @@
 // spec:        EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml (v0.1.0)
 // source:      https://raw.githubusercontent.com/emeland-io/modelsrv/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
 // spec page:   https://github.com/emeland-io/modelsrv/blob/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
-// blob sha:    7ec9f6fd6c053a15702366e9511969bbf0fdbc75
-// spec commit: e527511b605b2d19180c3f9003cc008d9a90c08a (2026-06-30T12:38:09Z)
-//              Add Capacity and CapacityResourceType codegen and OpenAPI schemas.
-// commit url:  https://github.com/emeland-io/modelsrv/commit/e527511b605b2d19180c3f9003cc008d9a90c08a
+// blob sha:    a91cfd5ed3e0b3163a5338183b7444e834edc253
+// spec commit: 0bad63d54b48152d9ea99ca7cc62aea16a82c5e6 (2026-08-25T14:18:36Z)
+//              Add Metric, Threshold, and MetricValue as first-class landscape resources.
+// commit url:  https://github.com/emeland-io/modelsrv/commit/0bad63d54b48152d9ea99ca7cc62aea16a82c5e6
 // regenerate:  npm run api:gen
 
 export type {
@@ -185,6 +185,22 @@ export type {
   GetLandscapeMergeRulesData,
   GetLandscapeMergeRulesResponse,
   GetLandscapeMergeRulesResponses,
+  GetLandscapeMetricsByMetricIdData,
+  GetLandscapeMetricsByMetricIdError,
+  GetLandscapeMetricsByMetricIdErrors,
+  GetLandscapeMetricsByMetricIdResponse,
+  GetLandscapeMetricsByMetricIdResponses,
+  GetLandscapeMetricsData,
+  GetLandscapeMetricsResponse,
+  GetLandscapeMetricsResponses,
+  GetLandscapeMetricValuesByMetricValueIdData,
+  GetLandscapeMetricValuesByMetricValueIdError,
+  GetLandscapeMetricValuesByMetricValueIdErrors,
+  GetLandscapeMetricValuesByMetricValueIdResponse,
+  GetLandscapeMetricValuesByMetricValueIdResponses,
+  GetLandscapeMetricValuesData,
+  GetLandscapeMetricValuesResponse,
+  GetLandscapeMetricValuesResponses,
   GetLandscapeNodesByNodeIdData,
   GetLandscapeNodesByNodeIdError,
   GetLandscapeNodesByNodeIdErrors,
@@ -273,6 +289,14 @@ export type {
   GetLandscapeSystemsData,
   GetLandscapeSystemsResponse,
   GetLandscapeSystemsResponses,
+  GetLandscapeThresholdsByThresholdIdData,
+  GetLandscapeThresholdsByThresholdIdError,
+  GetLandscapeThresholdsByThresholdIdErrors,
+  GetLandscapeThresholdsByThresholdIdResponse,
+  GetLandscapeThresholdsByThresholdIdResponses,
+  GetLandscapeThresholdsData,
+  GetLandscapeThresholdsResponse,
+  GetLandscapeThresholdsResponses,
   GetTestData,
   GetTestResponses,
   Group,
@@ -280,6 +304,9 @@ export type {
   InstanceList,
   InstanceListItem,
   MergeRule,
+  Metric,
+  MetricRef,
+  MetricValue,
   Node,
   NodeSummaryView,
   NodeType,
@@ -306,5 +333,6 @@ export type {
   SubjectRef,
   System,
   SystemInstance,
+  Threshold,
   Version,
 } from './types.gen'
