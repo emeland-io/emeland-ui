@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import LoadingState from '@/components/view/LoadingState.vue'
+import ListDetailSkeleton from '@/components/view/ListDetailSkeleton.vue'
+import SkeletonShell from '@/components/view/SkeletonShell.vue'
 import ErrorState from '@/components/view/ErrorState.vue'
 
 /**
  * Outer shell of resource views: header slot on top, then the
- * loading/error gates around the main content slot
+ * loading/error gates around the main content slot. While loading, a
+ * layout skeleton (overridable via the `skeleton` slot)
  */
 defineProps<{
   loading: boolean
@@ -22,10 +24,14 @@ const emit = defineEmits<{
 <template>
   <div class="relative flex h-full flex-col">
     <slot name="header" />
-    <LoadingState
+    <SkeletonShell
       v-if="loading"
       :label="loadingLabel"
-    />
+    >
+      <slot name="skeleton">
+        <ListDetailSkeleton />
+      </slot>
+    </SkeletonShell>
     <ErrorState
       v-else-if="error && errorListEmpty"
       :message="error"

@@ -2,7 +2,8 @@
 import { onMounted } from 'vue'
 import { useModelStore } from '@/stores/model'
 import CopyButton from '@/components/CopyButton.vue'
-import LoadingState from '@/components/view/LoadingState.vue'
+import SkeletonBlock from '@/components/view/SkeletonBlock.vue'
+import SkeletonShell from '@/components/view/SkeletonShell.vue'
 import ErrorState from '@/components/view/ErrorState.vue'
 
 const store = useModelStore()
@@ -26,10 +27,18 @@ onMounted(() => store.load())
       <h1 class="text-title font-medium text-text-1">Model</h1>
     </div>
 
-    <LoadingState
+    <SkeletonShell
       v-if="store.loading"
       label="Loading model..."
-    />
+    >
+      <div class="mx-auto max-w-3xl px-6 py-6">
+        <SkeletonBlock class="h-7 w-1/3" />
+        <SkeletonBlock class="mt-3 h-4 w-2/3" />
+        <SkeletonBlock class="mt-10 h-4 w-full" />
+        <SkeletonBlock class="mt-2 h-4 w-5/6" />
+        <SkeletonBlock class="mt-2 h-4 w-3/4" />
+      </div>
+    </SkeletonShell>
 
     <ErrorState
       v-else-if="store.error"
