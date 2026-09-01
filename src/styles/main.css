@@ -21,6 +21,20 @@ html {
   }
 }
 
+/*
+ * Skeletons stay invisible for the delay, then fade in, fast loads never
+ * flash a skeleton, without any timer logic in the components
+ */
+@keyframes skeleton-appear {
+  to {
+    opacity: 1;
+  }
+}
+.skeleton-appear {
+  opacity: 0;
+  animation: skeleton-appear 150ms ease-out 200ms forwards;
+}
+
 body {
   background-color: var(--color-bg-0);
   color: var(--color-text-1);

@@ -1,6 +1,7 @@
 <script setup lang="ts" generic="T">
 import SlideOverDrawer from '@/components/SlideOverDrawer.vue'
-import LoadingState from '@/components/view/LoadingState.vue'
+import SkeletonBlock from '@/components/view/SkeletonBlock.vue'
+import SkeletonShell from '@/components/view/SkeletonShell.vue'
 import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
 
 /**
@@ -47,10 +48,29 @@ const emit = defineEmits<{
     :count="count"
     @close="emit('close')"
   >
-    <LoadingState
+    <SkeletonShell
       v-if="loading"
       label="Loading types..."
-    />
+    >
+      <div
+        class="shrink-0 border-r border-border-1"
+        :class="listWidth"
+      >
+        <div
+          v-for="i in 5"
+          :key="i"
+          class="border-b border-border-1"
+          :class="rowClass"
+        >
+          <SkeletonBlock class="h-4 w-3/4" />
+        </div>
+      </div>
+      <div class="flex-1 p-5">
+        <SkeletonBlock class="h-5 w-1/3" />
+        <SkeletonBlock class="mt-4 h-3 w-2/3" />
+        <SkeletonBlock class="mt-2 h-3 w-1/2" />
+      </div>
+    </SkeletonShell>
     <template v-else>
       <!-- Type list -->
       <div

@@ -12,6 +12,7 @@ import ComponentDetail from '@/components/components/ComponentDetail.vue'
 import ComponentInstanceDrawer from '@/components/components/ComponentInstanceDrawer.vue'
 import GraphPanel from '@/components/graph/GraphPanel.vue'
 import GraphLayerToggle from '@/components/graph/GraphLayerToggle.vue'
+import GraphPaneSkeleton from '@/components/graph/GraphPaneSkeleton.vue'
 import ViewHeader from '@/components/view/ViewHeader.vue'
 import ResourceViewShell from '@/components/view/ResourceViewShell.vue'
 import EmptyState from '@/components/view/EmptyState.vue'
@@ -33,9 +34,10 @@ import { LAYER_TOGGLE_KEYS, GRAPH_TOGGLE_KEYS, layerKeyHint } from '@/constants/
 import type { ComponentInstance } from '@/types/component'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
-const ComponentGraphPane = defineAsyncComponent(
-  () => import('@/components/components/ComponentGraphPane.vue'),
-)
+const ComponentGraphPane = defineAsyncComponent({
+  loader: () => import('@/components/components/ComponentGraphPane.vue'),
+  loadingComponent: GraphPaneSkeleton,
+})
 
 const store = useComponentStore()
 const systemStore = useSystemStore()

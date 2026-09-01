@@ -11,6 +11,7 @@ import ListDetail from '@/components/ListDetail.vue'
 import ContextsList from '@/components/contexts/ContextsList.vue'
 import ContextDetail from '@/components/contexts/ContextDetail.vue'
 import GraphPanel from '@/components/graph/GraphPanel.vue'
+import GraphPaneSkeleton from '@/components/graph/GraphPaneSkeleton.vue'
 import FilterToolbar from '@/components/toolbar/FilterToolbar.vue'
 import FilterChipGroup from '@/components/toolbar/FilterChipGroup.vue'
 import ViewHeader from '@/components/view/ViewHeader.vue'
@@ -29,9 +30,10 @@ import { matchesAnnotations, matchesQuery } from '@/utils/search'
 import type { Context, ContextType } from '@/types/context'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
-const ContextGraphPane = defineAsyncComponent(
-  () => import('@/components/contexts/ContextGraphPane.vue'),
-)
+const ContextGraphPane = defineAsyncComponent({
+  loader: () => import('@/components/contexts/ContextGraphPane.vue'),
+  loadingComponent: GraphPaneSkeleton,
+})
 
 const store = useContextStore()
 const systemStore = useSystemStore()

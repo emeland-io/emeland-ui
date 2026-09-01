@@ -12,6 +12,7 @@ import ApiDetail from '@/components/apis/ApiDetail.vue'
 import ApiInstanceDrawer from '@/components/apis/ApiInstanceDrawer.vue'
 import GraphPanel from '@/components/graph/GraphPanel.vue'
 import GraphLayerToggle from '@/components/graph/GraphLayerToggle.vue'
+import GraphPaneSkeleton from '@/components/graph/GraphPaneSkeleton.vue'
 import ViewHeader from '@/components/view/ViewHeader.vue'
 import ResourceViewShell from '@/components/view/ResourceViewShell.vue'
 import EmptyState from '@/components/view/EmptyState.vue'
@@ -35,7 +36,10 @@ import { LAYER_TOGGLE_KEYS, GRAPH_TOGGLE_KEYS, layerKeyHint } from '@/constants/
 import type { Api, ApiInstance } from '@/types/api'
 
 // Heavy (VueFlow + dagre). Always visible in this layout, so it loads up front.
-const ApiGraphPane = defineAsyncComponent(() => import('@/components/apis/ApiGraphPane.vue'))
+const ApiGraphPane = defineAsyncComponent({
+  loader: () => import('@/components/apis/ApiGraphPane.vue'),
+  loadingComponent: GraphPaneSkeleton,
+})
 
 const store = useApiStore()
 const systemStore = useSystemStore()
