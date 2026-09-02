@@ -26,7 +26,7 @@ async function issuerAfterConfig(issuerUrl: unknown): Promise<string> {
 
 describe('getAuthConfig issuerUrl hardening', () => {
   it('accepts absolute http(s) urls', async () => {
-    expect(await issuerAfterConfig('https://idp.example.com')).toBe('https://idp.example.com')
+    expect(await issuerAfterConfig('https://emeland.example.com')).toBe('https://emeland.example.com')
   })
 
   it('rejects non-http(s) schemes (redirect sink)', async () => {

@@ -61,7 +61,7 @@ describe('apiFetch', () => {
   })
 
   it('redirects to login and short-circuits with 401 when no token is present', async () => {
-    const { apiFetch, auth } = await setup({ issuerUrl: 'https://idp.example', token: null })
+    const { apiFetch, auth } = await setup({ issuerUrl: 'https://emeland.example', token: null })
 
     const resp = await apiFetch('/api/systems')
     expect(auth.login).toHaveBeenCalledTimes(1)
@@ -70,7 +70,7 @@ describe('apiFetch', () => {
   })
 
   it('attaches the bearer token when auth is enabled', async () => {
-    const { apiFetch, auth } = await setup({ issuerUrl: 'https://idp.example', token: 'tok-123' })
+    const { apiFetch, auth } = await setup({ issuerUrl: 'https://emeland.example', token: 'tok-123' })
 
     const resp = await apiFetch('/api/systems')
     expect(resp.status).toBe(200)
@@ -81,7 +81,7 @@ describe('apiFetch', () => {
   })
 
   it('re-triggers login on a 401 response and returns it', async () => {
-    const { apiFetch, auth } = await setup({ issuerUrl: 'https://idp.example', token: 'stale' })
+    const { apiFetch, auth } = await setup({ issuerUrl: 'https://emeland.example', token: 'stale' })
     fetchMock.mockResolvedValue(new Response(null, { status: 401 }))
 
     const resp = await apiFetch('/api/systems')
