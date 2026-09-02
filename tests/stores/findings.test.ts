@@ -27,6 +27,17 @@ function finding(findingId: string, typeName?: string, ...resourceIds: string[])
   }
 }
 
+const findingItems: Finding[] = [
+  {
+    findingId: 'f-x',
+    displayName: 'x',
+    findingType: { findingTypeId: 't-1', displayName: 'Explicit name' },
+    resources: [],
+    annotations: {},
+  },
+  { findingId: 'f-y', displayName: 'y', resources: [], annotations: {} },
+]
+
 beforeEach(() => {
   setActivePinia(createPinia())
   vi.clearAllMocks()
@@ -66,14 +77,3 @@ describe('useFindingsStore per-resource aggregation', () => {
     expect(store.getKindForFinding(findingItems[1])).toBe('Unknown')
   })
 })
-
-const findingItems: Finding[] = [
-  {
-    findingId: 'f-x',
-    displayName: 'x',
-    findingType: { findingTypeId: 't-1', displayName: 'Explicit name' },
-    resources: [],
-    annotations: {},
-  },
-  { findingId: 'f-y', displayName: 'y', resources: [], annotations: {} },
-]

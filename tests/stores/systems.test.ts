@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import type { System } from '@/types/system'
+import type { System, SystemInstance } from '@/types/system'
 
 vi.mock('@/api/systems', () => ({
   fetchSystems: vi.fn(),
@@ -9,7 +9,12 @@ vi.mock('@/api/systems', () => ({
   fetchSystemInstanceById: vi.fn(),
 }))
 
-import { fetchSystems } from '@/api/systems'
+import {
+  fetchSystems,
+  fetchSystemById,
+  fetchSystemInstances,
+  fetchSystemInstanceById,
+} from '@/api/systems'
 import { useSystemStore } from '@/stores/systems'
 
 const ROOT: System = { systemId: 'root', displayName: 'the root', abstract: false, annotations: {} }
@@ -61,5 +66,38 @@ describe('useSystemStore', () => {
     const store = await setupStore()
     expect(store.getKindForSystem(CHILD)).toBe('Abstract')
     expect(store.getKindForSystem(ROOT)).toBe('Concrete')
+  })
+
+  it('routes detail hydration through the deduped factory path', async () => {
+    vi.mocked(fetchSystemById).mockImplementation(async (id) => ({
+      ...ROOT,
+      systemId: id,
+      description: 'full',
+    }))
+    const store = await setupStore()
+
+    await Promise.all([store.loadSystemDetail('root'), store.loadSystemDetail('root')])
+    await store.loadSystemDetail('root')
+    expect(fetchSystemById).toHaveBeenCalledTimes(1)
+    expect(store.systemMap.get('root')?.description).toBe('full')
+  })
+
+  it('exposes instances with parent grouping and unmapped detection', async () => {
+    const instance = (id: string, system: string): SystemInstance => ({
+      systemInstanceId: id,
+      displayName: id,
+      system,
+      annotations: {},
+    })
+    vi.mocked(fetchSystemInstances).mockResolvedValue([instance('i1', 'root'), instance('i2', '')])
+    // hydration must preserve each instance's parent (i2 stays parentless)
+    vi.mocked(fetchSystemInstanceById).mockImplementation(async (id) =>
+      instance(id, id === 'i1' ? 'root' : ''),
+    )
+    const store = await setupStore()
+    await store.loadSystemInstances()
+
+    expect(store.getInstancesForSystem('root').map((i) => i.systemInstanceId)).toEqual(['i1'])
+    expect(store.unmappedInstances.map((i) => i.systemInstanceId)).toEqual(['i2'])
   })
 })
