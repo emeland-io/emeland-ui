@@ -12,7 +12,7 @@ describe('buildPaletteResults', () => {
       item('s2', 'System', { label: 'Grafana', description: 'dashboards for kong metrics' }),
       item('c1', 'Component', {
         label: 'Prometheus',
-        annotations: { 'emeland.io/owner': 'Kong-Team' },
+        annotations: { 'emeland.io/owner-identities': 'Kong-Team' },
       }),
       item('a1', 'API', { label: 'Public Gateway' }),
     ]

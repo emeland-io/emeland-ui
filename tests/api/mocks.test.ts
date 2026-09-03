@@ -39,7 +39,7 @@ describe('bundled mocks (validated on the mock path too)', () => {
   it('decodes annotations from the wire entry-list form', async () => {
     const withAnnotations = systems.find((s) => s.systemId === '1b000002-0000-4a1b-8b00-000000000002')
     await expect(fetchSystemById(withAnnotations!.systemId)).resolves.toMatchObject({
-      annotations: { 'emeland.io/owner': 'obs-team' },
+      annotations: { 'emeland.io/owner-identities': 'obs-team' },
     })
   })
 
