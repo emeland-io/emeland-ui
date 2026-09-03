@@ -9,20 +9,20 @@ export const findingTypes = [
     displayName: 'ContextTypeMissing',
     description:
       'A Context references a ContextType that does not exist in the model, or has no type set at all.',
-    annotations: [{ key: 'emeland.io/built-in', value: 'true' }],
+    annotations: [{ key: 'built-in', value: 'true' }],
   },
   {
     findingTypeId: 'b2c3d4e5-f6a7-4b8c-9d1e-2f3a4b5c6d7e',
     displayName: 'ContextParentNotFound',
     description:
       'A Context references a parent Context by UUID but that parent does not exist in the model.',
-    annotations: [{ key: 'emeland.io/built-in', value: 'true' }],
+    annotations: [{ key: 'built-in', value: 'true' }],
   },
   {
     findingTypeId: 'c3d4e5f6-a7b8-4c9d-1e2f-3a4b5c6d7e8f',
     displayName: 'NodeTypeMissing',
     description: 'A Node references a NodeType that does not exist in the model.',
-    annotations: [{ key: 'emeland.io/built-in', value: 'true' }],
+    annotations: [{ key: 'built-in', value: 'true' }],
   },
   {
     findingTypeId: 'd4e5f6a7-b8c9-4d1e-2f3a-4b5c6d7e8f9a',
@@ -102,8 +102,8 @@ export const findings = [
       },
     ],
     annotations: [
-      { key: 'emeland.io/instance-version', value: 'v1.7.9' },
-      { key: 'emeland.io/system-version', value: 'v1.8.3' },
+      { key: 'instance-version', value: 'v1.7.9' },
+      { key: 'system-version', value: 'v1.8.3' },
       { key: 'eximpl.emeland.io/detected-at', value: '2026-05-28T08:15:22Z' },
     ],
   },
@@ -125,9 +125,9 @@ export const findings = [
       },
     ],
     annotations: [
-      { key: 'emeland.io/threshold', value: '500' },
-      { key: 'emeland.io/current-value', value: '2841' },
-      { key: 'emeland.io/topic', value: 'system-b.events' },
+      { key: 'threshold', value: '500' },
+      { key: 'current-value', value: '2841' },
+      { key: 'topic', value: 'system-b.events' },
       { key: 'eximpl.emeland.io/detected-at', value: '2026-05-28T09:23:41Z' },
     ],
   },

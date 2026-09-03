@@ -18,14 +18,14 @@ export const systems = [
     abstract: false,
     annotations: [
       {
-        key: 'emeland.io/p1-system-template-source',
+        key: 'p1-system-template-source',
         value: 'helm:prometheus-community/kube-prometheus-stack:0.75.0',
       },
       {
-        key: 'emeland.io/p1-system-template-artifact-id',
+        key: 'p1-system-template-artifact-id',
         value: '4c2f9a10-7b3d-4e21-9f8a-0c1d2e3f4a5b',
       },
-      { key: 'emeland.io/owner', value: 'obs-team' },
+      { key: 'emeland.io/owner-identities', value: 'obs-team' },
     ],
   },
   {
@@ -36,8 +36,8 @@ export const systems = [
     abstract: false,
     parent: STACK,
     annotations: [
-      { key: 'emeland.io/p1-system-template-source', value: 'helm:grafana/grafana:11.1.0' },
-      { key: 'emeland.io/owner', value: 'obs-team' },
+      { key: 'p1-system-template-source', value: 'helm:grafana/grafana:11.1.0' },
+      { key: 'emeland.io/owner-identities', value: 'obs-team' },
     ],
   },
   {
@@ -49,10 +49,10 @@ export const systems = [
     parent: STACK,
     annotations: [
       {
-        key: 'emeland.io/p1-system-template-source',
+        key: 'p1-system-template-source',
         value: 'helm:prometheus-community/prometheus:2.53.0',
       },
-      { key: 'emeland.io/owner', value: 'obs-team' },
+      { key: 'emeland.io/owner-identities', value: 'obs-team' },
     ],
   },
   {
@@ -64,10 +64,10 @@ export const systems = [
     parent: STACK,
     annotations: [
       {
-        key: 'emeland.io/p1-system-template-source',
+        key: 'p1-system-template-source',
         value: 'helm:prometheus-community/kube-prometheus-stack:0.75.0',
       },
-      { key: 'emeland.io/owner', value: 'obs-team' },
+      { key: 'emeland.io/owner-identities', value: 'obs-team' },
     ],
   },
   {
@@ -79,14 +79,14 @@ export const systems = [
     abstract: false,
     annotations: [
       {
-        key: 'emeland.io/p1-system-template-source',
+        key: 'p1-system-template-source',
         value: 'helm:registry.internal/charts/application:1.8.3',
       },
       {
-        key: 'emeland.io/p1-system-template-artifact-id',
+        key: 'p1-system-template-artifact-id',
         value: 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d',
       },
-      { key: 'emeland.io/owner', value: 'platform-team' },
+      { key: 'emeland.io/owner-identities', value: 'platform-team' },
     ],
   },
   {
@@ -96,8 +96,8 @@ export const systems = [
     version: { version: '3.6.1', availableFrom: '2026-03-15T00:00:00Z' },
     abstract: false,
     annotations: [
-      { key: 'emeland.io/p1-system-template-source', value: 'helm:kong/kong:3.6.1' },
-      { key: 'emeland.io/owner', value: 'infra-team' },
+      { key: 'p1-system-template-source', value: 'helm:kong/kong:3.6.1' },
+      { key: 'emeland.io/owner-identities', value: 'infra-team' },
     ],
   },
   {
@@ -107,8 +107,8 @@ export const systems = [
     version: { version: '1.0.0' },
     abstract: true,
     annotations: [
-      { key: 'emeland.io/p1-system-abstract', value: 'true' },
-      { key: 'emeland.io/owner', value: 'infra-team' },
+      { key: 'p1-system-abstract', value: 'true' },
+      { key: 'emeland.io/owner-identities', value: 'infra-team' },
     ],
   },
   {
@@ -118,8 +118,8 @@ export const systems = [
     version: { version: '16.2.0' },
     abstract: true,
     annotations: [
-      { key: 'emeland.io/p1-system-abstract', value: 'true' },
-      { key: 'emeland.io/owner', value: 'infra-team' },
+      { key: 'p1-system-abstract', value: 'true' },
+      { key: 'emeland.io/owner-identities', value: 'infra-team' },
     ],
   },
   {
@@ -131,8 +131,8 @@ export const systems = [
     abstract: false,
     parent: MISSING_PARENT,
     annotations: [
-      { key: 'emeland.io/owner', value: 'data-team' },
-      { key: 'emeland.io/p1-system-status', value: 'legacy' },
+      { key: 'emeland.io/owner-identities', value: 'data-team' },
+      { key: 'p1-system-status', value: 'legacy' },
     ],
   },
 ] satisfies SystemWire[]
@@ -144,8 +144,8 @@ export const systemInstances = [
     context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:11Z' },
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'app' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'app' },
     ],
   },
   {
@@ -155,8 +155,8 @@ export const systemInstances = [
     context: 'c82b137d-5e63-471a-8260-032a920be38e', // Staging
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:20:44Z' },
-      { key: 'emeland.io/cluster', value: 'ber-staging' },
-      { key: 'emeland.io/namespace', value: 'app' },
+      { key: 'cluster', value: 'ber-staging' },
+      { key: 'namespace', value: 'app' },
     ],
   },
   {
@@ -166,8 +166,8 @@ export const systemInstances = [
     context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:08Z' },
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'kong' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'kong' },
     ],
   },
   {
@@ -177,8 +177,8 @@ export const systemInstances = [
     context: 'c82b137d-5e63-471a-8260-032a920be38e', // Staging
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:21:02Z' },
-      { key: 'emeland.io/cluster', value: 'ber-staging' },
-      { key: 'emeland.io/namespace', value: 'kong' },
+      { key: 'cluster', value: 'ber-staging' },
+      { key: 'namespace', value: 'kong' },
     ],
   },
   {
@@ -188,8 +188,8 @@ export const systemInstances = [
     context: 'a157790b-33ce-4ca8-9844-32386da44b6c', // Production
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:23:55Z' },
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'monitoring' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'monitoring' },
     ],
   },
   {
@@ -199,8 +199,8 @@ export const systemInstances = [
     context: 'c82b137d-5e63-471a-8260-032a920be38e', // Staging
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:22:19Z' },
-      { key: 'emeland.io/cluster', value: 'ber-staging' },
-      { key: 'emeland.io/namespace', value: 'monitoring' },
+      { key: 'cluster', value: 'ber-staging' },
+      { key: 'namespace', value: 'monitoring' },
     ],
   },
   {
@@ -210,8 +210,8 @@ export const systemInstances = [
     context: 'a157790b-33ce-4ca8-9844-32386da44b6c', // Production
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:01Z' },
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'monitoring' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'monitoring' },
     ],
   },
   {
@@ -221,8 +221,8 @@ export const systemInstances = [
     context: 'a157790b-33ce-4ca8-9844-32386da44b6c', // Production
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:03Z' },
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'monitoring' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'monitoring' },
     ],
   },
 
@@ -238,7 +238,7 @@ export const systemInstances = [
     context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:25:11Z' },
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
+      { key: 'cluster', value: 'ber-prod' },
     ],
   },
   {
@@ -246,48 +246,48 @@ export const systemInstances = [
     displayName: 'Legacy Runtime',
     system: 'ffffffff-0000-4211-8000-0000000000bb', // unresolvable system reference
     context: '0a000000-0000-4211-8000-000000000008', // Altsystem
-    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
+    annotations: [{ key: 'p1-system-status', value: 'legacy' }],
   },
   {
     systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a3',
     displayName: 'Legacy Queue',
     system: 'ffffffff-0000-4211-8000-0000000000bb',
     context: '0a000000-0000-4211-8000-000000000008', // Altsystem
-    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
+    annotations: [{ key: 'p1-system-status', value: 'legacy' }],
   },
   {
     systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a4',
     displayName: 'Legacy Scheduler',
     system: 'ffffffff-0000-4211-8000-0000000000bb',
     context: '0a000000-0000-4211-8000-000000000008', // Altsystem
-    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
+    annotations: [{ key: 'p1-system-status', value: 'legacy' }],
   },
   {
     systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a5',
     displayName: 'Legacy Batch Runner',
     system: 'ffffffff-0000-4211-8000-0000000000bb',
     context: '0a000000-0000-4211-8000-000000000008', // Altsystem
-    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
+    annotations: [{ key: 'p1-system-status', value: 'legacy' }],
   },
   {
     systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a6',
     displayName: 'Legacy File Gateway',
     system: 'ffffffff-0000-4211-8000-0000000000bb',
     context: '0a000000-0000-4211-8000-000000000008', // Altsystem
-    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
+    annotations: [{ key: 'p1-system-status', value: 'legacy' }],
   },
   {
     systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a7',
     displayName: 'Legacy Print Service',
     system: 'ffffffff-0000-4211-8000-0000000000bb',
-    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
+    annotations: [{ key: 'p1-system-status', value: 'legacy' }],
   },
   {
     systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000a8',
     displayName: 'Legacy Auth Bridge',
     system: 'ffffffff-0000-4211-8000-0000000000bb',
     context: '0a000000-0000-4211-8000-000000000008', // Altsystem
-    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
+    annotations: [{ key: 'p1-system-status', value: 'legacy' }],
   },
   {
     systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000b1',
@@ -295,8 +295,8 @@ export const systemInstances = [
     system: 'ffffffff-0000-4211-8000-0000000000cc', // unresolvable system reference
     context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
     annotations: [
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'iot' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'iot' },
     ],
   },
   {
@@ -305,8 +305,8 @@ export const systemInstances = [
     system: 'ffffffff-0000-4211-8000-0000000000cc',
     context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
     annotations: [
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'iot' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'iot' },
     ],
   },
   {
@@ -315,8 +315,8 @@ export const systemInstances = [
     system: 'ffffffff-0000-4211-8000-0000000000cc',
     context: 'a157790b-33ce-4ca8-9844-32386da44b6c', // Production
     annotations: [
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'edge' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'edge' },
     ],
   },
   {
@@ -325,8 +325,8 @@ export const systemInstances = [
     system: 'ffffffff-0000-4211-8000-0000000000cc',
     context: 'a157790b-33ce-4ca8-9844-32386da44b6c', // Production
     annotations: [
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'monitoring' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'monitoring' },
     ],
   },
   {
@@ -335,8 +335,8 @@ export const systemInstances = [
     system: 'ffffffff-0000-4211-8000-0000000000cc',
     context: 'c82b137d-5e63-471a-8260-032a920be38e', // Staging
     annotations: [
-      { key: 'emeland.io/cluster', value: 'ber-staging' },
-      { key: 'emeland.io/namespace', value: 'iot' },
+      { key: 'cluster', value: 'ber-staging' },
+      { key: 'namespace', value: 'iot' },
     ],
   },
   {
@@ -345,8 +345,8 @@ export const systemInstances = [
     system: 'ffffffff-0000-4211-8000-0000000000cc',
     context: 'c82b137d-5e63-471a-8260-032a920be38e', // Staging
     annotations: [
-      { key: 'emeland.io/cluster', value: 'ber-staging' },
-      { key: 'emeland.io/namespace', value: 'batch' },
+      { key: 'cluster', value: 'ber-staging' },
+      { key: 'namespace', value: 'batch' },
     ],
   },
   {
@@ -388,14 +388,14 @@ export const systemInstances = [
     displayName: 'Sensor Node 7',
     system: MISSING_SYSTEM, // dangling reference (unmapped demo)
     context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
-    annotations: [{ key: 'emeland.io/cluster', value: 'ber-prod' }],
+    annotations: [{ key: 'cluster', value: 'ber-prod' }],
   },
   {
     systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000d2',
     displayName: 'Unknown Workload',
     system: MISSING_SYSTEM, // dangling reference (unmapped demo)
     context: 'c82b137d-5e63-471a-8260-032a920be38e', // Staging
-    annotations: [{ key: 'emeland.io/cluster', value: 'ber-staging' }],
+    annotations: [{ key: 'cluster', value: 'ber-staging' }],
   },
   {
     systemInstanceId: '4d5e6f7a-0000-4c9d-8e1f-0000000000d3',

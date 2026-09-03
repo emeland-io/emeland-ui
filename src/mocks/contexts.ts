@@ -30,7 +30,7 @@ export const contextTypes = [
     contextTypeId: T.organization,
     displayName: 'Organization',
     description: 'Die oberste Organisation.',
-    annotations: [{ key: 'emeland.io/organization', value: 'root' }],
+    annotations: [{ key: 'organization', value: 'root' }],
   },
   {
     contextTypeId: T.businessDomain,
