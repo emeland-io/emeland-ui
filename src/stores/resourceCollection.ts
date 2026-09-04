@@ -105,6 +105,7 @@ export function createResourceCollection<T, TInst = unknown, TType = unknown>(op
   const instanceItems = ref<TInst[]>([]) as Ref<TInst[]>
   const instancesLoading = ref(false)
   const instancesLoaded = ref(false)
+  const instancesError = ref<string | null>(null)
 
   const instanceMap = computed(() => new Map(instanceItems.value.map((i) => [inst!.idOf(i), i])))
   const instancesByParent = computed(() => groupBy(instanceItems.value, (i) => inst!.parentOf(i)))
@@ -125,25 +126,32 @@ export function createResourceCollection<T, TInst = unknown, TType = unknown>(op
 
   async function loadInstances(): Promise<void> {
     if (!inst) return
-    await loadOnce({ loading: instancesLoading, loaded: instancesLoaded, error }, async () => {
-      const list = await inst.fetchAll()
-      // the list endpoint is minimal, so hydrate each instance by id;
-      // a failed hydration keeps the minimal item, logged and recorded
-      let failed = 0
-      instanceItems.value = await Promise.all(
-        list.map((i) =>
-          inst.fetchById(inst.idOf(i)).catch((e: unknown) => {
-            failed++
-            errs.markDetailError(inst.idOf(i), reportError('store.instances', e))
-            return i
-          }),
-        ),
-      )
-      // background bulk failures have no inline surface; notify once, not per item
-      if (failed > 0) {
-        useToasts().push(`${failed} of ${list.length} instance details failed to load`, 'warning')
-      }
-    })
+    await loadOnce(
+      { loading: instancesLoading, loaded: instancesLoaded, error: instancesError },
+      async () => {
+        const list = await inst.fetchAll()
+        // the list endpoint is minimal, so hydrate each instance by id;
+        // a failed hydration keeps the minimal item, logged and recorded
+        let failed = 0
+        instanceItems.value = await Promise.all(
+          list.map((i) =>
+            inst.fetchById(inst.idOf(i)).catch((e: unknown) => {
+              failed++
+              errs.markDetailError(inst.idOf(i), reportError('store.instances', e))
+              return i
+            }),
+          ),
+        )
+        // background bulk failures have no inline surface; notify once, not per item
+        if (failed > 0) {
+          useToasts().push(`${failed} of ${list.length} instance details failed to load`, 'warning')
+        }
+      },
+      { resetError: true },
+    )
+    if (instancesError.value) {
+      useToasts().pushError(`Could not load instances: ${instancesError.value}`)
+    }
   }
 
   // ---- optional types sub-collection ----
@@ -151,15 +159,24 @@ export function createResourceCollection<T, TInst = unknown, TType = unknown>(op
   const typeItems = ref<TType[]>([]) as Ref<TType[]>
   const typesLoading = ref(false)
   const typesLoaded = ref(false)
+  const typesError = ref<string | null>(null)
   const selectedTypeDetail = ref<TType | null>(null) as Ref<TType | null>
 
   const typeMap = computed(() => new Map(typeItems.value.map((t) => [typ!.idOf(t), t])))
 
   async function loadTypes(): Promise<void> {
     if (!typ) return
-    await loadOnce({ loading: typesLoading, loaded: typesLoaded, error }, async () => {
-      typeItems.value = await typ.fetchAll()
-    })
+    // own error ref, same reasoning as loadInstances
+    await loadOnce(
+      { loading: typesLoading, loaded: typesLoaded, error: typesError },
+      async () => {
+        typeItems.value = await typ.fetchAll()
+      },
+      { resetError: true },
+    )
+    if (typesError.value) {
+      useToasts().pushError(`Could not load types: ${typesError.value}`)
+    }
   }
 
   async function loadTypeDetail(id: string): Promise<void> {
@@ -186,6 +203,7 @@ export function createResourceCollection<T, TInst = unknown, TType = unknown>(op
       items: instanceItems,
       loading: instancesLoading,
       loaded: instancesLoaded,
+      error: instancesError,
       map: instanceMap,
       byParent: instancesByParent,
       getFor: getInstancesFor,
@@ -196,6 +214,7 @@ export function createResourceCollection<T, TInst = unknown, TType = unknown>(op
       items: typeItems,
       loading: typesLoading,
       loaded: typesLoaded,
+      error: typesError,
       map: typeMap,
       selectedDetail: selectedTypeDetail,
       load: loadTypes,
