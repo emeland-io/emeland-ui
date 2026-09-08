@@ -14,7 +14,8 @@
     "type-check": "vue-tsc --build",
     "format": "prettier --write src/",
     "format:check": "prettier --check src/",
-    "api:gen": "node scripts/api-gen.mjs"
+    "api:gen": "node scripts/api-gen.mjs",
+    "annotations:gen": "node scripts/annotations-gen.mjs"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.1.1",

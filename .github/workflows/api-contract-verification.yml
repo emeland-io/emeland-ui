@@ -48,6 +48,14 @@ jobs:
             echo "::warning::src/api/gen is stale — the modelsrv spec changed upstream."
           fi
 
+      # annotations catalog drift against the modelsrv source of truth
+      # (pkg/annotations/well_known.yaml). EMELAND_ANNOTATIONS_SPEC
+      # overrides the source URL when needed.
+      - name: Detect annotations catalog drift
+        env:
+          EMELAND_ANNOTATIONS_SPEC: ${{ vars.EMELAND_ANNOTATIONS_SPEC }}
+        run: npm run annotations:gen -- --check
+
       # drift path: regenerates so the classify steps see the new
       # contract (a genuine generator/network error that slipped through
       # the probe fails loudly here)
