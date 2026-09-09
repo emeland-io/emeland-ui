@@ -31,8 +31,8 @@ export const components = [
     ],
     provides: [],
     annotations: [
-      { key: 'emeland.io/owner', value: 'platform-team' },
-      { key: 'emeland.io/runtime', value: 'nginx' },
+      { key: 'emeland.io/owner-identities', value: 'platform-team' },
+      { key: 'runtime', value: 'nginx' },
     ],
   },
   {
@@ -53,8 +53,8 @@ export const components = [
       'af6a7b8c-9d1e-4f2a-3b4c-5d6e7f8a9b1c', // metrics-scrape
     ],
     annotations: [
-      { key: 'emeland.io/owner', value: 'platform-team' },
-      { key: 'emeland.io/runtime', value: 'go' },
+      { key: 'emeland.io/owner-identities', value: 'platform-team' },
+      { key: 'runtime', value: 'go' },
     ],
   },
   {
@@ -72,8 +72,8 @@ export const components = [
       'af6a7b8c-9d1e-4f2a-3b4c-5d6e7f8a9b1c', // metrics-scrape
     ],
     annotations: [
-      { key: 'emeland.io/owner', value: 'infra-team' },
-      { key: 'emeland.io/runtime', value: 'nginx/openresty' },
+      { key: 'emeland.io/owner-identities', value: 'infra-team' },
+      { key: 'runtime', value: 'nginx/openresty' },
     ],
   },
   {
@@ -90,8 +90,8 @@ export const components = [
       'af6a7b8c-9d1e-4f2a-3b4c-5d6e7f8a9b1c', // metrics-scrape
     ],
     annotations: [
-      { key: 'emeland.io/owner', value: 'obs-team' },
-      { key: 'emeland.io/runtime', value: 'go' },
+      { key: 'emeland.io/owner-identities', value: 'obs-team' },
+      { key: 'runtime', value: 'go' },
     ],
   },
   {
@@ -107,8 +107,8 @@ export const components = [
       'ae5f6a7b-8c9d-4e1f-2a3b-4c5d6e7f8a9b', // promql-api
     ],
     annotations: [
-      { key: 'emeland.io/owner', value: 'obs-team' },
-      { key: 'emeland.io/runtime', value: 'go' },
+      { key: 'emeland.io/owner-identities', value: 'obs-team' },
+      { key: 'runtime', value: 'go' },
     ],
   },
   {
@@ -122,8 +122,8 @@ export const components = [
       'af6a7b8c-9d1e-4f2a-3b4c-5d6e7f8a9b1c', // metrics-scrape
     ],
     annotations: [
-      { key: 'emeland.io/owner', value: 'obs-team' },
-      { key: 'emeland.io/runtime', value: 'go' },
+      { key: 'emeland.io/owner-identities', value: 'obs-team' },
+      { key: 'runtime', value: 'go' },
     ],
   },
 ] satisfies ComponentWire[]
@@ -142,8 +142,8 @@ export const componentInstances = [
     provides: [],
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:11Z' },
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'app' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'app' },
     ],
   },
   {
@@ -155,8 +155,8 @@ export const componentInstances = [
     provides: [],
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:20:44Z' },
-      { key: 'emeland.io/cluster', value: 'ber-staging' },
-      { key: 'emeland.io/namespace', value: 'app' },
+      { key: 'cluster', value: 'ber-staging' },
+      { key: 'namespace', value: 'app' },
     ],
   },
   {
@@ -168,8 +168,8 @@ export const componentInstances = [
     provides: [],
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:11Z' },
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'app' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'app' },
     ],
   },
   {
@@ -181,8 +181,8 @@ export const componentInstances = [
     provides: [],
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:20:44Z' },
-      { key: 'emeland.io/cluster', value: 'ber-staging' },
-      { key: 'emeland.io/namespace', value: 'app' },
+      { key: 'cluster', value: 'ber-staging' },
+      { key: 'namespace', value: 'app' },
     ],
   },
   {
@@ -194,8 +194,8 @@ export const componentInstances = [
     provides: [],
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:08Z' },
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'kong' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'kong' },
     ],
   },
   {
@@ -207,8 +207,8 @@ export const componentInstances = [
     provides: [],
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:21:02Z' },
-      { key: 'emeland.io/cluster', value: 'ber-staging' },
-      { key: 'emeland.io/namespace', value: 'kong' },
+      { key: 'cluster', value: 'ber-staging' },
+      { key: 'namespace', value: 'kong' },
     ],
   },
   {
@@ -220,8 +220,8 @@ export const componentInstances = [
     provides: [],
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:23:55Z' },
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'monitoring' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'monitoring' },
     ],
   },
   {
@@ -233,8 +233,8 @@ export const componentInstances = [
     provides: [],
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:22:19Z' },
-      { key: 'emeland.io/cluster', value: 'ber-staging' },
-      { key: 'emeland.io/namespace', value: 'monitoring' },
+      { key: 'cluster', value: 'ber-staging' },
+      { key: 'namespace', value: 'monitoring' },
     ],
   },
   {
@@ -246,8 +246,8 @@ export const componentInstances = [
     provides: [],
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:01Z' },
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'monitoring' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'monitoring' },
     ],
   },
   {
@@ -259,8 +259,8 @@ export const componentInstances = [
     provides: [],
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:03Z' },
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'monitoring' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'monitoring' },
     ],
   },
 
@@ -277,8 +277,8 @@ export const componentInstances = [
     provides: [],
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:25:02Z' },
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'kong' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'kong' },
     ],
   },
   {
@@ -288,7 +288,7 @@ export const componentInstances = [
     systemInstance: '2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e', // Prometheus (prod)
     consumes: [],
     provides: [],
-    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
+    annotations: [{ key: 'p1-system-status', value: 'legacy' }],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a3',
@@ -297,7 +297,7 @@ export const componentInstances = [
     systemInstance: '2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e', // Prometheus (prod)
     consumes: [],
     provides: [],
-    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
+    annotations: [{ key: 'p1-system-status', value: 'legacy' }],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a4',
@@ -306,7 +306,7 @@ export const componentInstances = [
     systemInstance: MISSING_SYSINST, // dangling reference (unmapped demo)
     consumes: [],
     provides: [],
-    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
+    annotations: [{ key: 'p1-system-status', value: 'legacy' }],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a5',
@@ -315,7 +315,7 @@ export const componentInstances = [
     systemInstance: MISSING_SYSINST, // dangling reference (unmapped demo)
     consumes: [],
     provides: [],
-    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
+    annotations: [{ key: 'p1-system-status', value: 'legacy' }],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a6',
@@ -324,7 +324,7 @@ export const componentInstances = [
     systemInstance: MISSING_SYSINST, // dangling reference (unmapped demo)
     consumes: [],
     provides: [],
-    annotations: [{ key: 'emeland.io/p1-system-status', value: 'legacy' }],
+    annotations: [{ key: 'p1-system-status', value: 'legacy' }],
   },
   {
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000b1',
@@ -334,8 +334,8 @@ export const componentInstances = [
     consumes: [],
     provides: [],
     annotations: [
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'data' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'data' },
     ],
   },
   {
@@ -346,8 +346,8 @@ export const componentInstances = [
     consumes: [],
     provides: [],
     annotations: [
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'kong' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'kong' },
     ],
   },
   {
@@ -358,8 +358,8 @@ export const componentInstances = [
     consumes: [],
     provides: [],
     annotations: [
-      { key: 'emeland.io/cluster', value: 'ber-prod' },
-      { key: 'emeland.io/namespace', value: 'monitoring' },
+      { key: 'cluster', value: 'ber-prod' },
+      { key: 'namespace', value: 'monitoring' },
     ],
   },
   {
@@ -370,8 +370,8 @@ export const componentInstances = [
     consumes: [],
     provides: [],
     annotations: [
-      { key: 'emeland.io/cluster', value: 'ber-staging' },
-      { key: 'emeland.io/namespace', value: 'batch' },
+      { key: 'cluster', value: 'ber-staging' },
+      { key: 'namespace', value: 'batch' },
     ],
   },
   {
@@ -390,6 +390,6 @@ export const componentInstances = [
     systemInstance: 'e8b9c1d2-0000-4b5c-8d7e-8f9a1b2c3d02', // Application (staging)
     consumes: [],
     provides: [],
-    annotations: [{ key: 'emeland.io/cluster', value: 'ber-staging' }],
+    annotations: [{ key: 'cluster', value: 'ber-staging' }],
   },
 ] satisfies ComponentInstanceWire[]

@@ -78,3 +78,23 @@ Type errors after a regen usually mean a decoder in `src/api/*` needs to
 follow the contract change, test failures in `tests/api/` usually mean the
 wire-format mocks in `src/mocks/` do. Commit the regenerated files together
 with those adaptations.
+
+## annotations-gen.mjs - Annotations generator
+
+`annotations-gen.mjs` regenerates `src/annotations/catalog.gen.ts` from the
+well-known annotations YAML source of truth in the modelsrv repository
+(`pkg/annotations/well_known.yaml`). Same conventions as api-gen: the
+generated file is committed and never edited by hand.
+
+```sh
+npm run annotations:gen              # from modelsrv main (needs the file published)
+npm run annotations:gen -- --spec <path|url>   # explicit source (local file for development)
+npm run annotations:gen -- --check   # drift gate, writes nothing
+```
+
+The generated header carries no source path or hash, a regen from any
+location with identical content is byte-identical, so the `--check` gate
+compares content.
+
+`EMELAND_ANNOTATIONS_SPEC` (repo variable) overrides the
+source URL when needed.

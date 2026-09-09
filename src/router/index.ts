@@ -3,7 +3,22 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
   { path: '/', redirect: '/findings' },
   { path: '/callback', name: 'Callback', component: () => import('@/views/CallbackView.vue') },
-  { path: '/settings', name: 'Settings', component: () => import('@/views/PlaceholderView.vue') },
+  {
+    path: '/settings',
+    component: () => import('@/views/SettingsView.vue'),
+    children: [
+      {
+        path: '',
+        name: 'Settings',
+        component: () => import('@/views/SettingsGeneralView.vue'),
+      },
+      {
+        path: 'annotations',
+        name: 'SettingsAnnotations',
+        component: () => import('@/views/SettingsAnnotationsView.vue'),
+      },
+    ],
+  },
 
   // Model
   { path: '/model', name: 'Model', component: () => import('@/views/ModelView.vue') },

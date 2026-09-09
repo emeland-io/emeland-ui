@@ -1,5 +1,21 @@
 import { describe, it, expect } from 'vitest'
-import { differingAnnotationKeys } from '@/utils/annotations'
+import { differingAnnotationKeys, wellKnownAnnotations } from '@/utils/annotations'
+
+describe('wellKnownAnnotations', () => {
+  it('recognizes registry keys and namespaced suffix matches', () => {
+    const rows = wellKnownAnnotations({
+      'emeland.io/endpoint.host': 'api.example.com',
+      'emeland.io/owner-identities': 'platform-team',
+      'eximpl.emeland.io/last-update': '2026-09-01T10:00:00Z',
+      'eximpl.emeland.io/tier': 'gold',
+    })
+    const byKey = new Map(rows.map((r) => [r.key, r]))
+    expect(byKey.get('endpoint.host')?.value).toBe('api.example.com')
+    expect(byKey.get('owner-identities')?.label).toBe('Owner identities')
+    expect(byKey.get('last-update')?.value).toBe('2026-09-01 10:00 UTC')
+    expect(byKey.has('tier')).toBe(false)
+  })
+})
 
 describe('differingAnnotationKeys', () => {
   it('returns keys whose values differ across instances, sorted', () => {
