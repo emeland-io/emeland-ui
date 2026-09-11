@@ -35,6 +35,7 @@ import {
   fetchFindingTypeById,
 } from '@/api/findings'
 import { fetchModel } from '@/api/model'
+import { useToasts } from '@/composables/useToasts'
 import { systems, systemInstances } from '@/mocks/systems'
 import { apis, apiInstances } from '@/mocks/api'
 import { components, componentInstances } from '@/mocks/components'
@@ -93,9 +94,19 @@ describe('resource api validation', () => {
   })
 
   it('throws ApiValidationError for a malformed detail response', async () => {
-    getJsonMock.mockResolvedValue({ systemId: 's1', displayName: 42, abstract: false, annotations: 'nope' })
+    getJsonMock.mockResolvedValue({
+      systemId: 's1',
+      displayName: 42,
+      abstract: false,
+      annotations: 'nope',
+    })
     await expect(fetchSystemById('s1')).rejects.toBeInstanceOf(ApiValidationError)
-    getJsonMock.mockResolvedValue({ systemId: 's1', displayName: 42, abstract: false, annotations: 'nope' })
+    getJsonMock.mockResolvedValue({
+      systemId: 's1',
+      displayName: 42,
+      abstract: false,
+      annotations: 'nope',
+    })
     await expect(fetchSystemById('s1')).rejects.toThrowError(/System s1/)
   })
 
@@ -130,7 +141,11 @@ describe('id enforcement', () => {
   })
 
   it('accepts the instanceId fallback for detail responses', async () => {
-    getJsonMock.mockResolvedValue({ instanceId: 'i-9', displayName: 'via fallback', abstract: false })
+    getJsonMock.mockResolvedValue({
+      instanceId: 'i-9',
+      displayName: 'via fallback',
+      abstract: false,
+    })
     await expect(fetchSystemById('s1')).resolves.toMatchObject({ systemId: 'i-9' })
   })
 
@@ -204,7 +219,11 @@ describe('bundled mocks satisfy the wire schemas', () => {
       [apis[0], fetchApiById, apis[0].apiId],
       [apiInstances[0], fetchApiInstanceById, apiInstances[0].apiInstanceId],
       [components[0], fetchComponentById, components[0].componentId],
-      [componentInstances[0], fetchComponentInstanceById, componentInstances[0].componentInstanceId],
+      [
+        componentInstances[0],
+        fetchComponentInstanceById,
+        componentInstances[0].componentInstanceId,
+      ],
       [contexts[0], fetchContextById, contexts[0].contextId],
       [contextTypes[0], fetchContextTypeById, contextTypes[0].contextTypeId],
       [nodes[0], fetchNodeById, nodes[0].nodeId],
@@ -233,7 +252,12 @@ describe('bundled mocks satisfy the wire schemas', () => {
 describe('contract drift telemetry (dev only)', () => {
   it('warns on unknown keys without rejecting the response', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    getJsonMock.mockResolvedValue({ systemId: 's1', displayName: 'Billing', abstract: false, futureField: 1 })
+    getJsonMock.mockResolvedValue({
+      systemId: 's1',
+      displayName: 'Billing',
+      abstract: false,
+      futureField: 1,
+    })
     await expect(fetchSystemById('s1')).resolves.toMatchObject({ systemId: 's1' })
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('futureField'))
   })
@@ -250,6 +274,50 @@ describe('contract drift telemetry (dev only)', () => {
     getJsonMock.mockResolvedValue({ instanceId: 'i-9', displayName: 'A', abstract: false })
     await expect(fetchSystemById('s1')).resolves.toBeDefined()
     expect(warn).not.toHaveBeenCalled()
+  })
+})
+
+describe('resource types the UI cannot handle yet', () => {
+  it('degrades an API-valid but unhandled resourceType to Unknown and toasts an error', async () => {
+    getJsonMock.mockResolvedValue({
+      findingId: 'f1',
+      displayName: 'finding referencing a filter rule',
+      findingType: { findingTypeId: 'ft1', displayName: 'SomeRule' },
+      reference: 'emeland://findingId/f1',
+      resources: [
+        { id: 'r1', displayName: 'my filter', resourceType: 'FilterRule' },
+        { id: 'r2', displayName: 'some context', resourceType: 'Context' },
+      ],
+    })
+    const finding = await fetchFindingById('f1')
+    expect(finding.resources).toEqual([
+      { resourceId: 'r1', displayName: 'my filter', resourceType: 'Unknown' },
+      { resourceId: 'r2', displayName: 'some context', resourceType: 'Context' },
+    ])
+    const { toasts } = useToasts()
+    expect(
+      toasts.value.some(
+        (t) =>
+          t.tone === 'error' &&
+          t.message.includes('FilterRule') &&
+          t.message.includes('not handled by the UI yet'),
+      ),
+    ).toBe(true)
+  })
+
+  it('keeps known resource types untouched and does not toast', async () => {
+    const { toasts } = useToasts()
+    const before = toasts.value.length
+    getJsonMock.mockResolvedValue({
+      findingId: 'f2',
+      displayName: 'finding referencing a binding',
+      findingType: { findingTypeId: 'ft1', displayName: 'SomeRule' },
+      reference: 'emeland://findingId/f2',
+      resources: [{ id: 'r1', displayName: 'binding', resourceType: 'Binding' }],
+    })
+    const finding = await fetchFindingById('f2')
+    expect(finding.resources[0]).toMatchObject({ resourceType: 'Binding' })
+    expect(toasts.value.length).toBe(before)
   })
 })
 
@@ -271,7 +339,11 @@ describe('ApiHttpError', () => {
   it('keeps the server detail as a field, not only in the message', async () => {
     // importActual: '@/api/fetch' is mocked module-wide in this file
     const { ApiHttpError } = (await vi.importActual('@/api/fetch')) as {
-      ApiHttpError: new (what: string, status: number, detail?: string) => Error & {
+      ApiHttpError: new (
+        what: string,
+        status: number,
+        detail?: string,
+      ) => Error & {
         detail?: string
       }
     }
