@@ -7,6 +7,10 @@
 
 export type UUID = string
 
+/**
+ * Resource types of the EmELand model phases 0-8
+ * (https://emeland.io/docs/model/) that the API validation can pass to the UI.
+ */
 export type ResourceType =
   | 'Unknown'
   | 'Node'
@@ -26,9 +30,26 @@ export type ResourceType =
   | 'OrgUnit'
   | 'Group'
   | 'Identity'
+  | 'Binding'
+  | 'RoleSpec'
+  | 'PermissionSpec'
+  | 'Role'
+  | 'Permission'
+  // Phase 3
+  | 'Capability'
+  | 'Parameter'
+  // Phase 4 defines no resources yet
   // Phase 5
   | 'Finding'
   | 'FindingType'
+  | 'Product'
+  // Phase 6
+  | 'Metric'
+  | 'Threshold'
+  | 'MetricValue'
+  // Phase 7
+  | 'Capacity'
+  | 'CapacityResourceType'
   // Phase 8
   | 'Artifact'
   | 'ArtifactInstance'
