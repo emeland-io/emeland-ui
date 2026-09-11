@@ -25,7 +25,7 @@ interface ResourceMeta {
 
 const RESOURCES: Record<ResourceType, ResourceMeta> = {
   Unknown: { label: 'Unknown', route: null, chip: '?' },
-  Annotations: { label: 'Annotations', route: null, chip: 'An' },
+  Annotations: { label: 'Annotations', route: null, chip: 'AN' },
 
   // Landscape (modelsrv execution environment)
   Node: { label: 'Node', route: 'Nodes', chip: 'N' },
@@ -40,39 +40,39 @@ const RESOURCES: Record<ResourceType, ResourceMeta> = {
   SystemInstance: { label: 'System Instance', route: null, chip: 'I' },
   API: { label: 'API', route: 'APIs', chip: 'A' },
   ApiInstance: { label: 'API Instance', route: null, chip: 'I' },
-  Component: { label: 'Component', route: 'Components', chip: 'Co' },
+  Component: { label: 'Component', route: 'Components', chip: 'CO' },
   ComponentInstance: { label: 'Component Instance', route: null, chip: 'I' },
 
   // Phase 2
   OrgUnit: { label: 'Org Unit', route: null, chip: 'O' },
   Group: { label: 'Group', route: null, chip: 'G' },
-  Identity: { label: 'Identity', route: null, chip: 'Id' },
+  Identity: { label: 'Identity', route: null, chip: 'ID' },
   Binding: { label: 'Binding', route: null, chip: 'B' },
   RoleSpec: { label: 'Role Spec', route: null, chip: 'RS' },
   PermissionSpec: { label: 'Permission Spec', route: null, chip: 'PS' },
   Role: { label: 'Role', route: null, chip: 'R' },
-  Permission: { label: 'Permission', route: null, chip: 'Pe' },
+  Permission: { label: 'Permission', route: null, chip: 'PE' },
 
   // Phase 3
-  Capability: { label: 'Capability', route: null, chip: 'Cp' },
-  Parameter: { label: 'Parameter', route: null, chip: 'Pa' },
+  Capability: { label: 'Capability', route: null, chip: 'CP' },
+  Parameter: { label: 'Parameter', route: null, chip: 'PA' },
 
   // Phase 5
   Finding: { label: 'Finding', route: 'Findings', chip: 'F' },
   FindingType: { label: 'Finding Type', route: null, chip: 'FT' },
-  Product: { label: 'Product', route: null, chip: 'Pr' },
+  Product: { label: 'Product', route: null, chip: 'PR' },
 
   // Phase 6
-  Metric: { label: 'Metric', route: null, chip: 'Me' },
-  Threshold: { label: 'Threshold', route: null, chip: 'Th' },
+  Metric: { label: 'Metric', route: null, chip: 'ME' },
+  Threshold: { label: 'Threshold', route: null, chip: 'TH' },
   MetricValue: { label: 'Metric Value', route: null, chip: 'MV' },
 
   // Phase 7
-  Capacity: { label: 'Capacity', route: null, chip: 'Ca' },
+  Capacity: { label: 'Capacity', route: null, chip: 'CA' },
   CapacityResourceType: { label: 'Capacity Resource Type', route: null, chip: 'CR' },
 
   // Phase 8
-  Artifact: { label: 'Artifact', route: null, chip: 'Ar' },
+  Artifact: { label: 'Artifact', route: null, chip: 'AR' },
   ArtifactInstance: { label: 'Artifact Instance', route: null, chip: 'AI' },
 }
 
