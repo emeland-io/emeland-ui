@@ -1,5 +1,6 @@
 import { ref, onUnmounted } from 'vue'
 import { trackMouseDrag } from '@/utils/dom'
+import { safeStorage } from '@/utils/storage'
 
 export const RESIZABLE_INITIAL_SIZE = 320
 export const RESIZABLE_MIN_SIZE = 220
@@ -10,6 +11,8 @@ export interface ResizableOptions {
   min?: number
   max?: number
   axis?: 'x' | 'y'
+  inverted?: boolean
+  storageKey?: string
 }
 
 export function useResizable(options: ResizableOptions = {}) {
@@ -18,9 +21,14 @@ export function useResizable(options: ResizableOptions = {}) {
     min = RESIZABLE_MIN_SIZE,
     max = RESIZABLE_MAX_SIZE,
     axis = 'x',
+    inverted = false,
+    storageKey,
   } = options
 
-  const width = ref(initial)
+  const stored = storageKey ? Number(safeStorage()?.getItem(storageKey)) : NaN
+  const width = ref(
+    Number.isFinite(stored) && stored > 0 ? Math.max(min, Math.min(max, stored)) : initial,
+  )
   const isResizing = ref(false)
   let cleanup: (() => void) | null = null
 
@@ -32,11 +40,13 @@ export function useResizable(options: ResizableOptions = {}) {
     cleanup = trackMouseDrag(
       (ev) => {
         const current = axis === 'x' ? ev.clientX : ev.clientY
-        width.value = Math.max(min, Math.min(max, startWidth + (current - start)))
+        const delta = inverted ? start - current : current - start
+        width.value = Math.max(min, Math.min(max, startWidth + delta))
       },
       () => {
         isResizing.value = false
         cleanup = null
+        if (storageKey) safeStorage()?.setItem(storageKey, String(width.value))
       },
     )
   }

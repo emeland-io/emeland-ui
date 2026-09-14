@@ -73,7 +73,7 @@ export function useNavigation() {
       title: 'Capabilities',
       phase: 'P3',
       items: [
-        { label: 'Features', route: '/features', chip: 'Fe' },
+        { label: 'Capabilities', route: '/capabilities', chip: 'Ca' },
         { label: 'Orders', route: '/orders', chip: 'Or' },
       ],
     },

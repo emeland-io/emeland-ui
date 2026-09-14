@@ -23,7 +23,7 @@ onMounted(() => store.load())
 <template>
   <div class="flex h-full flex-col">
     <!-- Header -->
-    <div class="flex items-center gap-3 border-b border-border-1 px-5 py-3">
+    <div class="flex h-12 shrink-0 items-center gap-3 border-b border-border-1 px-5">
       <h1 class="text-title font-medium text-text-1">Model</h1>
     </div>
 
