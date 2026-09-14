@@ -6,6 +6,7 @@ import type { ResourceType } from '@/types/common'
 /**
  * - rect: node drawn as a (rounded) rectangle; pass `rx: 5` for the pill shape
  * - pentagon: node drawn as the clipped-corner shape; outlined when `stroke` is set
+ * - sheet: the order paper-sheet shape (portrait, folded top-right corner)
  * - arrow: edge marker, dashed for "consumes"-style relations
  * - chip: a TypeGlyph label prefix (e.g. System, Context)
  * - crossing: the boundary-crossing icon
@@ -13,6 +14,7 @@ import type { ResourceType } from '@/types/common'
 export type LegendSwatch =
   | { shape: 'rect'; fill?: string; stroke?: string; dash?: string; rx?: number }
   | { shape: 'pentagon'; fill: string; stroke?: string }
+  | { shape: 'sheet'; fill: string; stroke: string }
   | { shape: 'arrow'; dashed?: boolean }
   | { shape: 'chip'; type: ResourceType }
   | { shape: 'crossing' }
@@ -76,6 +78,25 @@ defineProps<{
                 : '0,0 13,0 18,5 18,11 0,11'
             "
             :fill="item.swatch.fill"
+            :stroke="item.swatch.stroke"
+          />
+        </svg>
+        <svg
+          v-else-if="item.swatch.shape === 'sheet'"
+          width="11"
+          height="13"
+          viewBox="0 0 11 13"
+          class="shrink-0"
+          aria-hidden="true"
+        >
+          <polygon
+            points="0.5,0.5 6.5,0.5 10.5,4.5 10.5,12.5 0.5,12.5"
+            :fill="item.swatch.fill"
+            :stroke="item.swatch.stroke"
+          />
+          <path
+            d="M6.5 0.5 L6.5 4.5 L10.5 4.5"
+            fill="none"
             :stroke="item.swatch.stroke"
           />
         </svg>

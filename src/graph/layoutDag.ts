@@ -47,6 +47,8 @@ const SIZE: Record<GraphNodeKind, { width: number; height: number }> = {
   instance: { width: 200, height: 60 },
   context: { width: 220, height: 80 },
   'context-node': { width: 208, height: 60 },
+  capability: { width: 256, height: 46 },
+  order: { width: 180, height: 78 },
 }
 
 export function layoutDag(input: LayoutDagInput): GraphModel {
@@ -83,7 +85,7 @@ export function layoutDag(input: LayoutDagInput): GraphModel {
       id: n.id,
       kind: n.kind,
       position: { x: (pos?.x ?? 0) - width / 2, y: (pos?.y ?? 0) - height / 2 },
-      size: { width },
+      size: { width, height },
       selectable: n.selectable ?? true,
       data: n.data,
     } as GraphNode
