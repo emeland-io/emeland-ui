@@ -1,4 +1,5 @@
-export type GraphNodeKind = 'system' | 'instance' | 'context' | 'context-node' | 'api' | 'component'
+export type GraphNodeKind =
+  'system' | 'instance' | 'context' | 'context-node' | 'api' | 'component' | 'capability' | 'order'
 export type GraphEdgeKind = 'contains' | 'communicates' | 'provides' | 'consumes' | 'default'
 
 export interface GraphPosition {
@@ -74,6 +75,31 @@ export interface ApiNodeData extends BaseNodeData {
 export interface ComponentNodeData extends BaseNodeData {
   system?: string
 }
+export interface CapabilityNodeData extends BaseNodeData {
+  /** latest offered version */
+  version?: string
+  /** overall lifecycle of the capability (see utils/version capabilityLifecycle) */
+  lifecycle?: string
+  /** number of orders referencing the capability */
+  orders?: number
+}
+export interface OrderNodeData extends BaseNodeData {
+  /** fulfillment state (see utils/orders orderStatus) */
+  status?: string
+  /** compact status line, e.g. OPEN / 2/3 fulfilled / FULFILLED */
+  statusLabel?: string
+  /** order date (ISO) */
+  orderedAt?: string
+  /** number of order items */
+  items?: number
+  /** per-item fulfillment for the sheet body */
+  orderItems?: {
+    label: string
+    fulfilled: boolean
+    description?: string
+    version?: string
+  }[]
+}
 
 export interface SystemGraphNode extends BaseGraphNode {
   kind: 'system'
@@ -99,6 +125,14 @@ export interface ComponentGraphNode extends BaseGraphNode {
   kind: 'component'
   data: ComponentNodeData
 }
+export interface CapabilityGraphNode extends BaseGraphNode {
+  kind: 'capability'
+  data: CapabilityNodeData
+}
+export interface OrderGraphNode extends BaseGraphNode {
+  kind: 'order'
+  data: OrderNodeData
+}
 
 export type GraphNode =
   | SystemGraphNode
@@ -107,6 +141,8 @@ export type GraphNode =
   | ContextItemGraphNode
   | ApiGraphNode
   | ComponentGraphNode
+  | CapabilityGraphNode
+  | OrderGraphNode
 
 export interface GraphEdge {
   id: string

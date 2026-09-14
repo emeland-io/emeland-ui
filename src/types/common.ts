@@ -38,6 +38,7 @@ export type ResourceType =
   // Phase 3
   | 'Capability'
   | 'Parameter'
+  | 'Order'
   // Phase 4 defines no resources yet
   // Phase 5
   | 'Finding'
