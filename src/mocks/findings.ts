@@ -36,6 +36,12 @@ export const findingTypes = [
     description: 'Instance version does not match the system template version.',
     annotations: [],
   },
+  {
+    findingTypeId: 'f6a7b8c9-d1e2-4f3a-4b5c-6d7e8f9a1b2c',
+    displayName: 'RoleNotFound',
+    description: 'A Binding references a Role that does not exist in the model.',
+    annotations: [{ key: 'built-in', value: 'true' }],
+  },
 ] satisfies FindingTypeWire[]
 
 /**
@@ -52,6 +58,9 @@ export const findingTypes = [
  *   From nodes.ts:
  *     orphan-git-sensor:  aaaa0001-0000-4000-8000-000000000001 (Node, missing type)
  *     (missing NodeType): bbbb0001-0000-4000-8000-000000000001
+ *   RBAC (no roles/bindings mocks yet):
+ *     deployer-binding:   cccc0001-0000-4000-8000-000000000001 (Binding)
+ *     (missing Role):     dddd0001-0000-4000-8000-000000000001
  */
 export const findings = [
   {
@@ -198,5 +207,29 @@ export const findings = [
       },
     ],
     annotations: [{ key: 'eximpl.emeland.io/detected-at', value: '2026-05-28T06:42:00Z' }],
+  },
+  {
+    findingId: '17a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b62',
+
+    reference: 'emeland://findingId/17a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b62',
+    displayName: 'Bound role not found',
+    description: 'Binding "deployer-binding" grants a role that does not exist in the model.',
+    findingType: {
+      findingTypeId: 'f6a7b8c9-d1e2-4f3a-4b5c-6d7e8f9a1b2c',
+      displayName: 'RoleNotFound',
+    },
+    resources: [
+      {
+        id: 'cccc0001-0000-4000-8000-000000000001',
+        displayName: 'deployer-binding',
+        resourceType: 'Binding',
+      },
+      {
+        id: 'dddd0001-0000-4000-8000-000000000001',
+        displayName: '',
+        resourceType: 'Role',
+      },
+    ],
+    annotations: [{ key: 'eximpl.emeland.io/detected-at', value: '2026-05-28T11:12:00Z' }],
   },
 ] satisfies FindingViewWire[]

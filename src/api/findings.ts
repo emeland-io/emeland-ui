@@ -1,6 +1,6 @@
 import { API } from '@/constants/api'
 import type { Finding, FindingResource, FindingType } from '@/types/finding'
-import { decodeAnnotations } from './decode'
+import { decodeAnnotations, decodeResourceType } from './decode'
 import { decodeTypeEntity, makeResourceApi } from './resource'
 import type {
   FindingView as FindingWire,
@@ -14,7 +14,7 @@ function decodeResources(res: FindingWire): FindingResource[] {
   return list.map((r: ResourceWire) => ({
     resourceId: r.id,
     displayName: r.displayName ?? '',
-    resourceType: r.resourceType as FindingResource['resourceType'],
+    resourceType: decodeResourceType(r.resourceType),
   }))
 }
 
