@@ -58,6 +58,11 @@ export function getToken(): string | null {
   return sessionStorage.getItem(TOKEN_KEY)
 }
 
+/** True on the OIDC callback route. API 401s must not send the browser back to the IdP here — that aborts POST /auth/token. */
+export function shouldDeferLoginRedirect(): boolean {
+  return window.location.pathname === '/callback'
+}
+
 export function clearToken(): void {
   sessionStorage.removeItem(TOKEN_KEY)
   authenticated.value = false
@@ -98,17 +103,24 @@ export async function handleCallback(): Promise<string | null> {
   const verifier = sessionStorage.getItem(VERIFIER_KEY)
   if (!verifier) return null
 
-  const resp = await fetch('/auth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      client_id: cfg.clientId,
-      code,
-      redirect_uri: cfg.redirectUri,
-      code_verifier: verifier,
-    }),
-  })
+  let resp: Response
+  try {
+    resp = await fetch('/auth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: cfg.clientId,
+        code,
+        redirect_uri: cfg.redirectUri,
+        code_verifier: verifier,
+      }),
+    })
+  } catch (e) {
+    // a cancelled or failed token exchange must not reject out of the callback
+    reportError('auth.token', e)
+    return null
+  }
 
   if (!resp.ok) return null
 

@@ -1,4 +1,4 @@
-import { getToken, login, getAuthConfig } from '@/auth'
+import { getToken, login, getAuthConfig, shouldDeferLoginRedirect } from '@/auth'
 
 export const USE_MOCKS = import.meta.env.VITE_EMEL_DEV_USE_MOCKS === 'true'
 
@@ -26,8 +26,9 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
   }
 
   const token = getToken()
+  const deferLogin = shouldDeferLoginRedirect()
   if (!token) {
-    await login()
+    if (!deferLogin) await login()
     return new Response(null, { status: 401 })
   }
 
@@ -37,7 +38,7 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
   const resp = await fetch(path, { ...init, headers })
 
   if (resp.status === 401) {
-    await login()
+    if (!deferLogin) await login()
     return resp
   }
 

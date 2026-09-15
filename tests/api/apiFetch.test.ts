@@ -4,13 +4,19 @@ vi.mock('@/auth', () => ({
   getToken: vi.fn(),
   login: vi.fn(async () => {}),
   getAuthConfig: vi.fn(),
+  shouldDeferLoginRedirect: vi.fn(() => false),
 }))
 
 /**
  * apiFetch caches the auth-enabled probe in module state, so every test gets
  * a fresh module instance
  */
-async function setup(config: { issuerUrl?: string; token?: string | null; probeFails?: boolean }) {
+async function setup(config: {
+  issuerUrl?: string
+  token?: string | null
+  probeFails?: boolean
+  deferLogin?: boolean
+}) {
   vi.resetModules()
   vi.clearAllMocks()
   const auth = await import('@/auth')
@@ -25,6 +31,7 @@ async function setup(config: { issuerUrl?: string; token?: string | null; probeF
     })
   }
   vi.mocked(auth.getToken).mockReturnValue(config.token ?? null)
+  vi.mocked(auth.shouldDeferLoginRedirect).mockReturnValue(config.deferLogin ?? false)
   const { apiFetch } = await import('@/api/fetch')
   return { apiFetch, auth }
 }
@@ -86,6 +93,32 @@ describe('apiFetch', () => {
 
     const resp = await apiFetch('/api/systems')
     expect(auth.login).toHaveBeenCalledTimes(1)
+    expect(resp.status).toBe(401)
+  })
+
+  it('does not redirect to login on the OIDC callback route when no token is present', async () => {
+    const { apiFetch, auth } = await setup({
+      issuerUrl: 'https://emeland.example',
+      token: null,
+      deferLogin: true,
+    })
+
+    const resp = await apiFetch('/api/landscape/findings')
+    expect(auth.login).not.toHaveBeenCalled()
+    expect(resp.status).toBe(401)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('does not redirect to login on the OIDC callback route after an API 401', async () => {
+    const { apiFetch, auth } = await setup({
+      issuerUrl: 'https://emeland.example',
+      token: 'stale',
+      deferLogin: true,
+    })
+    fetchMock.mockResolvedValue(new Response(null, { status: 401 }))
+
+    const resp = await apiFetch('/api/landscape/model')
+    expect(auth.login).not.toHaveBeenCalled()
     expect(resp.status).toBe(401)
   })
 
