@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useModelStore } from '@/stores/model'
+import { shouldDeferLoginRedirect } from '@/auth'
 
 const store = useModelStore()
+const route = useRoute()
 
 // const STATUS_DOT: Record<string, string> = {
 //   online: 'bg-accent',
@@ -10,7 +13,15 @@ const store = useModelStore()
 //   unknown: 'bg-text-4',
 // }
 
-onMounted(() => store.load())
+// the topbar sits outside router-view and mounts once, so on /callback the load
+// is deferred until the route leaves it rather than skipped for the session
+watch(
+  () => route.path,
+  () => {
+    if (!shouldDeferLoginRedirect()) store.load()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
