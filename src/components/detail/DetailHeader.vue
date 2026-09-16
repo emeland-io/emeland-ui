@@ -13,7 +13,15 @@ defineProps<{
 
 <template>
   <div class="border-b border-border-1 px-6 py-4">
-    <h2 class="text-title font-medium text-text-1">{{ title }}</h2>
+    <div class="flex items-start justify-between gap-3">
+      <h2 class="min-w-0 text-title font-medium text-text-1">{{ title }}</h2>
+      <div
+        v-if="$slots.actions"
+        class="flex shrink-0 items-center gap-1"
+      >
+        <slot name="actions" />
+      </div>
+    </div>
     <p
       v-if="subtitle"
       class="mt-2 text-body leading-relaxed text-text-2"

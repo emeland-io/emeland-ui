@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { IconArrowDown, IconArrowUp } from '@tabler/icons-vue'
+import { IconArrowDown, IconArrowUp, IconBookmark } from '@tabler/icons-vue'
 import { useOrdersStore } from '@/stores/orders'
+import { useFavorites } from '@/composables/useFavorites'
 import TypeTag from '@/components/TypeTag.vue'
+import FavoriteButton from '@/components/FavoriteButton.vue'
 import { LIFECYCLE_TAG } from '@/constants/lifecycle'
 import { capabilityLifecycle, latestVersionRef } from '@/utils/version'
 import type { CapabilityLifecycle } from '@/utils/version'
@@ -19,12 +21,15 @@ const emit = defineEmits<{
 }>()
 
 const ordersStore = useOrdersStore()
+const { isFavorite, toggleFavorite } = useFavorites()
 
-type SortKey = 'name' | 'lifecycle' | 'version' | 'versions' | 'orders' | 'dependencies'
+type SortKey =
+  'favorite' | 'name' | 'lifecycle' | 'version' | 'versions' | 'orders' | 'dependencies'
 const sortKey = ref<SortKey>('name')
 const sortAsc = ref(true)
 
-const COLUMNS: { key: SortKey; label: string; align?: 'right' }[] = [
+const COLUMNS: { key: SortKey; label: string; align?: 'right'; icon?: boolean }[] = [
+  { key: 'favorite', label: 'Favorite', icon: true },
   { key: 'name', label: 'Capability' },
   { key: 'lifecycle', label: 'Lifecycle' },
   { key: 'version', label: 'Latest' },
@@ -62,6 +67,9 @@ function latestVersion(c: Capability): string {
 
 function sortValue(c: Capability, key: SortKey): string | number {
   switch (key) {
+    case 'favorite':
+      // favorites first when ascending, matching the card grid
+      return isFavorite(c.capabilityId) ? 0 : 1
     case 'name':
       return c.displayName.toLowerCase()
     case 'lifecycle':
@@ -105,7 +113,7 @@ function sortBy(key: SortKey) {
     sortAsc.value = !sortAsc.value
   } else {
     sortKey.value = key
-    sortAsc.value = key === 'name' || key === 'lifecycle' || key === 'version'
+    sortAsc.value = key === 'favorite' || key === 'name' || key === 'lifecycle' || key === 'version'
   }
 }
 </script>
@@ -120,10 +128,17 @@ function sortBy(key: SortKey) {
           class="cursor-pointer select-none px-4 py-2 font-medium text-text-3 transition-colors hover:text-text-1"
           :class="col.align === 'right' ? 'text-right' : 'text-left'"
           :aria-sort="sortKey === col.key ? (sortAsc ? 'ascending' : 'descending') : undefined"
+          :title="col.icon ? col.label : undefined"
           @click="sortBy(col.key)"
         >
           <span class="inline-flex items-center gap-1">
-            {{ col.label }}
+            <IconBookmark
+              v-if="col.icon"
+              :size="13"
+              :stroke-width="2"
+              :aria-label="col.label"
+            />
+            <template v-else>{{ col.label }}</template>
             <component
               :is="sortAsc ? IconArrowUp : IconArrowDown"
               v-if="sortKey === col.key"
@@ -143,6 +158,14 @@ function sortBy(key: SortKey) {
         :class="c.capabilityId === selectedId ? 'bg-accent/5' : 'hover:bg-bg-1'"
         @click="emit('select', c.capabilityId)"
       >
+        <td class="w-8 py-2 pl-4 pr-1">
+          <FavoriteButton
+            :active="isFavorite(c.capabilityId)"
+            :name="c.displayName"
+            :data-favorite-id="c.capabilityId"
+            @toggle="toggleFavorite(c.capabilityId)"
+          />
+        </td>
         <td class="px-4 py-2 font-medium text-text-1">{{ c.displayName }}</td>
         <td class="px-4 py-2">
           <TypeTag :tone="LIFECYCLE_TAG[capabilityLifecycle(c.versions)].tone">

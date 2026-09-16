@@ -2,10 +2,13 @@
 import { computed } from 'vue'
 import { useOrdersStore } from '@/stores/orders'
 import { useFindingsStore } from '@/stores/findings'
+import { useFavorites } from '@/composables/useFavorites'
 import TypeTag from '@/components/TypeTag.vue'
 import FindingsBadge from '@/components/list/FindingsBadge.vue'
-import { LIFECYCLE_ORDER, LIFECYCLE_TAG } from '@/constants/lifecycle'
+import FavoriteButton from '@/components/FavoriteButton.vue'
+import { LIFECYCLE_TAG } from '@/constants/lifecycle'
 import { capabilityLifecycle, latestVersionRef } from '@/utils/version'
+import { groupCapabilitiesByLifecycle } from '@/utils/capabilities'
 import type { Capability } from '@/types/capability'
 
 const props = defineProps<{
@@ -19,15 +22,9 @@ const emit = defineEmits<{
 
 const ordersStore = useOrdersStore()
 const findingsStore = useFindingsStore()
+const { isFavorite, toggleFavorite } = useFavorites()
 
-const groups = computed(() =>
-  LIFECYCLE_ORDER.map((lifecycle) => ({
-    lifecycle,
-    capabilities: props.capabilities
-      .filter((c) => capabilityLifecycle(c.versions) === lifecycle)
-      .sort((a, b) => a.displayName.localeCompare(b.displayName)),
-  })).filter((g) => g.capabilities.length > 0),
-)
+const groups = computed(() => groupCapabilitiesByLifecycle(props.capabilities, isFavorite))
 
 function orderCount(id: string): number {
   return ordersStore.orders.filter((o) => o.items.some((i) => i.capability === id)).length
@@ -57,45 +54,61 @@ function latestVersion(c: Capability): string | undefined {
       </div>
 
       <div class="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2">
-        <button
+        <div
           v-for="c in group.capabilities"
           :key="c.capabilityId"
-          :data-row-id="c.capabilityId"
-          type="button"
-          class="group flex flex-col rounded-md border bg-bg-1 px-3 py-2.5 text-left transition-colors"
-          :class="
-            c.capabilityId === selectedId
-              ? 'border-accent/50 bg-accent/5'
-              : 'border-border-1 hover:border-border-2 hover:bg-bg-2'
-          "
-          @click="emit('select', c.capabilityId)"
+          class="relative"
         >
-          <div class="flex items-start justify-between gap-2">
-            <span class="min-w-0 truncate text-body font-medium text-text-1">
-              {{ c.displayName }}
-            </span>
+          <button
+            :data-row-id="c.capabilityId"
+            type="button"
+            class="group flex w-full flex-col rounded-md border bg-bg-1 px-3 py-2.5 text-left transition-colors"
+            :class="
+              c.capabilityId === selectedId
+                ? 'border-accent/50 bg-accent/5'
+                : 'border-border-1 hover:border-border-2 hover:bg-bg-2'
+            "
+            @click="emit('select', c.capabilityId)"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <span
+                class="min-w-0 truncate text-body font-medium text-text-1"
+                :class="findingsStore.findingCountFor(c.capabilityId) > 0 ? 'pr-20' : 'pr-7'"
+              >
+                {{ c.displayName }}
+              </span>
+            </div>
+
+            <div class="mt-1.5 flex items-center gap-1.5">
+              <TypeTag :tone="LIFECYCLE_TAG[capabilityLifecycle(c.versions)].tone">
+                {{ LIFECYCLE_TAG[capabilityLifecycle(c.versions)].label }}
+              </TypeTag>
+              <span
+                v-if="latestVersion(c)"
+                class="font-mono text-meta text-text-4"
+              >
+                v{{ latestVersion(c) }}
+              </span>
+            </div>
+
+            <div class="mt-2.5 flex items-center gap-3 font-mono text-micro text-text-3">
+              <span>{{ c.versions?.length ?? 0 }} versions</span>
+              <span :class="orderCount(c.capabilityId) > 0 ? '' : 'text-text-4'">
+                {{ orderCount(c.capabilityId) }} orders
+              </span>
+            </div>
+          </button>
+
+          <div class="absolute right-2 top-2 flex items-center gap-1">
             <FindingsBadge :count="findingsStore.findingCountFor(c.capabilityId)" />
+            <FavoriteButton
+              :active="isFavorite(c.capabilityId)"
+              :name="c.displayName"
+              :data-favorite-id="c.capabilityId"
+              @toggle="toggleFavorite(c.capabilityId)"
+            />
           </div>
-
-          <div class="mt-1.5 flex items-center gap-1.5">
-            <TypeTag :tone="LIFECYCLE_TAG[capabilityLifecycle(c.versions)].tone">
-              {{ LIFECYCLE_TAG[capabilityLifecycle(c.versions)].label }}
-            </TypeTag>
-            <span
-              v-if="latestVersion(c)"
-              class="font-mono text-meta text-text-4"
-            >
-              v{{ latestVersion(c) }}
-            </span>
-          </div>
-
-          <div class="mt-2.5 flex items-center gap-3 font-mono text-micro text-text-3">
-            <span>{{ c.versions?.length ?? 0 }} versions</span>
-            <span :class="orderCount(c.capabilityId) > 0 ? '' : 'text-text-4'">
-              {{ orderCount(c.capabilityId) }} orders
-            </span>
-          </div>
-        </button>
+        </div>
       </div>
     </section>
   </div>

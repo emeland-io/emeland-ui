@@ -6,6 +6,8 @@ import { useOrdersStore } from '@/stores/orders'
 import { useFindingsStore } from '@/stores/findings'
 import { useResourceNav } from '@/composables/useResourceNav'
 import { useFindingsForResource } from '@/composables/useFindingsForResource'
+import { useFavorites } from '@/composables/useFavorites'
+import FavoriteButton from '@/components/FavoriteButton.vue'
 import CapabilityVersionsSection from '@/components/capabilities/CapabilityVersionsSection.vue'
 import DetailErrorBanner from '@/components/detail/DetailErrorBanner.vue'
 import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
@@ -30,6 +32,7 @@ const parametersStore = useParametersStore()
 const ordersStore = useOrdersStore()
 const findingsStore = useFindingsStore()
 const { goToResource } = useResourceNav()
+const { isFavorite, toggleFavorite } = useFavorites()
 
 const orderedIn = computed(() => {
   const id = props.capability?.capabilityId
@@ -136,6 +139,14 @@ const latestVersionLabel = computed(
       :title="capability.displayName"
       :subtitle="capability.description"
     >
+      <template #actions>
+        <FavoriteButton
+          :active="isFavorite(capability.capabilityId)"
+          :name="capability.displayName"
+          :size="17"
+          @toggle="toggleFavorite(capability.capabilityId)"
+        />
+      </template>
       <TypeTag>Capability</TypeTag>
       <TypeTag :tone="LIFECYCLE_TAG[lifecycle].tone">
         {{ LIFECYCLE_TAG[lifecycle].label }}

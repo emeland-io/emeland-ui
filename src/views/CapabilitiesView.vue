@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { IconLayoutGrid, IconTable, IconX } from '@tabler/icons-vue'
+import {
+  IconBookmark,
+  IconBookmarkFilled,
+  IconLayoutGrid,
+  IconTable,
+  IconX,
+} from '@tabler/icons-vue'
 import { useCapabilitiesStore } from '@/stores/capabilities'
 import { useParametersStore } from '@/stores/parameters'
 import { useOrdersStore } from '@/stores/orders'
@@ -9,6 +15,7 @@ import { useFindingsStore } from '@/stores/findings'
 import { useResizable } from '@/composables/useResizable'
 import { useWindowKeydown } from '@/composables/useWindowKeydown'
 import { useSelectQuery } from '@/composables/useResourceNav'
+import { useFavorites } from '@/composables/useFavorites'
 import { useListKeyboardNav } from '@/composables/useListKeyboardNav'
 import { isEditableTarget } from '@/utils/dom'
 import { safeStorage } from '@/utils/storage'
@@ -24,6 +31,7 @@ import ViewModeSwitch from '@/components/ViewModeSwitch.vue'
 import { LIFECYCLE_ORDER, LIFECYCLE_TAG } from '@/constants/lifecycle'
 import { matchesAnnotations, matchesQuery } from '@/utils/search'
 import { capabilityLifecycle } from '@/utils/version'
+import { groupCapabilitiesByLifecycle } from '@/utils/capabilities'
 import { toggledSet } from '@/utils/set'
 
 /**
@@ -69,6 +77,10 @@ const search = ref('')
 const activeLifecycles = ref<Set<string>>(new Set())
 const selectedId = ref('')
 
+// favorites are a per-browser bookmark list (localStorage), not landscape state
+const { isFavorite, toggleFavorite, favoriteCount } = useFavorites()
+const favoritesOnly = ref(false)
+
 // the docked detail pane is resizable from its left edge
 const {
   width: detailWidth,
@@ -101,14 +113,18 @@ const chipFiltered = computed(() =>
 )
 
 const filtered = computed(() =>
-  chipFiltered.value.filter(
-    (c) =>
-      matchesQuery(search.value, c.displayName, c.capabilityId) ||
-      matchesAnnotations(search.value, c.annotations),
-  ),
+  chipFiltered.value
+    .filter((c) => !favoritesOnly.value || isFavorite(c.capabilityId))
+    .filter(
+      (c) =>
+        matchesQuery(search.value, c.displayName, c.capabilityId) ||
+        matchesAnnotations(search.value, c.annotations),
+    ),
 )
 
-const hasActiveFilters = computed(() => !!search.value || activeLifecycles.value.size > 0)
+const hasActiveFilters = computed(
+  () => !!search.value || activeLifecycles.value.size > 0 || favoritesOnly.value,
+)
 
 function toggleLifecycle(id: string) {
   activeLifecycles.value = toggledSet(activeLifecycles.value, id)
@@ -117,6 +133,7 @@ function toggleLifecycle(id: string) {
 function clearFilters() {
   search.value = ''
   activeLifecycles.value = new Set()
+  favoritesOnly.value = false
 }
 
 const selected = computed(() => store.capabilities.find((c) => c.capabilityId === selectedId.value))
@@ -138,11 +155,8 @@ useSelectQuery(
 const tableOrder = ref<string[]>([])
 
 const cardOrder = computed(() =>
-  LIFECYCLE_ORDER.flatMap((lifecycle) =>
-    filtered.value
-      .filter((c) => capabilityLifecycle(c.versions) === lifecycle)
-      .sort((a, b) => a.displayName.localeCompare(b.displayName))
-      .map((c) => c.capabilityId),
+  groupCapabilitiesByLifecycle(filtered.value, isFavorite).flatMap((g) =>
+    g.capabilities.map((c) => c.capabilityId),
   ),
 )
 
@@ -153,11 +167,19 @@ useListKeyboardNav(
   ref(false),
 )
 
-// ESC closes the docked detail (not while typing in an input)
+// ESC closes the docked detail, f stars the selection (not while typing)
 useWindowKeydown((e: KeyboardEvent) => {
-  if (e.key !== 'Escape' || !selectedId.value || isEditableTarget(e.target)) return
-  e.preventDefault()
-  selectedId.value = ''
+  if (isEditableTarget(e.target) || !selectedId.value) return
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    selectedId.value = ''
+    return
+  }
+  // plain f only, so browser find (cmd/ctrl+f) still works
+  if (e.key === 'f' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    e.preventDefault()
+    toggleFavorite(selectedId.value)
+  }
 })
 
 onMounted(async () => {
@@ -197,6 +219,23 @@ onMounted(async () => {
         :active="activeLifecycles"
         @toggle="toggleLifecycle"
       />
+      <button
+        type="button"
+        data-favorites-filter
+        class="flex items-center gap-1.5 rounded bg-bg-2 px-2 py-1 text-meta transition-colors"
+        :class="favoritesOnly ? 'text-accent' : 'text-text-3 hover:text-text-1'"
+        :aria-pressed="favoritesOnly"
+        :title="favoritesOnly ? 'Show all capabilities' : 'Show only favorites'"
+        @click="favoritesOnly = !favoritesOnly"
+      >
+        <component
+          :is="favoritesOnly ? IconBookmarkFilled : IconBookmark"
+          :size="12"
+          :stroke-width="2"
+        />
+        Favorites
+        <span class="font-mono tabular-nums text-text-4">{{ favoriteCount }}</span>
+      </button>
       <template #trailing>
         <ViewModeSwitch
           v-model="mode"
@@ -208,7 +247,13 @@ onMounted(async () => {
     <EmptyState
       v-if="filtered.length === 0"
       title="No capabilities"
-      :hint="hasActiveFilters ? 'No results for current filters' : 'No capabilities offered yet'"
+      :hint="
+        favoritesOnly && favoriteCount === 0
+          ? 'No favorites yet — use the bookmark on a capability to save it here'
+          : hasActiveFilters
+            ? 'No results for current filters'
+            : 'No capabilities offered yet'
+      "
     />
 
     <div

@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import CapabilityCardGrid from '@/components/capabilities/CapabilityCardGrid.vue'
 import CapabilityTable from '@/components/capabilities/CapabilityTable.vue'
+import { useFavorites, resetFavoritesRegistry } from '@/composables/useFavorites'
 import type { Capability } from '@/types/capability'
 
 vi.mock('@/api/capabilities', () => ({
@@ -40,6 +41,8 @@ const NO_VERSIONS = capability('Gamma')
 
 beforeEach(() => {
   setActivePinia(createPinia())
+  // storage is unusable under the runner, so favorites live in memory here
+  resetFavoritesRegistry()
 })
 
 describe('CapabilityCardGrid', () => {
@@ -82,7 +85,7 @@ describe('CapabilityTable', () => {
     const w = mount(CapabilityTable, {
       props: { capabilities: [AVAILABLE, AVAILABLE2], selectedId: '' },
     })
-    const nameHeader = w.findAll('th')[0]
+    const nameHeader = w.findAll('th').find((th) => th.text() === 'Capability')!
     await nameHeader.trigger('click')
     let order = w.emitted('order')!.at(-1)![0] as string[]
     expect(order).toEqual(['id-Zeta', 'id-Alpha'])
@@ -98,5 +101,40 @@ describe('CapabilityTable', () => {
     })
     await w.find('[data-row-id="id-Zeta"]').trigger('click')
     expect(w.emitted('select')).toEqual([['id-Zeta']])
+  })
+})
+
+describe('favorites', () => {
+  it('toggles a capability from the card grid without selecting it', async () => {
+    const w = mount(CapabilityCardGrid, {
+      props: { capabilities: [AVAILABLE, AVAILABLE2], selectedId: '' },
+    })
+    await w.find('[data-favorite-id="id-Zeta"]').trigger('click')
+
+    expect(useFavorites().isFavorite('id-Zeta')).toBe(true)
+    expect(w.emitted('select')).toBeUndefined()
+  })
+
+  it('pins favorites to the top of their lifecycle group in the card grid', async () => {
+    useFavorites().toggleFavorite('id-Zeta')
+    const w = mount(CapabilityCardGrid, {
+      props: { capabilities: [AVAILABLE, AVAILABLE2], selectedId: '' },
+    })
+
+    const cards = w.findAll('[data-row-id]').map((c) => c.attributes('data-row-id'))
+    expect(cards).toEqual(['id-Zeta', 'id-Alpha'])
+  })
+
+  it('toggles from a table row without selecting it, and sorts favorites first', async () => {
+    const w = mount(CapabilityTable, {
+      props: { capabilities: [AVAILABLE, AVAILABLE2], selectedId: '' },
+    })
+    await w.find('[data-favorite-id="id-Zeta"]').trigger('click')
+    expect(w.emitted('select')).toBeUndefined()
+
+    const starHeader = w.findAll('th')[0]
+    await starHeader.trigger('click')
+    const order = w.emitted('order')!.at(-1)![0] as string[]
+    expect(order).toEqual(['id-Zeta', 'id-Alpha'])
   })
 })
