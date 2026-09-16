@@ -41,8 +41,8 @@ const NO_VERSIONS = capability('Gamma')
 
 beforeEach(() => {
   setActivePinia(createPinia())
-  // storage is unusable under the runner, so favorites live in memory here
   resetFavoritesRegistry()
+  useFavorites().clearFavorites()
 })
 
 describe('CapabilityCardGrid', () => {
