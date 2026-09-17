@@ -2,10 +2,14 @@
 import { IconCopy, IconCheck } from '@tabler/icons-vue'
 import { useClipboard } from '@/composables/useClipboard'
 
-const props = defineProps<{
-  value: string
-  size?: number
-}>()
+const props = withDefaults(
+  defineProps<{
+    value: string
+    size?: number
+    label?: string
+  }>(),
+  { size: undefined, label: undefined },
+)
 
 const { copy, isCopied } = useClipboard()
 </script>
@@ -37,7 +41,7 @@ const { copy, isCopied } = useClipboard()
       class="pointer-events-none absolute top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-bg-3 px-2 py-1 font-mono text-micro text-text-2 opacity-0 transition-opacity"
       :class="isCopied(props.value) ? 'opacity-100' : 'group-hover/copy:opacity-100'"
     >
-      {{ isCopied(props.value) ? 'Copied!' : 'Copy' }}
+      {{ isCopied(props.value) ? 'Copied!' : (props.label ?? 'Copy') }}
     </span>
   </span>
 </template>

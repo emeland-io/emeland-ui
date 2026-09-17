@@ -71,7 +71,16 @@ describe('resources constants', () => {
   })
 
   it('routes only the resources with a list view', () => {
-    const navigable: ResourceType[] = ['Node', 'Finding', 'Context', 'System', 'Component', 'API']
+    const navigable: ResourceType[] = [
+      'Node',
+      'Finding',
+      'Context',
+      'System',
+      'Component',
+      'API',
+      'Capability',
+      'Order',
+    ]
     for (const type of navigable) {
       expect(routeForResource(type)).not.toBeNull()
       expect(isResourceNavigable(type)).toBe(true)
@@ -85,7 +94,6 @@ describe('resources constants', () => {
       'PermissionSpec',
       'Role',
       'Permission',
-      'Capability',
       'Parameter',
       'Product',
       'Metric',

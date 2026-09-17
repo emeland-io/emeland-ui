@@ -24,3 +24,28 @@ export const UNMAPPED_RECT: LegendSwatch = {
   stroke: 'var(--color-text-3)',
   dash: '2.5 2',
 }
+
+export const CAPABILITY_PILL: LegendSwatch = {
+  shape: 'rect',
+  rx: 5,
+  fill: 'var(--color-bg-1)',
+  stroke: 'var(--color-text-4)',
+}
+
+export const ORDER_SHEET_OPEN: LegendSwatch = {
+  shape: 'sheet',
+  fill: 'var(--color-bg-1)',
+  stroke: 'var(--color-border-2)',
+}
+
+export const ORDER_SHEET_PARTIAL: LegendSwatch = {
+  shape: 'sheet',
+  fill: 'var(--color-bg-1)',
+  stroke: 'var(--color-warning)',
+}
+
+export const ORDER_SHEET_FULFILLED: LegendSwatch = {
+  shape: 'sheet',
+  fill: 'var(--color-bg-1)',
+  stroke: 'var(--color-accent)',
+}

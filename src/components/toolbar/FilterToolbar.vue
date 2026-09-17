@@ -60,5 +60,13 @@ const search = defineModel<string>('search', { required: true })
       />
       Clear
     </button>
+
+    <!-- right-anchored display controls  -->
+    <div
+      v-if="$slots.trailing"
+      class="ml-auto"
+    >
+      <slot name="trailing" />
+    </div>
   </div>
 </template>

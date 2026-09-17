@@ -11,7 +11,7 @@
  */
 withDefaults(
   defineProps<{
-    tone?: 'accent' | 'error' | 'muted'
+    tone?: 'accent' | 'error' | 'muted' | 'warning'
   }>(),
   { tone: 'accent' },
 )
@@ -25,7 +25,9 @@ withDefaults(
         ? 'bg-error/10 text-error'
         : tone === 'muted'
           ? 'bg-bg-2 text-text-3'
-          : 'bg-accent/10 text-accent'
+          : tone === 'warning'
+            ? 'bg-warning/10 text-warning'
+            : 'bg-accent/10 text-accent'
     "
   >
     <slot />

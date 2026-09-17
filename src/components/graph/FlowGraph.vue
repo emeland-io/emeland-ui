@@ -31,6 +31,8 @@ import type {
   ContextItemNodeData,
   ApiNodeData,
   ComponentNodeData,
+  CapabilityNodeData,
+  OrderNodeData,
   NodeInstanceRef,
 } from '@/types/graph'
 import { ZOOM_IN_KEYS, ZOOM_OUT_KEYS, FIT_VIEW_KEY } from '@/constants/shortcuts'
@@ -860,6 +862,130 @@ function onNodeClick({ event, node }: NodeMouseEvent) {
           :handles="handlesOf(id, 'source')"
         />
       </template>
+      <!-- Capability node: catalog pill -->
+      <template #node-capability="{ id, data }">
+        <div
+          class="flex h-full w-full cursor-pointer items-center gap-2 rounded-full border bg-bg-1 px-4 py-2 transition-colors"
+          :class="id === selectedId || neighbourIds.has(id) ? 'border-accent' : 'border-text-4'"
+        >
+          <span class="min-w-0 flex-1 truncate text-body text-text-1">
+            {{ (data as CapabilityNodeData).label }}
+          </span>
+          <span
+            v-if="(data as CapabilityNodeData).findings"
+            class="flex shrink-0 items-center gap-1 rounded-full border border-warning/40 bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
+          >
+            <IconAlertTriangle
+              :size="10"
+              :stroke-width="2"
+            />
+            {{ (data as CapabilityNodeData).findings }}
+          </span>
+          <span
+            v-if="
+              (data as CapabilityNodeData).lifecycle &&
+              (data as CapabilityNodeData).lifecycle !== 'available'
+            "
+            class="shrink-0 rounded-full px-1.5 py-0.5 font-mono text-micro"
+            :class="
+              (data as CapabilityNodeData).lifecycle === 'deprecated'
+                ? 'bg-warning/15 text-warning'
+                : (data as CapabilityNodeData).lifecycle === 'terminated'
+                  ? 'bg-error/15 text-error'
+                  : 'bg-bg-2 text-text-3'
+            "
+          >
+            {{ (data as CapabilityNodeData).lifecycle }}
+          </span>
+          <span
+            v-if="(data as CapabilityNodeData).version"
+            class="shrink-0 font-mono text-micro text-text-4"
+          >
+            v{{ (data as CapabilityNodeData).version }}
+          </span>
+        </div>
+        <FlowHandles
+          type="target"
+          :position="Position.Left"
+          :handles="handlesOf(id, 'target')"
+        />
+        <FlowHandles
+          type="source"
+          :position="Position.Right"
+          :handles="handlesOf(id, 'source')"
+        />
+      </template>
+
+      <!-- Order node: paper sheet tinted by fulfillment; item detail lives in the tooltip -->
+      <template #node-order="{ id, data }">
+        <div
+          class="node-sheet relative h-full w-full cursor-pointer"
+          :class="[
+            `node-sheet--${((data as OrderNodeData).status ?? 'open').toLowerCase()}`,
+            id === selectedId ? 'node-sheet-selected' : '',
+          ]"
+        >
+          <div class="node-sheet-inner flex h-full flex-col gap-1 px-3 py-2">
+            <div class="flex items-start gap-1.5 pr-3">
+              <div
+                v-if="(data as OrderNodeData).statusLabel"
+                class="min-w-0 flex-1 font-mono text-micro font-medium tracking-wider"
+                :class="{
+                  'text-text-3': (data as OrderNodeData).status === 'Open',
+                  'text-warning': (data as OrderNodeData).status === 'Partial',
+                  'text-accent-text': (data as OrderNodeData).status === 'Fulfilled',
+                }"
+              >
+                {{ (data as OrderNodeData).statusLabel }}
+              </div>
+              <span
+                v-if="(data as OrderNodeData).findings"
+                class="node-findings ml-auto flex shrink-0 items-center gap-1 rounded-full border border-warning/40 bg-warning/15 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
+              >
+                <IconAlertTriangle
+                  :size="10"
+                  :stroke-width="2"
+                />
+                {{ (data as OrderNodeData).findings }}
+              </span>
+            </div>
+            <div class="break-words pr-3 text-body font-medium leading-snug text-text-1">
+              {{ (data as OrderNodeData).label }}
+            </div>
+            <div class="mt-auto flex min-w-0 items-center gap-1.5">
+              <span
+                v-if="(data as OrderNodeData).orderedAt"
+                class="shrink-0 font-mono text-micro tabular-nums text-text-3"
+              >
+                {{ (data as OrderNodeData).orderedAt!.slice(0, 10) }}
+              </span>
+              <div
+                v-if="(data as OrderNodeData).orderItems?.length"
+                class="ml-auto flex min-w-0 items-center justify-end gap-1 overflow-hidden"
+              >
+                <span
+                  v-for="(item, i) in (data as OrderNodeData).orderItems"
+                  :key="i"
+                  class="h-1.5 w-1.5 shrink-0 rounded-full"
+                  :class="item.fulfilled ? 'bg-accent' : 'bg-text-4'"
+                  :title="item.fulfilled ? `${item.label} · fulfilled` : `${item.label} · open`"
+                />
+              </div>
+            </div>
+          </div>
+          <span class="node-sheet-fold" />
+        </div>
+        <FlowHandles
+          type="target"
+          :position="Position.Left"
+          :handles="handlesOf(id, 'target')"
+        />
+        <FlowHandles
+          type="source"
+          :position="Position.Right"
+          :handles="handlesOf(id, 'source')"
+        />
+      </template>
     </VueFlow>
 
     <div
@@ -1036,6 +1162,62 @@ function onNodeClick({ event, node }: NodeMouseEvent) {
   background: color-mix(in srgb, var(--color-bg-1) 68%, var(--color-accent));
 }
 
+/* order nodes: paper sheet with a folded top-right corner, tinted by status */
+.node-sheet {
+  --sheet-edge: var(--color-border-2);
+  --sheet-tint: var(--color-bg-1);
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+  background: var(--sheet-edge);
+  transition: background-color 150ms;
+}
+.node-sheet--partial {
+  --sheet-edge: color-mix(in srgb, var(--color-warning) 60%, var(--color-border-2));
+  --sheet-tint: color-mix(in srgb, var(--color-bg-1) 94%, var(--color-warning));
+}
+.node-sheet--fulfilled {
+  --sheet-edge: color-mix(in srgb, var(--color-accent) 60%, var(--color-border-2));
+  --sheet-tint: color-mix(in srgb, var(--color-bg-1) 94%, var(--color-accent));
+}
+.node-sheet-inner {
+  clip-path: polygon(
+    1.5px 1.5px,
+    calc(100% - 16.7px) 1.5px,
+    calc(100% - 1.5px) 16.7px,
+    calc(100% - 1.5px) calc(100% - 1.5px),
+    1.5px calc(100% - 1.5px)
+  );
+  background: var(--sheet-tint);
+  transition: background-color 150ms;
+}
+.node-sheet:hover .node-sheet-inner {
+  background: color-mix(in srgb, var(--sheet-tint) 92%, var(--color-accent));
+}
+.node-sheet-selected {
+  background: var(--color-accent);
+}
+.node-sheet-selected .node-sheet-inner,
+.node-sheet-selected:hover .node-sheet-inner {
+  background: color-mix(in srgb, var(--sheet-tint) 80%, var(--color-accent));
+}
+.node-sheet-fold {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  clip-path: polygon(0 0, 0 100%, 100% 100%);
+  background: var(--sheet-edge);
+  pointer-events: none;
+  transition: background-color 150ms;
+}
+.node-sheet-selected .node-sheet-fold {
+  background: var(--color-accent);
+}
+.node-sheet-selected .node-findings {
+  background-color: var(--color-bg-1);
+  border-color: var(--color-warning);
+}
+
 /* unmapped instances */
 .node-inst-unmapped {
   border: 1.5px dashed var(--color-text-3);
@@ -1073,7 +1255,8 @@ function onNodeClick({ event, node }: NodeMouseEvent) {
   width: 288px;
   max-width: calc(100% - 16px);
   max-height: calc(100% - 16px);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   animation: flow-fade-in 150ms ease-out;
 }
 @media (prefers-reduced-motion: reduce) {

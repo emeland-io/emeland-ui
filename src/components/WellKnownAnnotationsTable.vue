@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
  * Renders the well-known annotations of a resource as a labelled
- * key/value grid. The set of recognized annotations is the
- * WELL_KNOWN_ANNOTATIONS catalog in `utils/annotations`; extend it there.
+ * key/value grid. The set of recognized annotations is generated from the
+ * modelsrv source of truth, pkg/annotations/well_known.yaml
+ * (npm run annotations:gen); extend it there.
  *
  * Renders nothing when the resource carries none of them.
  *
