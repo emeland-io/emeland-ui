@@ -8,6 +8,8 @@ export const ID_PREFIX = {
   api: 'api:',
   component: 'comp:',
   instance: 'inst:',
+  capability: 'cap:',
+  order: 'ord:',
 } as const
 
 export type IdPrefix = keyof typeof ID_PREFIX

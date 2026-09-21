@@ -35,6 +35,8 @@ const KIND_LABEL: Record<GraphNodeKind, string> = {
   'context-node': 'Context',
   api: 'API',
   component: 'Component',
+  capability: 'Capability',
+  order: 'Order',
 }
 
 // Node data is a partial union, read the optional fields loosely
@@ -55,6 +57,18 @@ const data = computed(
       description?: string
       unmapped?: boolean
       unresolved?: boolean
+      lifecycle?: string
+      status?: string
+      statusLabel?: string
+      orderedAt?: string
+      items?: number
+      orders?: number
+      orderItems?: {
+        label: string
+        fulfilled: boolean
+        description?: string
+        version?: string
+      }[]
     },
 )
 
@@ -71,6 +85,7 @@ const parentType = computed<ResourceType | undefined>(() => {
     case 'system':
     case 'context':
     case 'context-node':
+    case 'order':
       return 'System'
     default:
       return undefined
@@ -89,8 +104,22 @@ const facts = computed(() => {
   if (d.systemInstance) rows.push(d.systemInstance)
   if (d.context) rows.push(d.context)
   if (d.version) rows.push(`v${d.version}`)
+  if (d.lifecycle && d.lifecycle !== 'available') rows.push(d.lifecycle)
+  if (props.node.kind === 'order') {
+    if (d.statusLabel) rows.push(d.statusLabel)
+    else if (d.status) rows.push(d.status)
+  } else if (d.status) {
+    rows.push(d.status)
+  }
+  if (d.items && props.node.kind !== 'order') rows.push(pluralize(d.items, 'item'))
+  if (d.orders) rows.push(pluralize(d.orders, 'order'))
+  if (d.orderedAt) rows.push(d.orderedAt.slice(0, 10))
   return rows
 })
+
+const orderItems = computed(() =>
+  props.node.kind === 'order' ? (data.value.orderItems ?? []) : [],
+)
 
 const findings = computed(() => data.value.findings ?? 0)
 const findingKindRows = computed(() => (data.value.findingKinds ?? []).slice(0, MAX_FINDING_KINDS))
@@ -149,6 +178,45 @@ const showStats = computed(() => stats.value !== '')
       class="mt-1.5 break-words text-micro leading-snug text-text-2"
     >
       {{ description }}
+    </div>
+    <div
+      v-if="orderItems.length"
+      class="mt-1.5 border-t border-border-1 pt-1.5"
+    >
+      <div class="pb-0.5 text-micro font-medium uppercase tracking-wider text-text-4">Items</div>
+      <div
+        v-for="(item, i) in orderItems"
+        :key="i"
+        class="py-0.5 text-micro"
+      >
+        <div class="flex items-center gap-1.5">
+          <span
+            class="h-1.5 w-1.5 shrink-0 rounded-full"
+            :class="item.fulfilled ? 'bg-accent' : 'bg-text-4'"
+          />
+          <span class="min-w-0 flex-1 truncate text-text-1">
+            {{ item.label }}
+            <span
+              v-if="item.version"
+              class="font-mono text-text-3"
+            >
+              · v{{ item.version }}
+            </span>
+          </span>
+          <span
+            class="shrink-0 rounded px-1 py-px font-mono text-micro font-medium"
+            :class="item.fulfilled ? 'bg-accent/10 text-accent-text' : 'bg-bg-2 text-text-2'"
+          >
+            {{ item.fulfilled ? 'fulfilled' : 'open' }}
+          </span>
+        </div>
+        <div
+          v-if="item.description"
+          class="mt-0.5 break-words pl-3 leading-snug text-text-3"
+        >
+          {{ item.description }}
+        </div>
+      </div>
     </div>
     <div
       v-if="data.crosses"

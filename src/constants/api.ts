@@ -46,6 +46,9 @@ export const API = {
 
   // Phase 3 — Capabilities
   PRODUCTS: resource('/products'),
+  CAPABILITIES: resource('/capabilities'),
+  ORDERS: resource('/orders'),
+  PARAMETERS: resource('/parameters'),
 
   // Phase 5 — Risk (Findings)
   FINDINGS: resource('/findings'),

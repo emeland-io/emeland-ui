@@ -54,8 +54,9 @@ const RESOURCES: Record<ResourceType, ResourceMeta> = {
   Permission: { label: 'Permission', route: null, chip: 'PE' },
 
   // Phase 3
-  Capability: { label: 'Capability', route: null, chip: 'CP' },
+  Capability: { label: 'Capability', route: 'Capabilities', chip: 'CP' },
   Parameter: { label: 'Parameter', route: null, chip: 'PA' },
+  Order: { label: 'Order', route: 'Orders', chip: 'OR' },
 
   // Phase 5
   Finding: { label: 'Finding', route: 'Findings', chip: 'F' },

@@ -5,6 +5,7 @@ import { IconChevronDown } from '@tabler/icons-vue'
 export interface FilterChipItem {
   id: string
   name: string
+  title?: string
 }
 
 const props = withDefaults(
@@ -82,6 +83,7 @@ const openMenuOwner = vueRef<symbol | null>(null)
       :class="
         active.has(item.id) ? activeClass : 'bg-bg-0 text-text-3 hover:bg-bg-1 hover:text-text-1'
       "
+      :title="item.title ?? item.name"
       @click="emit('toggle', item.id)"
     >
       {{ item.name }}
@@ -119,13 +121,14 @@ const openMenuOwner = vueRef<symbol | null>(null)
           :key="item.id"
           class="flex w-full items-center gap-2 px-3 py-1.5 font-mono text-meta transition-colors"
           :class="active.has(item.id) ? activeClass : 'text-text-3 hover:bg-bg-2'"
+          :title="item.title ?? item.name"
           @click="emit('toggle', item.id)"
         >
           <span
             class="h-1.5 w-1.5 shrink-0 rounded-full"
             :class="active.has(item.id) ? dotClass : ''"
           />
-          {{ item.name }}
+          {{ item.title ?? item.name }}
         </button>
       </div>
     </div>

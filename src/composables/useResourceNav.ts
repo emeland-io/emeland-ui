@@ -4,16 +4,21 @@ import { routeForResource } from '@/constants/resources'
 import type { ResourceType } from '@/types/common'
 
 export function useResourceNav() {
+  const route = useRoute()
   const router = useRouter()
+
+  function queryFor(name: string, resourceId: string) {
+    return route.name === name ? { ...route.query, select: resourceId } : { select: resourceId }
+  }
 
   function goToResource(resourceType: ResourceType, resourceId: string) {
     const name = routeForResource(resourceType)
     if (!name) return
-    router.push({ name, query: { select: resourceId } })
+    router.push({ name, query: queryFor(name, resourceId) })
   }
 
   function goToFinding(findingId: string) {
-    router.push({ name: 'Findings', query: { select: findingId } })
+    router.push({ name: 'Findings', query: queryFor('Findings', findingId) })
   }
 
   return { goToResource, goToFinding }

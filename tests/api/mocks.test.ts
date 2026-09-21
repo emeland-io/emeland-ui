@@ -6,6 +6,7 @@ vi.mock('@/api/fetch', () => ({
 }))
 
 import { fetchApis, fetchApiById, fetchApiInstances } from '@/api/apis'
+import { fetchCapabilityById } from '@/api/capabilities'
 import { fetchComponents, fetchComponentById, fetchComponentInstances } from '@/api/components'
 import { fetchContexts, fetchContextById, fetchContextTypes } from '@/api/contexts'
 import { fetchFindings, fetchFindingById, fetchFindingTypes } from '@/api/findings'
@@ -34,6 +35,11 @@ describe('bundled mocks (validated on the mock path too)', () => {
       const items = await fetchAll()
       expect(items.length, name).toBeGreaterThan(0)
     }
+  })
+
+  it('keeps the frontend-first capability description through schema validation', async () => {
+    const mail = await fetchCapabilityById('c1a2b3c4-0001-4a3b-8c1d-000000000001')
+    expect(mail.description).toBe('Hosted mailboxes with SMTP and IMAP access')
   })
 
   it('decodes annotations from the wire entry-list form', async () => {

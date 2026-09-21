@@ -2,10 +2,10 @@
 // spec:        EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml (v0.1.0)
 // source:      https://raw.githubusercontent.com/emeland-io/modelsrv/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
 // spec page:   https://github.com/emeland-io/modelsrv/blob/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
-// blob sha:    a91cfd5ed3e0b3163a5338183b7444e834edc253
-// spec commit: 0bad63d54b48152d9ea99ca7cc62aea16a82c5e6 (2026-08-25T14:18:36Z)
-//              Add Metric, Threshold, and MetricValue as first-class landscape resources.
-// commit url:  https://github.com/emeland-io/modelsrv/commit/0bad63d54b48152d9ea99ca7cc62aea16a82c5e6
+// blob sha:    dc524cb15d7c7a3f02bc66eb1ae0e2145269963e
+// spec commit: 53d20dd75190bf0926e67579532d8e53547c55ee (2026-09-14T22:52:12Z)
+//              Add MetricInstance observability resource and reference it from MetricValue and Threshold
+// commit url:  https://github.com/emeland-io/modelsrv/commit/53d20dd75190bf0926e67579532d8e53547c55ee
 // regenerate:  npm run api:gen
 
 export type ClientOptions = {
@@ -88,6 +88,7 @@ export type ResourceView = {
     | 'CapacityResourceType'
     | 'Metric'
     | 'Threshold'
+    | 'MetricInstance'
     | 'MetricValue'
   /**
    * The human-readable name of the resource referenced.
@@ -245,6 +246,7 @@ export type ResourceRef = {
     | 'CapacityResourceType'
     | 'Metric'
     | 'Threshold'
+    | 'MetricInstance'
     | 'MetricValue'
   /**
    * A URI reference to the resource.
@@ -975,26 +977,46 @@ export type Metric = {
 }
 
 /**
- * Condition of arbitrary complexity attached to a Metric. The condition itself lives in annotations (emeland.io/threshold.expression), not as schema fields.
+ * Condition of arbitrary complexity attached to a MetricInstance. The condition itself lives in annotations (emeland.io/threshold.expression), not as schema fields.
  *
  */
 export type Threshold = {
   thresholdId: string
   displayName: string
   description?: string
-  metricRef: MetricRef
+  metricInstanceRef: MetricInstanceRef
   annotations?: Array<Annotation>
 }
 
 /**
- * Current reading of a Metric. The value field is the current value only, not a timeline.
+ * Reference to a MetricInstance.
+ */
+export type MetricInstanceRef = {
+  metricInstanceId: string
+}
+
+/**
+ * A concrete instantiation of a Metric bound to an optional subject (the resource the metric is measured for). MetricInstances are not time series; they name the measured thing, while MetricValue carries the current reading.
+ *
+ */
+export type MetricInstance = {
+  metricInstanceId: string
+  displayName: string
+  description?: string
+  metricRef?: MetricRef
+  subject?: ResourceRef
+  annotations?: Array<Annotation>
+}
+
+/**
+ * Current reading of a MetricInstance. The value field is the current value only, not a timeline.
  *
  */
 export type MetricValue = {
   metricValueId: string
   displayName: string
   description?: string
-  metricRef: MetricRef
+  metricInstanceRef: MetricInstanceRef
   /**
    * Current value of the metric (unvalidated string).
    */
@@ -1578,6 +1600,52 @@ export type GetLandscapeThresholdsByThresholdIdResponses = {
 
 export type GetLandscapeThresholdsByThresholdIdResponse =
   GetLandscapeThresholdsByThresholdIdResponses[keyof GetLandscapeThresholdsByThresholdIdResponses]
+
+export type GetLandscapeMetricInstancesData = {
+  body?: never
+  path?: never
+  query?: never
+  url: '/landscape/metricInstances'
+}
+
+export type GetLandscapeMetricInstancesResponses = {
+  /**
+   * OK
+   */
+  200: InstanceList
+}
+
+export type GetLandscapeMetricInstancesResponse =
+  GetLandscapeMetricInstancesResponses[keyof GetLandscapeMetricInstancesResponses]
+
+export type GetLandscapeMetricInstancesByMetricInstanceIdData = {
+  body?: never
+  path: {
+    metricInstanceId: string
+  }
+  query?: never
+  url: '/landscape/metricInstances/{metricInstanceId}'
+}
+
+export type GetLandscapeMetricInstancesByMetricInstanceIdErrors = {
+  /**
+   * Not Found
+   */
+  404: ErrorString
+}
+
+export type GetLandscapeMetricInstancesByMetricInstanceIdError =
+  GetLandscapeMetricInstancesByMetricInstanceIdErrors[keyof GetLandscapeMetricInstancesByMetricInstanceIdErrors]
+
+export type GetLandscapeMetricInstancesByMetricInstanceIdResponses = {
+  /**
+   * OK
+   */
+  200: MetricInstance
+}
+
+export type GetLandscapeMetricInstancesByMetricInstanceIdResponse =
+  GetLandscapeMetricInstancesByMetricInstanceIdResponses[keyof GetLandscapeMetricInstancesByMetricInstanceIdResponses]
 
 export type GetLandscapeMetricValuesData = {
   body?: never

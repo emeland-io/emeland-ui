@@ -60,8 +60,12 @@ const routes = [
   },
 
   // Capabilities P3
-  { path: '/features', name: 'Features', component: () => import('@/views/PlaceholderView.vue') },
-  { path: '/orders', name: 'Orders', component: () => import('@/views/PlaceholderView.vue') },
+  {
+    path: '/capabilities',
+    name: 'Capabilities',
+    component: () => import('@/views/CapabilitiesView.vue'),
+  },
+  { path: '/orders', name: 'Orders', component: () => import('@/views/OrdersView.vue') },
 
   // Observability P6
   { path: '/metrics', name: 'Metrics', component: () => import('@/views/PlaceholderView.vue') },

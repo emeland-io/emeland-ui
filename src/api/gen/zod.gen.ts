@@ -2,10 +2,10 @@
 // spec:        EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml (v0.1.0)
 // source:      https://raw.githubusercontent.com/emeland-io/modelsrv/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
 // spec page:   https://github.com/emeland-io/modelsrv/blob/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
-// blob sha:    a91cfd5ed3e0b3163a5338183b7444e834edc253
-// spec commit: 0bad63d54b48152d9ea99ca7cc62aea16a82c5e6 (2026-08-25T14:18:36Z)
-//              Add Metric, Threshold, and MetricValue as first-class landscape resources.
-// commit url:  https://github.com/emeland-io/modelsrv/commit/0bad63d54b48152d9ea99ca7cc62aea16a82c5e6
+// blob sha:    dc524cb15d7c7a3f02bc66eb1ae0e2145269963e
+// spec commit: 53d20dd75190bf0926e67579532d8e53547c55ee (2026-09-14T22:52:12Z)
+//              Add MetricInstance observability resource and reference it from MetricValue and Threshold
+// commit url:  https://github.com/emeland-io/modelsrv/commit/53d20dd75190bf0926e67579532d8e53547c55ee
 // regenerate:  npm run api:gen
 
 import * as z from 'zod'
@@ -56,6 +56,7 @@ export const zResourceView = z.object({
     'CapacityResourceType',
     'Metric',
     'Threshold',
+    'MetricInstance',
     'MetricValue',
   ]),
   displayName: z.string().optional(),
@@ -113,6 +114,7 @@ export const zResourceRef = z.object({
     'CapacityResourceType',
     'Metric',
     'Threshold',
+    'MetricInstance',
     'MetricValue',
   ]),
   reference: z.string().optional(),
@@ -552,26 +554,46 @@ export const zMetric = z.object({
 })
 
 /**
- * Condition of arbitrary complexity attached to a Metric. The condition itself lives in annotations (emeland.io/threshold.expression), not as schema fields.
+ * Reference to a MetricInstance.
+ */
+export const zMetricInstanceRef = z.object({
+  metricInstanceId: z.string().min(1),
+})
+
+/**
+ * Condition of arbitrary complexity attached to a MetricInstance. The condition itself lives in annotations (emeland.io/threshold.expression), not as schema fields.
  *
  */
 export const zThreshold = z.object({
   thresholdId: z.string().min(1),
   displayName: z.string(),
   description: z.string().optional(),
-  metricRef: zMetricRef,
+  metricInstanceRef: zMetricInstanceRef,
   annotations: z.array(zAnnotation).optional(),
 })
 
 /**
- * Current reading of a Metric. The value field is the current value only, not a timeline.
+ * A concrete instantiation of a Metric bound to an optional subject (the resource the metric is measured for). MetricInstances are not time series; they name the measured thing, while MetricValue carries the current reading.
+ *
+ */
+export const zMetricInstance = z.object({
+  metricInstanceId: z.string().min(1),
+  displayName: z.string(),
+  description: z.string().optional(),
+  metricRef: zMetricRef.optional(),
+  subject: zResourceRef.optional(),
+  annotations: z.array(zAnnotation).optional(),
+})
+
+/**
+ * Current reading of a MetricInstance. The value field is the current value only, not a timeline.
  *
  */
 export const zMetricValue = z.object({
   metricValueId: z.string().min(1),
   displayName: z.string(),
   description: z.string().optional(),
-  metricRef: zMetricRef,
+  metricInstanceRef: zMetricInstanceRef,
   value: z.string(),
   annotations: z.array(zAnnotation).optional(),
 })
@@ -753,6 +775,20 @@ export const zGetLandscapeThresholdsByThresholdIdPath = z.object({
  * OK
  */
 export const zGetLandscapeThresholdsByThresholdIdResponse = zThreshold
+
+/**
+ * OK
+ */
+export const zGetLandscapeMetricInstancesResponse = zInstanceList
+
+export const zGetLandscapeMetricInstancesByMetricInstanceIdPath = z.object({
+  metricInstanceId: z.string().min(1),
+})
+
+/**
+ * OK
+ */
+export const zGetLandscapeMetricInstancesByMetricInstanceIdResponse = zMetricInstance
 
 /**
  * OK
