@@ -8,6 +8,7 @@ import {
   IconSun,
   IconMoon,
   IconKeyboard,
+  IconFileCode,
 } from '@tabler/icons-vue'
 import { clearToken, authenticated } from '@/auth'
 import { useTheme, type ThemeMode } from '@/composables/useTheme'
@@ -60,25 +61,6 @@ function logout() {
     <ModelBadge />
 
     <div class="flex-1" />
-    <!-- Theme switcher (segmented) -->
-    <div class="flex items-center gap-0.5 rounded-md border border-border-1 bg-bg-0 p-0.5">
-      <button
-        v-for="m in THEME_MODES"
-        :key="m.value"
-        class="flex h-6 w-6 items-center justify-center rounded transition-colors"
-        :class="theme === m.value ? 'bg-bg-3 text-text-1' : 'text-text-4 hover:text-text-2'"
-        :title="m.label"
-        :aria-label="m.label"
-        :aria-pressed="theme === m.value"
-        @click="setTheme(m.value)"
-      >
-        <component
-          :is="m.icon"
-          :size="13"
-          :stroke-width="1.75"
-        />
-      </button>
-    </div>
 
     <!-- Keyboard shortcuts -->
     <button
@@ -92,6 +74,19 @@ function logout() {
         :stroke-width="1.5"
       />
     </button>
+
+    <!-- YAML configuration editor -->
+    <RouterLink
+      :to="{ name: 'YamlEditor' }"
+      class="flex h-7 w-7 items-center justify-center rounded text-text-3 transition-colors hover:bg-bg-3 hover:text-text-2"
+      title="YAML editor"
+      aria-label="YAML editor"
+    >
+      <IconFileCode
+        :size="15"
+        :stroke-width="1.5"
+      />
+    </RouterLink>
 
     <!-- Settings -->
     <RouterLink
@@ -134,5 +129,25 @@ function logout() {
         :stroke-width="1.5"
       />
     </button>
+
+    <!-- Theme switcher (segmented) -->
+    <div class="flex items-center gap-0.5 rounded-md border border-border-1 bg-bg-0 p-0.5">
+      <button
+        v-for="m in THEME_MODES"
+        :key="m.value"
+        class="flex h-6 w-6 items-center justify-center rounded transition-colors"
+        :class="theme === m.value ? 'bg-bg-3 text-text-1' : 'text-text-4 hover:text-text-2'"
+        :title="m.label"
+        :aria-label="m.label"
+        :aria-pressed="theme === m.value"
+        @click="setTheme(m.value)"
+      >
+        <component
+          :is="m.icon"
+          :size="13"
+          :stroke-width="1.75"
+        />
+      </button>
+    </div>
   </header>
 </template>

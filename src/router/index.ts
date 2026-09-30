@@ -20,6 +20,13 @@ const routes = [
     ],
   },
 
+  // YAML configuration editor (ingress documents for modelsrv / emelandctl)
+  {
+    path: '/editor',
+    name: 'YamlEditor',
+    component: () => import('@/views/YamlEditorView.vue'),
+  },
+
   // Model
   { path: '/model', name: 'Model', component: () => import('@/views/ModelView.vue') },
 
