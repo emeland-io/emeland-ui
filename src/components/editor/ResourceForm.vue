@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { FieldDef, ResourceTypeDef } from '@/editor/kinds'
+import { fieldValidationRule } from '@/editor/kinds'
 import SectionLabel from '@/components/SectionLabel.vue'
 import AnnotationMapEditor from '@/components/editor/AnnotationMapEditor.vue'
 import BundleRefInput, { type BundleRefOption } from '@/components/editor/BundleRefInput.vue'
+import EditorSelect from '@/components/editor/EditorSelect.vue'
 
 const props = defineProps<{
   resourceTypeDef: ResourceTypeDef
@@ -54,22 +56,23 @@ function asAnnotations(key: string): Record<string, string> {
 function errorFor(field: FieldDef): string | undefined {
   const errors = props.fieldErrors
   if (!errors) return undefined
+  // Annotation rows render their own key-specific errors
+  if (field.type === 'annotations') return undefined
   const direct = errors[field.key] ?? errors[`spec.${field.key}`]
   if (direct) return direct
-  if (field.type === 'annotations') {
-    const hit = Object.entries(errors).find(
-      ([k]) =>
-        k === 'annotations' ||
-        k.startsWith('annotations.') ||
-        k.startsWith('spec.annotations'),
-    )
-    return hit?.[1]
-  }
-  return undefined
+  // Nested Zod paths (e.g. metricRef.metricId) → show on parent field
+  const nested = Object.entries(errors).find(
+    ([k]) => k.startsWith(`${field.key}.`) || k.startsWith(`spec.${field.key}.`),
+  )
+  return nested?.[1]
 }
 
 function isRefUuid(field: FieldDef): boolean {
   return field.type === 'uuid' && !!field.refType
+}
+
+function ruleFor(field: FieldDef): string {
+  return fieldValidationRule(field)
 }
 </script>
 
@@ -134,6 +137,7 @@ function isRefUuid(field: FieldDef): boolean {
         class="h-8 w-full rounded border bg-bg-0 px-2 font-mono text-data text-text-1 focus:outline-none"
         :class="errorFor(field) ? 'border-error/50' : 'border-border-1 focus:border-border-2'"
         :value="asString(field.key)"
+        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
         spellcheck="false"
         @input="setField(field.key, ($event.target as HTMLInputElement).value)"
       />
@@ -164,22 +168,14 @@ function isRefUuid(field: FieldDef): boolean {
       </label>
 
       <!-- Enum -->
-      <select
+      <EditorSelect
         v-else-if="field.type === 'enum'"
-        :id="`field-${field.key}`"
-        class="h-8 rounded border bg-bg-0 px-2 text-body text-text-1 focus:outline-none"
-        :class="errorFor(field) ? 'border-error/50' : 'border-border-1 focus:border-border-2'"
-        :value="asString(field.key)"
-        @change="setField(field.key, ($event.target as HTMLSelectElement).value)"
-      >
-        <option
-          v-for="opt in field.enumValues"
-          :key="opt"
-          :value="opt"
-        >
-          {{ opt }}
-        </option>
-      </select>
+        :input-id="`field-${field.key}`"
+        :model-value="asString(field.key)"
+        :options="field.enumValues ?? []"
+        :invalid="!!errorFor(field)"
+        @update:model-value="setField(field.key, $event)"
+      />
 
       <!-- String list (comma-separated) -->
       <input
@@ -188,7 +184,7 @@ function isRefUuid(field: FieldDef): boolean {
         class="h-8 rounded border bg-bg-0 px-2 font-mono text-data text-text-1 focus:outline-none"
         :class="errorFor(field) ? 'border-error/50' : 'border-border-1 focus:border-border-2'"
         :value="asStringList(field.key)"
-        placeholder="uuid-1, uuid-2"
+        :placeholder="field.refType ? 'uuid-1, uuid-2' : 'value-1, value-2'"
         spellcheck="false"
         @input="setStringList(field.key, ($event.target as HTMLInputElement).value)"
       />
@@ -199,6 +195,7 @@ function isRefUuid(field: FieldDef): boolean {
         <AnnotationMapEditor
           :model-value="asAnnotations(field.key)"
           :resource-type="resourceTypeDef.resourceType"
+          :field-errors="fieldErrors"
           @update:model-value="setField(field.key, $event)"
         />
       </div>
@@ -208,6 +205,12 @@ function isRefUuid(field: FieldDef): boolean {
         class="text-meta text-error"
       >
         {{ errorFor(field) }}
+      </p>
+      <p
+        v-else
+        class="text-meta text-text-4"
+      >
+        {{ ruleFor(field) }}
       </p>
     </div>
   </div>

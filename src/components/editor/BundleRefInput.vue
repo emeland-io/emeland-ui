@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
+import { IconChevronDown } from '@tabler/icons-vue'
 import { RESOURCE_TYPE_BY_NAME } from '@/editor/kinds'
+import EditorDropdownPanel from '@/components/editor/EditorDropdownPanel.vue'
+import EditorDropdownOption from '@/components/editor/EditorDropdownOption.vue'
 
 export interface BundleRefOption {
   id: string
@@ -28,17 +31,20 @@ const inputEl = ref<HTMLInputElement | null>(null)
 const MENU_MAX_HEIGHT = 224
 const MENU_GAP = 4
 
+const typed = computed(() => props.options.filter((o) => o.resourceType === props.refType))
+
 const filtered = computed(() => {
   const q = props.modelValue.trim().toLowerCase()
-  const list = props.options.filter((o) => o.resourceType === props.refType)
-  if (!q) return list
-  return list.filter(
+  if (!q) return typed.value
+  return typed.value.filter(
     (o) =>
       o.id.toLowerCase().includes(q) ||
       o.label.toLowerCase().includes(q) ||
       o.resourceType.toLowerCase().includes(q),
   )
 })
+
+const hasTypedOptions = computed(() => typed.value.length > 0)
 
 function setOpen(next: boolean) {
   if (!next) {
@@ -67,11 +73,11 @@ function pick(opt: BundleRefOption) {
 
 function onInput(e: Event) {
   emit('update:modelValue', (e.target as HTMLInputElement).value)
-  setOpen(true)
+  if (hasTypedOptions.value) setOpen(true)
 }
 
 function onFocus() {
-  if (props.options.some((o) => o.resourceType === props.refType)) setOpen(true)
+  if (hasTypedOptions.value) setOpen(true)
 }
 
 function onBlur() {
@@ -82,7 +88,7 @@ function onKeyDown(e: KeyboardEvent) {
   const list = filtered.value
   if (e.key === 'ArrowDown') {
     e.preventDefault()
-    setOpen(true)
+    if (hasTypedOptions.value) setOpen(true)
     highlight.value = Math.min(highlight.value + 1, Math.max(list.length - 1, 0))
     return
   }
@@ -101,52 +107,67 @@ function onKeyDown(e: KeyboardEvent) {
 
 onBeforeUnmount(() => setOpen(false))
 
-const resourceTypeLabel = computed(() => RESOURCE_TYPE_BY_NAME[props.refType]?.label ?? props.refType)
+const resourceTypeLabel = computed(
+  () => RESOURCE_TYPE_BY_NAME[props.refType]?.label ?? props.refType,
+)
 </script>
 
 <template>
   <div class="relative w-full">
-    <input
-      :id="inputId"
-      ref="inputEl"
-      class="h-8 w-full rounded border bg-bg-0 px-2 font-mono text-data text-text-1 placeholder:text-text-4 focus:outline-none"
-      :class="invalid ? 'border-error/50' : 'border-border-1 focus:border-border-2'"
-      :value="modelValue"
-      :placeholder="`UUID or pick ${resourceTypeLabel} from bundle`"
-      spellcheck="false"
-      autocomplete="off"
-      role="combobox"
-      :aria-expanded="open"
-      aria-autocomplete="list"
-      @input="onInput"
-      @focus="onFocus"
-      @blur="onBlur"
-      @keydown="onKeyDown"
-    />
+    <div class="relative">
+      <input
+        :id="inputId"
+        ref="inputEl"
+        class="h-8 w-full rounded border bg-bg-0 py-0 pl-2 pr-8 font-mono text-data text-text-1 placeholder:text-text-4 focus:outline-none"
+        :class="invalid ? 'border-error/50' : 'border-border-1 focus:border-border-2'"
+        :value="modelValue"
+        :placeholder="`UUID or pick ${resourceTypeLabel} from bundle`"
+        spellcheck="false"
+        autocomplete="off"
+        role="combobox"
+        :aria-expanded="open"
+        aria-autocomplete="list"
+        @input="onInput"
+        @focus="onFocus"
+        @blur="onBlur"
+        @keydown="onKeyDown"
+      />
+      <IconChevronDown
+        v-if="hasTypedOptions"
+        :size="14"
+        :stroke-width="1.75"
+        class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-4 transition-transform"
+        :class="open ? 'rotate-180' : ''"
+      />
+    </div>
 
-    <ul
-      v-if="open && filtered.length"
-      class="absolute left-0 z-20 max-h-56 w-full overflow-y-auto rounded border border-border-1 bg-bg-1 py-1 shadow-lg"
-      :class="openUp ? 'bottom-full mb-1' : 'top-full mt-1'"
-      role="listbox"
+    <EditorDropdownPanel
+      :open="open && hasTypedOptions"
+      :open-up="openUp"
+      size="match"
+      :show-empty="filtered.length === 0"
+      empty-text="No matching bundle documents"
     >
       <li
+        class="mx-1 mb-0.5 border-b border-border-1 px-2 pb-1.5 pt-1 text-micro font-semibold uppercase tracking-widest text-text-4"
+        role="presentation"
+      >
+        From bundle
+      </li>
+      <EditorDropdownOption
         v-for="(opt, si) in filtered"
         :key="opt.id"
-        role="option"
-        class="cursor-pointer px-2.5 py-1.5"
-        :class="si === highlight ? 'bg-bg-2' : 'hover:bg-bg-2'"
-        :aria-selected="si === highlight"
-        @mousedown.prevent="pick(opt)"
-        @mouseenter="highlight = si"
+        :active="si === highlight"
+        @select="pick(opt)"
+        @hover="highlight = si"
       >
-        <div class="truncate text-meta font-medium text-text-1">
+        <div class="truncate text-meta font-medium">
           {{ opt.label }}
         </div>
-        <div class="truncate font-mono text-micro text-text-3">
+        <div class="truncate font-mono text-micro opacity-70">
           {{ opt.id }}
         </div>
-      </li>
-    </ul>
+      </EditorDropdownOption>
+    </EditorDropdownPanel>
   </div>
 </template>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import { IconPlus, IconTrash } from '@tabler/icons-vue'
+import { IconChevronDown, IconPlus, IconTrash } from '@tabler/icons-vue'
 import { WELL_KNOWN_ANNOTATIONS, type WellKnownAnnotation } from '@/utils/annotations'
+import EditorDropdownPanel from '@/components/editor/EditorDropdownPanel.vue'
+import EditorDropdownOption from '@/components/editor/EditorDropdownOption.vue'
 
 interface Row {
   key: string
@@ -11,6 +13,7 @@ interface Row {
 const props = defineProps<{
   modelValue: Record<string, string>
   resourceType?: string
+  fieldErrors?: Record<string, string>
 }>()
 
 const emit = defineEmits<{
@@ -60,7 +63,7 @@ function suggestionsFor(index: number): WellKnownAnnotation[] {
       def.label.toLowerCase().includes(q) ||
       def.purpose.toLowerCase().includes(q)
     )
-  }).slice(0, 8)
+  })
 }
 
 const openSuggestions = computed(() =>
@@ -178,6 +181,14 @@ function removeRow(index: number) {
   commit()
 }
 
+function annotationError(row: Row): string | undefined {
+  const errors = props.fieldErrors
+  if (!errors) return undefined
+  const key = row.key.trim()
+  if (!key) return undefined
+  return errors[`annotations.${key}`] ?? errors[`spec.annotations.${key}`]
+}
+
 onBeforeUnmount(() => closeMenu())
 </script>
 
@@ -186,72 +197,98 @@ onBeforeUnmount(() => closeMenu())
     <div
       v-for="(row, index) in rows"
       :key="index"
-      class="flex items-start gap-2"
+      class="flex flex-col gap-1"
     >
-      <div class="relative min-w-0 flex-1">
-        <input
-          :ref="(el) => (keyInputEls[index] = el as HTMLInputElement | null)"
-          v-model="row.key"
-          class="h-8 w-full rounded border border-border-1 bg-bg-0 px-2 font-mono text-data text-text-1 placeholder:text-text-4 focus:border-border-2 focus:outline-none"
-          placeholder="annotation key"
-          spellcheck="false"
-          autocomplete="off"
-          role="combobox"
-          :aria-expanded="openIndex === index"
-          aria-autocomplete="list"
-          @input="onKeyInput(index)"
-          @focus="onKeyFocus(index)"
-          @blur="onKeyBlur(index)"
-          @keydown="onKeyDown(index, $event)"
-        />
+      <div class="flex items-start gap-2">
+        <div class="relative min-w-0 flex-1">
+          <div class="relative">
+            <input
+              :ref="(el) => (keyInputEls[index] = el as HTMLInputElement | null)"
+              v-model="row.key"
+              class="h-8 w-full rounded border bg-bg-0 py-0 pl-2 pr-8 font-mono text-data text-text-1 placeholder:text-text-4 focus:outline-none"
+              :class="
+                annotationError(row) ? 'border-error/50' : 'border-border-1 focus:border-border-2'
+              "
+              placeholder="annotation key"
+              spellcheck="false"
+              autocomplete="off"
+              role="combobox"
+              :aria-expanded="openIndex === index"
+              aria-autocomplete="list"
+              @input="onKeyInput(index)"
+              @focus="onKeyFocus(index)"
+              @blur="onKeyBlur(index)"
+              @keydown="onKeyDown(index, $event)"
+            />
+            <IconChevronDown
+              :size="14"
+              :stroke-width="1.75"
+              class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-4 transition-transform"
+              :class="openIndex === index ? 'rotate-180' : ''"
+            />
+          </div>
 
-        <ul
-          v-if="openIndex === index && openSuggestions.length"
-          class="absolute left-0 z-20 max-h-56 w-[min(100%,22rem)] overflow-y-auto rounded border border-border-1 bg-bg-1 py-1 shadow-lg"
-          :class="openUp ? 'bottom-full mb-1' : 'top-full mt-1'"
-          role="listbox"
-        >
-          <li
-            v-for="(def, si) in openSuggestions"
-            :key="def.key"
-            role="option"
-            class="cursor-pointer px-2.5 py-1.5"
-            :class="si === highlight ? 'bg-bg-2' : 'hover:bg-bg-2'"
-            :aria-selected="si === highlight"
-            @mousedown.prevent="pickSuggestion(index, def)"
-            @mouseenter="highlight = si"
+          <EditorDropdownPanel
+            :open="openIndex === index"
+            :open-up="openUp"
+            size="wide"
+            :show-empty="openSuggestions.length === 0"
+            empty-text="No matching annotation keys"
           >
-            <div class="truncate font-mono text-meta text-text-1">
-              {{ def.key }}
-            </div>
-            <div class="truncate text-micro text-text-3">
-              {{ def.label }}
-              <span class="text-text-4">· {{ def.purpose }}</span>
-            </div>
-          </li>
-        </ul>
-      </div>
+            <li
+              class="mx-1 mb-0.5 border-b border-border-1 px-2 pb-1.5 pt-1 text-micro font-semibold uppercase tracking-widest text-text-4"
+              role="presentation"
+            >
+              Suggested keys
+            </li>
+            <EditorDropdownOption
+              v-for="(def, si) in openSuggestions"
+              :key="def.key"
+              :active="si === highlight"
+              @select="pickSuggestion(index, def)"
+              @hover="highlight = si"
+            >
+              <div class="truncate font-mono text-meta">
+                {{ def.key }}
+              </div>
+              <div class="truncate text-micro opacity-70">
+                {{ def.label }}
+                <span class="text-text-4">· {{ def.purpose }}</span>
+              </div>
+            </EditorDropdownOption>
+          </EditorDropdownPanel>
+        </div>
 
-      <input
-        v-model="row.value"
-        class="h-8 min-w-0 flex-[1.4] rounded border border-border-1 bg-bg-0 px-2 font-mono text-data text-text-1 placeholder:text-text-4 focus:border-border-2 focus:outline-none"
-        placeholder="value"
-        spellcheck="false"
-        @change="commit"
-        @blur="commit"
-      />
-      <button
-        type="button"
-        class="mt-0 flex h-8 w-8 shrink-0 items-center justify-center rounded text-text-4 transition-colors hover:bg-bg-2 hover:text-text-2"
-        title="Remove annotation"
-        aria-label="Remove annotation"
-        @click="removeRow(index)"
-      >
-        <IconTrash
-          :size="14"
-          :stroke-width="1.5"
+        <input
+          v-model="row.value"
+          class="h-8 min-w-0 flex-[1.4] rounded border bg-bg-0 px-2 font-mono text-data text-text-1 placeholder:text-text-4 focus:outline-none"
+          :class="
+            annotationError(row) ? 'border-error/50' : 'border-border-1 focus:border-border-2'
+          "
+          placeholder="value"
+          spellcheck="false"
+          @change="commit"
+          @blur="commit"
         />
-      </button>
+        <button
+          type="button"
+          class="mt-0 flex h-8 w-8 shrink-0 items-center justify-center rounded text-text-4 transition-colors hover:bg-bg-2 hover:text-text-2"
+          title="Remove annotation"
+          aria-label="Remove annotation"
+          @click="removeRow(index)"
+        >
+          <IconTrash
+            :size="14"
+            :stroke-width="1.5"
+          />
+        </button>
+      </div>
+      <p
+        v-if="annotationError(row)"
+        class="text-meta text-error"
+      >
+        {{ annotationError(row) }}
+      </p>
     </div>
     <button
       type="button"
