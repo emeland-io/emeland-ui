@@ -59,6 +59,14 @@ const CREATE_BY_KIND: Record<string, CreateMapping> = {
     use: 'node-type',
     flags: [{ flag: 'desc', specKey: 'description' }],
   },
+  Finding: {
+    use: 'finding',
+    flags: [{ flag: 'desc', specKey: 'description' }],
+  },
+  FindingType: {
+    use: 'finding-type',
+    flags: [{ flag: 'desc', specKey: 'description' }],
+  },
   SystemInstance: {
     use: 'system-instance',
     flags: [
@@ -66,12 +74,84 @@ const CREATE_BY_KIND: Record<string, CreateMapping> = {
       { flag: 'context', specKey: 'context' },
     ],
   },
-  Parameter: {
-    use: 'parameter',
-    flags: [],
+  ComponentInstance: {
+    use: 'component-instance',
+    flags: [
+      { flag: 'component', specKey: 'component' },
+      { flag: 'system-instance', specKey: 'systemInstance' },
+    ],
+  },
+  ApiInstance: {
+    use: 'api-instance',
+    flags: [
+      { flag: 'api', specKey: 'api' },
+      { flag: 'system-instance', specKey: 'systemInstance' },
+    ],
+  },
+  Product: {
+    use: 'product',
+    flags: [
+      { flag: 'desc', specKey: 'description' },
+      { flag: 'vendor', specKey: 'vendor' },
+    ],
+  },
+  Artifact: {
+    use: 'artifact',
+    flags: [{ flag: 'desc', specKey: 'description' }],
+  },
+  ArtifactInstance: {
+    use: 'artifact-instance',
+    flags: [{ flag: 'artifact', specKey: 'artifact' }],
+  },
+  OrgUnit: {
+    use: 'org-unit',
+    flags: [
+      { flag: 'desc', specKey: 'description' },
+      { flag: 'parent', specKey: 'parent' },
+    ],
+  },
+  Group: {
+    use: 'group',
+    flags: [{ flag: 'desc', specKey: 'description' }],
+  },
+  Identity: {
+    use: 'identity',
+    flags: [{ flag: 'desc', specKey: 'description' }],
+  },
+  PermissionSpec: {
+    use: 'permission-spec',
+    flags: [{ flag: 'desc', specKey: 'description' }],
+  },
+  RoleSpec: {
+    use: 'role-spec',
+    flags: [{ flag: 'desc', specKey: 'description' }],
+  },
+  Permission: {
+    use: 'permission',
+    flags: [{ flag: 'desc', specKey: 'description' }],
+  },
+  Role: {
+    use: 'role',
+    flags: [{ flag: 'desc', specKey: 'description' }],
+  },
+  Binding: {
+    use: 'binding',
+    flags: [{ flag: 'desc', specKey: 'description' }],
+  },
+  FilterRule: {
+    use: 'filter-rule',
+    flags: [{ flag: 'desc', specKey: 'description' }],
+  },
+  MergeRule: {
+    use: 'merge-rule',
+    flags: [{ flag: 'desc', specKey: 'description' }],
   },
   Capability: {
     use: 'capability',
+    flags: [],
+  },
+  Parameter: {
+    use: 'parameter',
     flags: [],
   },
 }
@@ -161,7 +241,7 @@ export function emelandctlCreateScript(docs: IngressDocument[]): string {
       lines.push(cmd)
     } else {
       lines.push(
-        `# ${doc.kind}: no emelandctl create subcommand — use Copy / Download YAML for modelsrv ingress`,
+        `# ${doc.kind}: no emelandctl create subcommand. Use Copy / Download YAML for modelsrv ingress`,
       )
     }
   }
