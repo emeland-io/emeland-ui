@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { RouterLink, useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import {
   IconSettings,
   IconBook,
@@ -17,16 +18,21 @@ import { useSidebarWidth } from '@/composables/useSidebarWidth'
 import ModelBadge from '@/components/ModelBadge.vue'
 import BrandMark from '@/components/BrandMark.vue'
 
+const route = useRoute()
 const router = useRouter()
 const { width: sidebarWidth, collapsed, isResizing } = useSidebarWidth()
 const { theme, setTheme } = useTheme()
-const { toggle: toggleShortcuts } = useShortcutsHelp()
+const { open: shortcutsOpen, toggle: toggleShortcuts } = useShortcutsHelp()
 
 const THEME_MODES: { value: ThemeMode; icon: typeof IconSun; label: string }[] = [
   { value: 'system', icon: IconDeviceDesktop, label: 'System theme' },
   { value: 'light', icon: IconSun, label: 'Light theme' },
   { value: 'dark', icon: IconMoon, label: 'Dark theme' },
 ]
+
+const settingsActive = computed(
+  () => route.name === 'Settings' || route.name === 'SettingsAnnotations',
+)
 
 function logout() {
   clearToken()
@@ -64,9 +70,15 @@ function logout() {
 
     <!-- Keyboard shortcuts -->
     <button
-      class="flex h-7 w-7 items-center justify-center rounded text-text-3 transition-colors hover:bg-bg-3 hover:text-text-2"
+      class="flex h-7 w-7 items-center justify-center rounded transition-colors"
+      :class="
+        shortcutsOpen
+          ? 'bg-accent/15 text-accent-text'
+          : 'text-text-3 hover:bg-bg-3 hover:text-text-2'
+      "
       title="Keyboard shortcuts (?)"
       aria-label="Keyboard shortcuts"
+      :aria-pressed="shortcutsOpen"
       @click="toggleShortcuts"
     >
       <IconKeyboard
@@ -78,9 +90,15 @@ function logout() {
     <!-- YAML configuration editor -->
     <RouterLink
       :to="{ name: 'YamlEditor' }"
-      class="flex h-7 w-7 items-center justify-center rounded text-text-3 transition-colors hover:bg-bg-3 hover:text-text-2"
+      class="flex h-7 w-7 items-center justify-center rounded transition-colors"
+      :class="
+        route.name === 'YamlEditor'
+          ? 'bg-accent/15 text-accent-text'
+          : 'text-text-3 hover:bg-bg-3 hover:text-text-2'
+      "
       title="YAML editor"
       aria-label="YAML editor"
+      :aria-current="route.name === 'YamlEditor' ? 'page' : undefined"
     >
       <IconFileCode
         :size="15"
@@ -91,9 +109,15 @@ function logout() {
     <!-- Settings -->
     <RouterLink
       :to="{ name: 'Settings' }"
-      class="flex h-7 w-7 items-center justify-center rounded text-text-3 transition-colors hover:bg-bg-3 hover:text-text-2"
+      class="flex h-7 w-7 items-center justify-center rounded transition-colors"
+      :class="
+        settingsActive
+          ? 'bg-accent/15 text-accent-text'
+          : 'text-text-3 hover:bg-bg-3 hover:text-text-2'
+      "
       title="Settings"
       aria-label="Settings"
+      :aria-current="settingsActive ? 'page' : undefined"
     >
       <IconSettings
         :size="15"
