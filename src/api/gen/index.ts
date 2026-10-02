@@ -2,10 +2,10 @@
 // spec:        EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml (v0.1.0)
 // source:      https://raw.githubusercontent.com/emeland-io/modelsrv/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
 // spec page:   https://github.com/emeland-io/modelsrv/blob/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
-// blob sha:    dc524cb15d7c7a3f02bc66eb1ae0e2145269963e
-// spec commit: 53d20dd75190bf0926e67579532d8e53547c55ee (2026-09-14T22:52:12Z)
-//              Add MetricInstance observability resource and reference it from MetricValue and Threshold
-// commit url:  https://github.com/emeland-io/modelsrv/commit/53d20dd75190bf0926e67579532d8e53547c55ee
+// blob sha:    de25c1c4c156a4f5dec06a16b74ed43c0cbbda05
+// spec commit: 3658721f65e9e1ff0746fca05fc4257337d0eb51 (2026-09-28T02:46:23Z)
+//              gen: standardize the emitter and remove the hand-written oracle
+// commit url:  https://github.com/emeland-io/modelsrv/commit/3658721f65e9e1ff0746fca05fc4257337d0eb51
 // regenerate:  npm run api:gen
 
 export type {
