@@ -1,5 +1,23 @@
 import { describe, it, expect } from 'vitest'
-import { differingAnnotationKeys, wellKnownAnnotations } from '@/utils/annotations'
+import {
+  annotationFormatIssue,
+  differingAnnotationKeys,
+  isAnnotationTimestamp,
+  wellKnownAnnotations,
+} from '@/utils/annotations'
+
+describe('annotationFormatIssue', () => {
+  it('flags non-timestamps for last-update', () => {
+    expect(annotationFormatIssue('emeland.io/last-update', 'sdsds')).toMatch(/timestamp/i)
+    expect(annotationFormatIssue('eximpl.emeland.io/last-update', 'nope')).toMatch(/timestamp/i)
+  })
+
+  it('accepts ISO timestamps', () => {
+    expect(annotationFormatIssue('emeland.io/last-update', '2026-05-28T09:24:11Z')).toBeUndefined()
+    expect(isAnnotationTimestamp('2026-05-28T09:24:11Z')).toBe(true)
+    expect(isAnnotationTimestamp('sdsds')).toBe(false)
+  })
+})
 
 describe('wellKnownAnnotations', () => {
   it('recognizes registry keys and namespaced suffix matches', () => {

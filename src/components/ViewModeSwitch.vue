@@ -36,8 +36,9 @@ const emit = defineEmits<{
         :is="opt.icon"
         :size="13"
         :stroke-width="1.75"
+        class="shrink-0"
       />
-      {{ opt.label }}
+      <span class="hidden min-[1100px]:inline">{{ opt.label }}</span>
     </button>
   </div>
 </template>

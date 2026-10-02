@@ -10,8 +10,9 @@ const props = withDefaults(
     total: number
     /** pass to make the pane collapsible; omit for a static bar */
     collapsed?: boolean
+    label?: string
   }>(),
-  { collapsed: undefined },
+  { collapsed: undefined, label: 'List' },
 )
 
 const emit = defineEmits<{
@@ -31,7 +32,7 @@ const collapsible = computed(() => props.collapsed !== undefined)
     @dblclick="collapsible && emit('toggle')"
   >
     <span class="flex items-center gap-1.5">
-      <span class="text-micro font-medium uppercase tracking-wider text-text-4">List</span>
+      <span class="text-micro font-medium uppercase tracking-wider text-text-4">{{ label }}</span>
       <span class="rounded-full bg-bg-2 px-2 py-0.5 font-mono text-micro tabular-nums text-text-3">
         {{ count }}
         <span
