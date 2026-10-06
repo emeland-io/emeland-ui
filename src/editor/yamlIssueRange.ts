@@ -24,7 +24,7 @@ function clamp(text: string, from: number, to: number): SourceRange {
 
 function nodeRange(
   text: string,
-  node: { range?: [number, number, number] | null } | null | undefined, 
+  node: { range?: [number, number, number] | null } | null | undefined,
 ): SourceRange | null {
   const range = node?.range
   if (!range) return null

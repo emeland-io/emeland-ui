@@ -113,9 +113,7 @@ const bundleDocs = computed(() => bundle.value.map((i) => i.document))
 const bundleValidation = computed(() => validateBundle(bundleDocs.value))
 
 const bundleYaml = computed(() =>
-  hasBundle.value
-    ? stringifyBundle(bundleDocs.value)
-    : '# Bundle is empty\n',
+  hasBundle.value ? stringifyBundle(bundleDocs.value) : '# Bundle is empty\n',
 )
 
 const validation = computed(() => {
