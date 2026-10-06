@@ -18,7 +18,7 @@ useTabGuard()
     <AppTopbar />
     <div class="flex flex-1 overflow-hidden">
       <AppSidebar />
-      <main class="flex-1 overflow-y-auto overflow-x-clip bg-bg-0">
+      <main class="min-w-0 flex-1 overflow-y-auto overflow-x-clip bg-bg-0">
         <router-view v-slot="{ Component }">
           <keep-alive>
             <component :is="Component" />

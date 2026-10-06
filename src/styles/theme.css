@@ -6,8 +6,8 @@
 
   --color-text-1: #e6e9ef;
   --color-text-2: #a9b2c1;
-  --color-text-3: #6f7a8c;
-  --color-text-4: #3d4552;
+  --color-text-3: #8b95a5;
+  --color-text-4: #6a7382;
 
   --color-border-1: #272d37;
   --color-border-2: #414a59;
@@ -15,6 +15,7 @@
 
   --color-accent: #4c8dff;
   --color-accent-text: #b9d2ff;
+  --color-editor-key: #9ec5ff;
   --color-error: #e2554f;
   --color-warning: #c98a1e;
   --color-sensor: #3a8fc4;
@@ -63,6 +64,7 @@
 
   --color-accent: #2f6f8f;
   --color-accent-text: #1d5470;
+  --color-editor-key: #3a6ea8;
   --color-node-sensor: #2a6f95;
   --color-node-filter: #5a52b8;
   --color-node-injector: #a8541c;

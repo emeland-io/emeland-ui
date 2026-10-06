@@ -38,6 +38,30 @@ export function formatTimestamp(iso: string | undefined): string | undefined {
   return s.length >= 16 ? `${s.slice(0, 16)} UTC` : s
 }
 
+/** True when `raw` looks like an ISO-8601 date/time (catalog `format: timestamp`). */
+export function isAnnotationTimestamp(raw: string): boolean {
+  const t = raw.trim()
+  if (!/^\d{4}-\d{2}-\d{2}/.test(t)) return false
+  return !Number.isNaN(Date.parse(t))
+}
+
+/**
+ * Extra validation for well-known annotation keys (beyond non-empty).
+ * Returns an error message, or undefined when the value is acceptable.
+ */
+export function annotationFormatIssue(key: string, value: string): string | undefined {
+  const k = key.trim()
+  if (!k || !value) return undefined
+  const def = GENERATED_ANNOTATIONS.find(
+    (d) => d.key === k || d.suffix === k || k.endsWith(`/${d.suffix}`),
+  )
+  if (!def?.format) return undefined
+  if (def.format === 'timestamp' && !isAnnotationTimestamp(value)) {
+    return `Must be an ISO timestamp (e.g. ${def.example || '2026-09-28T09:24:11Z'})`
+  }
+  return undefined
+}
+
 export interface WellKnownAnnotation extends Omit<GeneratedAnnotation, 'format'> {
   /** display formatter, resolved from the catalog's format hint */
   format?: (raw: string) => string | undefined

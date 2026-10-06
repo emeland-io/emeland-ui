@@ -66,26 +66,26 @@ export function useNavigation() {
         { label: 'Identities', route: '/identities', type: 'Identity' },
         { label: 'OrgUnits', route: '/orgunits', type: 'OrgUnit' },
         { label: 'Groups', route: '/groups', type: 'Group' },
-        { label: 'Permissions', route: '/permissions', chip: 'Pe' },
+        { label: 'Permissions', route: '/permissions', type: 'Permission' },
       ],
     },
     {
       title: 'Capabilities',
       phase: 'P3',
       items: [
-        { label: 'Capabilities', route: '/capabilities', chip: 'Ca' },
-        { label: 'Orders', route: '/orders', chip: 'Or' },
+        { label: 'Capabilities', route: '/capabilities', type: 'Capability' },
+        { label: 'Orders', route: '/orders', type: 'Order' },
       ],
     },
     {
       title: 'Observability',
       phase: 'P6',
-      items: [{ label: 'Metrics', route: '/metrics', chip: 'Me' }],
+      items: [{ label: 'Metrics', route: '/metrics', type: 'Metric' }],
     },
     {
       title: 'Capacity',
       phase: 'P7',
-      items: [{ label: 'Capacities', route: '/capacities', chip: 'Ca' }],
+      items: [{ label: 'Capacities', route: '/capacities', type: 'Capacity' }],
     },
   ]
 
