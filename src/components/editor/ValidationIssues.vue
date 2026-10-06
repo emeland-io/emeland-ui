@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { ValidationIssue } from '@/editor/document'
-import { IconAlertCircle, IconCircleCheck } from '@tabler/icons-vue'
+import { IconAlertCircle, IconCircleCheck, IconInfoCircle } from '@tabler/icons-vue'
 
 defineProps<{
   issues: ValidationIssue[]
   valid: boolean
+  hint?: string
 }>()
 </script>
 
@@ -12,13 +13,21 @@ defineProps<{
   <div
     class="flex items-start gap-2 rounded border px-3 py-2"
     :class="
-      valid
-        ? 'border-accent/25 bg-accent/5 text-accent-text'
-        : 'border-error/25 bg-error/5 text-error'
+      hint
+        ? 'border-border-1 bg-bg-2 text-text-3'
+        : valid
+          ? 'border-accent/25 bg-accent/5 text-accent-text'
+          : 'border-error/25 bg-error/5 text-error'
     "
   >
+    <IconInfoCircle
+      v-if="hint"
+      :size="15"
+      :stroke-width="1.75"
+      class="mt-0.5 shrink-0"
+    />
     <IconCircleCheck
-      v-if="valid"
+      v-else-if="valid"
       :size="15"
       :stroke-width="1.75"
       class="mt-0.5 shrink-0"
@@ -31,7 +40,13 @@ defineProps<{
     />
     <div class="min-w-0 flex-1">
       <p
-        v-if="valid"
+        v-if="hint"
+        class="text-label font-medium"
+      >
+        {{ hint }}
+      </p>
+      <p
+        v-else-if="valid"
         class="text-label font-medium"
       >
         Document is valid for export

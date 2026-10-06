@@ -193,6 +193,11 @@ spec:
     expect(validateBundle(documents).ok).toBe(true)
   })
 
+  it('treats an empty bundle as valid', () => {
+    expect(validateBundle([]).ok).toBe(true)
+    expect(validateBundle([]).issues).toEqual([])
+  })
+
   it('flags invalid docs inside a bundle', () => {
     const system = blankDocument('System')
     system.spec.annotations = { 'emeland.io/owner-groups': '' }

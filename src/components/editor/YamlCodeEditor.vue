@@ -15,6 +15,7 @@ import {
 import { tags as t } from '@lezer/highlight'
 import { linter, lintGutter, type Diagnostic } from '@codemirror/lint'
 import type { ValidationIssue } from '@/editor/document'
+import { issueSourceRange } from '@/editor/yamlIssueRange'
 import { useClipboard } from '@/composables/useClipboard'
 
 const props = defineProps<{
@@ -45,17 +46,24 @@ function onCopyYaml() {
   void copy(text, COPY_ID)
 }
 
-function issuesToDiagnostics(doc: EditorState, issues: ValidationIssue[]): Diagnostic[] {
-  // Map path-based issues to the whole document; YAML AST line mapping is out of scope for v1
-  if (!issues.length) return []
+function fallbackRange(doc: EditorState): { from: number; to: number } {
   const from = 0
   const to = Math.min(doc.doc.length, Math.max(1, doc.doc.line(1).to))
-  return issues.map((issue) => ({
-    from,
-    to,
-    severity: 'error' as const,
-    message: issue.path ? `${issue.path}: ${issue.message}` : issue.message,
-  }))
+  return { from, to }
+}
+
+function issuesToDiagnostics(doc: EditorState, issues: ValidationIssue[]): Diagnostic[] {
+  if (!issues.length) return []
+  const text = doc.doc.toString()
+  return issues.map((issue) => {
+    const range = issueSourceRange(text, issue.path) ?? fallbackRange(doc)
+    return {
+      from: range.from,
+      to: range.to,
+      severity: 'error' as const,
+      message: issue.path ? `${issue.path}: ${issue.message}` : issue.message,
+    }
+  })
 }
 
 function buildHighlightStyle(): HighlightStyle {

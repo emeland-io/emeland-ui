@@ -102,6 +102,31 @@ describe('YamlEditorView bundle', () => {
     expect(loadPersistedBundle()).toHaveLength(0)
   })
 
+  it('does not flag an empty bundle as a validation error', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/', component: YamlEditorView }],
+    })
+    await router.push('/')
+    await router.isReady()
+
+    const wrapper = mount(YamlEditorView, {
+      global: { plugins: [router] },
+    })
+
+    await wrapper.find('button[title="Bundle view"]').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.text()).toContain('No documents yet')
+    expect(wrapper.text()).toContain('Add documents with “Add to bundle”, then view them here.')
+    expect(wrapper.text()).not.toMatch(/validation issue/)
+    expect(wrapper.text()).not.toContain('Add documents first')
+    expect(wrapper.text()).not.toContain('Document is valid for export')
+
+    const download = wrapper.findAll('button').find((b) => b.text().includes('Download'))
+    expect(download?.attributes('disabled')).toBeDefined()
+  })
+
   it('filters resource types by search', async () => {
     const router = createRouter({
       history: createMemoryHistory(),

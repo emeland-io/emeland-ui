@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import {
   IconCode,
   IconForms,
@@ -16,7 +16,6 @@ import ViewHeader from '@/components/view/ViewHeader.vue'
 import ViewModeSwitch from '@/components/ViewModeSwitch.vue'
 import ListPaneBar from '@/components/view/ListPaneBar.vue'
 import ResourceListRow from '@/components/list/ResourceListRow.vue'
-import YamlCodeEditor from '@/components/editor/YamlCodeEditor.vue'
 import ResourceForm from '@/components/editor/ResourceForm.vue'
 import ValidationIssues from '@/components/editor/ValidationIssues.vue'
 import BundleList from '@/components/editor/BundleList.vue'
@@ -50,6 +49,8 @@ import type { BundleRefOption } from '@/components/editor/BundleRefInput.vue'
 import { useClipboard } from '@/composables/useClipboard'
 import { emelandctlCreateScript } from '@/editor/emelandctl'
 import { matchesQuery } from '@/utils/search'
+
+const YamlCodeEditor = defineAsyncComponent(() => import('@/components/editor/YamlCodeEditor.vue'))
 
 type EditorMode = 'form' | 'yaml' | 'bundle'
 
@@ -114,14 +115,12 @@ const bundleValidation = computed(() => validateBundle(bundleDocs.value))
 const bundleYaml = computed(() =>
   hasBundle.value
     ? stringifyBundle(bundleDocs.value)
-    : '# Bundle is empty\n# Add documents with “Add to bundle”, then view them here.\n',
+    : '# Bundle is empty\n',
 )
 
 const validation = computed(() => {
   if (mode.value === 'bundle') {
-    return hasBundle.value
-      ? bundleValidation.value
-      : { ok: false, issues: [{ path: '', message: 'Bundle is empty. Add documents first' }] }
+    return hasBundle.value ? bundleValidation.value : { ok: true, issues: [] }
   }
   if (mode.value === 'yaml') {
     return validateYamlText(yamlText.value)
@@ -140,9 +139,11 @@ const exportText = computed(() =>
   hasBundle.value ? stringifyBundle(bundleDocs.value) : activeExportText.value,
 )
 
-const canExport = computed(() =>
-  hasBundle.value ? bundleValidation.value.ok : validation.value.ok,
-)
+const canExport = computed(() => {
+  if (hasBundle.value) return bundleValidation.value.ok
+  if (mode.value === 'bundle') return false
+  return validation.value.ok
+})
 
 const canAddToBundle = computed(() => {
   if (mode.value === 'bundle') return false
@@ -550,6 +551,11 @@ const activeBundleLabel = computed(() => documentLabel(document.value))
           <ValidationIssues
             :issues="displayIssues"
             :valid="validation.ok && !switchError"
+            :hint="
+              mode === 'bundle' && !hasBundle
+                ? 'Add documents with “Add to bundle”, then view them here.'
+                : undefined
+            "
           />
           <p
             v-if="switchError"

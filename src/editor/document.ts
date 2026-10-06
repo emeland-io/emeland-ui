@@ -482,9 +482,6 @@ export function validateBundle(docs: IngressDocument[]): ValidateResult {
       })
     }
   })
-  if (!docs.length) {
-    issues.push({ path: '', message: 'bundle is empty' })
-  }
   return { ok: issues.length === 0, issues }
 }
 
