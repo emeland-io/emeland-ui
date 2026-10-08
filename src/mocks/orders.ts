@@ -4,8 +4,9 @@ import type { OrderResponse } from '@/api/orders'
  * Orders mockups (Phase 3 reification) — not in the modelsrv OpenAPI spec
  * yet, so these are frontend-shaped until the backend ships them.
  *
- * References resolve to the capabilities mocks (mocks/capabilities.ts), the
- * parameters mocks (mocks/parameters.ts) and the systems mocks. Together the
+ * References resolve to the capabilities mocks (mocks/capabilities.ts) and
+ * capabilityVersions mocks (mocks/capabilityVersions.ts), the parameters mocks
+ * (mocks/parameters.ts) and the systems mocks. Together the
  * orders cover every fulfillment state: fully fulfilled (a1, a6), partially
  * fulfilled (a5, a7), open (a2, a3, a4, a8), a deprecated pinned version (a3)
  * and a bound value outside the parameter's valid values (a4).

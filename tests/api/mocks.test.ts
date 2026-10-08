@@ -42,6 +42,15 @@ describe('bundled mocks (validated on the mock path too)', () => {
     expect(mail.description).toBe('Hosted mailboxes with SMTP and IMAP access')
   })
 
+  it('joins flat versions, variants, and dependencies onto capabilities', async () => {
+    const mail = await fetchCapabilityById('c1a2b3c4-0001-4a3b-8c1d-000000000001')
+    expect(mail.versions?.length).toBeGreaterThan(0)
+    const current = mail.versions?.find((v) => v.capabilityVersionId === 'c1a2b3c4-0001-4a3b-8c1d-00000000v101')
+    expect(current?.variants?.length).toBeGreaterThan(0)
+    expect(current?.variants?.[0].inputParameters?.length).toBeGreaterThan(0)
+    expect(current?.variants?.[0].dependencies?.length).toBeGreaterThan(0)
+  })
+
   it('decodes annotations from the wire entry-list form', async () => {
     const withAnnotations = systems.find((s) => s.systemId === '1b000002-0000-4a1b-8b00-000000000002')
     await expect(fetchSystemById(withAnnotations!.systemId)).resolves.toMatchObject({
