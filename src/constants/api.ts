@@ -52,6 +52,8 @@ export const API = {
   DEPENDENCIES: resource('/dependencies'),
   VALID_VALUES: resource('/validValues'),
   ORDERS: resource('/orders'),
+  ORDER_ITEMS: resource('/orderItems'),
+  BOUND_VALUES: resource('/boundValues'),
   PARAMETERS: resource('/parameters'),
 
   // Phase 5 — Risk (Findings)

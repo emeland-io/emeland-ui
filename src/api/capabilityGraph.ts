@@ -6,35 +6,17 @@ import type {
   VariantDependency,
 } from '@/types/capability'
 import { loadLandscapeDetails } from './landscapeLoad'
+import { responseId } from './resource'
+import type {
+  Dependency as DependencyWire,
+  ValidValue as ValidValueWire,
+  Variant as VariantWire,
+} from './gen/types.gen'
+import { zDependency, zValidValue, zVariant } from './gen/zod.gen'
 
-/** modelsrv ValidValue landscape resource */
-export type ValidValueWire = {
-  validValueId?: string
-  instanceId?: string
-  displayName: string
-  parameter: string
-}
+export type { DependencyWire, ValidValueWire, VariantWire }
 
-/** modelsrv Variant landscape resource */
-export type VariantWire = {
-  variantId?: string
-  instanceId?: string
-  displayName?: string
-  capabilityVersion: string
-  requires?: string[]
-}
-
-/** modelsrv Dependency landscape resource */
-export type DependencyWire = {
-  dependencyId?: string
-  instanceId?: string
-  displayName?: string
-  variant: string
-  capability: string
-  mappings?: { fromValidValueId: string; toValidValueId: string }[]
-}
-
-type ValidValueRow = { validValueId: string; displayName: string; parameter: string }
+export type ValidValueRow = { validValueId: string; displayName: string; parameter: string }
 type VariantRow = { variantId: string; capabilityVersion: string; requires: string[] }
 type DependencyRow = {
   variant: string
@@ -44,6 +26,7 @@ type DependencyRow = {
 
 let cachedVariantsByVersion: Map<string, Variant[]> | null = null
 let inflight: Promise<Map<string, Variant[]>> | null = null
+let validValuesInflight: Promise<ValidValueRow[]> | null = null
 
 /** Drop the variant/dependency join cache (with capability versions on catalog reload) */
 export function clearCapabilityGraphCache(): void {
@@ -51,17 +34,15 @@ export function clearCapabilityGraphCache(): void {
   inflight = null
 }
 
-function idOf(raw: Record<string, unknown>, key: string): string {
-  const own = raw[key]
-  if (typeof own === 'string' && own) return own
-  const inst = raw.instanceId
-  return typeof inst === 'string' && inst ? inst : ''
+function str(raw: Record<string, unknown>, key: string): string {
+  const v = raw[key]
+  return typeof v === 'string' ? v : ''
 }
 
 function decodeValidValueRow(raw: Record<string, unknown>): ValidValueRow {
-  const validValueId = idOf(raw, 'validValueId')
-  const displayName = typeof raw.displayName === 'string' ? raw.displayName : ''
-  const parameter = typeof raw.parameter === 'string' ? raw.parameter : ''
+  const validValueId = responseId(raw, 'validValueId')
+  const displayName = str(raw, 'displayName')
+  const parameter = str(raw, 'parameter')
   if (!validValueId || !parameter) {
     throw new Error('ValidValue missing id or parameter')
   }
@@ -69,8 +50,8 @@ function decodeValidValueRow(raw: Record<string, unknown>): ValidValueRow {
 }
 
 function decodeVariantRow(raw: Record<string, unknown>): VariantRow {
-  const variantId = idOf(raw, 'variantId')
-  const capabilityVersion = typeof raw.capabilityVersion === 'string' ? raw.capabilityVersion : ''
+  const variantId = responseId(raw, 'variantId')
+  const capabilityVersion = str(raw, 'capabilityVersion')
   if (!variantId || !capabilityVersion) {
     throw new Error('Variant missing id or capabilityVersion')
   }
@@ -81,8 +62,8 @@ function decodeVariantRow(raw: Record<string, unknown>): VariantRow {
 }
 
 function decodeDependencyRow(raw: Record<string, unknown>): DependencyRow {
-  const variant = typeof raw.variant === 'string' ? raw.variant : ''
-  const capability = typeof raw.capability === 'string' ? raw.capability : ''
+  const variant = str(raw, 'variant')
+  const capability = str(raw, 'capability')
   if (!variant || !capability) {
     throw new Error('Dependency missing variant or capability')
   }
@@ -91,8 +72,8 @@ function decodeDependencyRow(raw: Record<string, unknown>): DependencyRow {
     for (const m of raw.mappings) {
       if (!m || typeof m !== 'object') continue
       const rec = m as Record<string, unknown>
-      const fromValidValueId = typeof rec.fromValidValueId === 'string' ? rec.fromValidValueId : ''
-      const toValidValueId = typeof rec.toValidValueId === 'string' ? rec.toValidValueId : ''
+      const fromValidValueId = str(rec, 'fromValidValueId')
+      const toValidValueId = str(rec, 'toValidValueId')
       if (fromValidValueId && toValidValueId) {
         mappings.push({ fromValidValueId, toValidValueId })
       }
@@ -167,20 +148,36 @@ function buildVariantsByVersion(
   return byVersion
 }
 
-async function loadVariantsByCapabilityVersion(): Promise<Map<string, Variant[]>> {
-  const [validValues, variants, dependencies] = await Promise.all([
-    loadLandscapeDetails({
+/**
+ * Load every ValidValue (shared by the capability graph, parameter values and
+ * order bound values). Dedupes concurrent callers only, so stores loading in
+ * parallel share one request and a later reload sees fresh data.
+ */
+export function fetchValidValues(): Promise<ValidValueRow[]> {
+  if (!validValuesInflight) {
+    validValuesInflight = loadLandscapeDetails({
       namePlural: 'valid values',
       paths: API.VALID_VALUES,
       mocks: async () => (await import('@/mocks/validValues')).validValues,
       idKey: 'validValueId',
+      schema: zValidValue,
       decode: decodeValidValueRow,
-    }),
+    }).finally(() => {
+      validValuesInflight = null
+    })
+  }
+  return validValuesInflight
+}
+
+async function loadVariantsByCapabilityVersion(): Promise<Map<string, Variant[]>> {
+  const [validValues, variants, dependencies] = await Promise.all([
+    fetchValidValues(),
     loadLandscapeDetails({
       namePlural: 'variants',
       paths: API.VARIANTS,
       mocks: async () => (await import('@/mocks/variants')).variants,
       idKey: 'variantId',
+      schema: zVariant,
       decode: decodeVariantRow,
     }),
     loadLandscapeDetails({
@@ -188,6 +185,7 @@ async function loadVariantsByCapabilityVersion(): Promise<Map<string, Variant[]>
       paths: API.DEPENDENCIES,
       mocks: async () => (await import('@/mocks/dependencies')).dependencies,
       idKey: 'dependencyId',
+      schema: zDependency,
       decode: decodeDependencyRow,
     }),
   ])

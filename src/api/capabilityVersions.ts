@@ -7,32 +7,16 @@ import {
   fetchVariantsByCapabilityVersion,
 } from './capabilityGraph'
 import { loadLandscapeDetails } from './landscapeLoad'
+import { responseId } from './resource'
+import type { CapabilityVersion as CapabilityVersionWire } from './gen/types.gen'
+import { zCapabilityVersion } from './gen/zod.gen'
 
-/** Flat CapabilityVersion landscape resource (modelsrv Phase 3) */
-export type CapabilityVersionWire = {
-  capabilityVersionId?: string
-  instanceId?: string
-  displayName?: string
-  capability: string
-  version?: {
-    version?: string
-    availableFrom?: string
-    deprecatedFrom?: string
-    terminatedFrom?: string
-  }
-}
-
-function idOf(raw: Record<string, unknown>, key: string): string {
-  const own = raw[key]
-  if (typeof own === 'string' && own) return own
-  const inst = raw.instanceId
-  return typeof inst === 'string' && inst ? inst : ''
-}
+export type { CapabilityVersionWire }
 
 function decodeCapabilityVersion(raw: Record<string, unknown>): CapabilityVersionRef & {
   capability: string
 } {
-  const capabilityVersionId = idOf(raw, 'capabilityVersionId')
+  const capabilityVersionId = responseId(raw, 'capabilityVersionId')
   const capability = typeof raw.capability === 'string' ? raw.capability : ''
   if (!capabilityVersionId || !capability) {
     throw new Error('CapabilityVersion missing id or capability')
@@ -73,6 +57,7 @@ async function loadCapabilityVersionsByCapability(): Promise<Map<string, Capabil
       paths: API.CAPABILITY_VERSIONS,
       mocks: async () => (await import('@/mocks/capabilityVersions')).capabilityVersions,
       idKey: 'capabilityVersionId',
+      schema: zCapabilityVersion,
       decode: decodeCapabilityVersion,
     }),
     fetchVariantsByCapabilityVersion(),
@@ -90,7 +75,7 @@ async function loadCapabilityVersionsByCapability(): Promise<Map<string, Capabil
 }
 
 /**
- * Load every CapabilityVersion (list + detail, or mocks), join variants from the
+ * Load every CapabilityVersion (one list call, or mocks), join variants from the
  * capability graph and group by parent capability id.
  *
  * Dedupes concurrent callers and caches the result for the session. List route

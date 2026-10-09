@@ -1,13 +1,12 @@
 import { API } from '@/constants/api'
-import { z } from 'zod'
 import type { Capability } from '@/types/capability'
-import { decodeAnnotations, annotationsResponseSchema, type AnnotationsResponse } from './decode'
+import { decodeAnnotations, type AnnotationsResponse } from './decode'
 import { makeResourceApi, responseId } from './resource'
 import {
   clearCapabilityVersionsCache,
   fetchCapabilityVersionsByCapability,
 } from './capabilityVersions'
-import { zInstanceListItem } from './gen/zod.gen'
+import { zCapability } from './gen/zod.gen'
 
 export type CapabilityWireWithDescription = {
   capabilityId?: string
@@ -18,21 +17,13 @@ export type CapabilityWireWithDescription = {
   annotations?: unknown
 }
 
-const zCapabilityResponse = z
-  .object({
-    capabilityId: z.string().min(1).optional(),
-    instanceId: z.string().min(1).optional(),
-    displayName: z.string(),
-    description: z.string().optional(),
-    offers: z.array(z.string().min(1)).optional(),
-    annotations: annotationsResponseSchema.optional(),
-  })
-  .passthrough()
+// pass unknown keys through instead of zod's default strip, so the
+// frontend-first description survives response validation
+const zCapabilityResponse = zCapability.passthrough()
 
 function decodeCapability(res: CapabilityWireWithDescription): Capability {
   const annotations = decodeAnnotations(res.annotations as AnnotationsResponse | undefined)
   return {
-    // list endpoints only return instanceId; detail payloads carry capabilityId
     capabilityId: responseId(res, 'capabilityId'),
     displayName: res.displayName,
     ...(res.description || annotations['emeland.io/summary']
@@ -50,8 +41,7 @@ const capabilities = makeResourceApi<Capability, CapabilityWireWithDescription>(
   mocks: async () => (await import('@/mocks/capabilities')).capabilities,
   idKey: 'capabilityId',
   idOf: (c) => c.capabilityId,
-  listSchema: zInstanceListItem,
-  requireListFields: ['instanceId', 'displayName'],
+  fullList: true,
   responseSchema: zCapabilityResponse,
   decode: decodeCapability,
 })

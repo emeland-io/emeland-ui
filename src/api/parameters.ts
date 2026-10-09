@@ -3,7 +3,8 @@ import type { Parameter } from '@/types/parameter'
 import { decodeAnnotations } from './decode'
 import { makeResourceApi } from './resource'
 import type { Parameter as ParameterWire } from './gen/types.gen'
-import { zInstanceListItem, zParameter } from './gen/zod.gen'
+import { zParameter } from './gen/zod.gen'
+import { fetchValidValues, type ValidValueRow } from './capabilityGraph'
 
 type ParameterWireWithDescription = ParameterWire & { description?: string }
 
@@ -16,7 +17,6 @@ function decodeParameter(res: ParameterWireWithDescription): Parameter {
     parameterId: res.parameterId,
     displayName: res.displayName,
     ...(res.description ? { description: res.description } : {}),
-    ...(res.values ? { values: res.values } : {}),
     annotations: decodeAnnotations(res.annotations),
   }
 }
@@ -29,11 +29,31 @@ const parameters = makeResourceApi<Parameter, ParameterWireWithDescription>({
   mocks: async () => (await import('@/mocks/parameters')).parameters,
   idKey: 'parameterId',
   idOf: (p) => p.parameterId,
-  listSchema: zInstanceListItem,
-  requireListFields: ['instanceId', 'displayName'],
+  fullList: true,
   responseSchema: zParameterResponse,
   decode: decodeParameter,
 })
 
-export const fetchParameters = parameters.fetchAll
-export const fetchParameterById = parameters.fetchById
+/** A parameter's value set lives on the ValidValue resources pointing at it */
+function withValues(params: Parameter[], validValues: ValidValueRow[]): Parameter[] {
+  const byParameter = new Map<string, string[]>()
+  for (const vv of validValues) {
+    const values = byParameter.get(vv.parameter) ?? []
+    values.push(vv.displayName)
+    byParameter.set(vv.parameter, values)
+  }
+  return params.map((p) => {
+    const values = byParameter.get(p.parameterId)
+    return values?.length ? { ...p, values } : p
+  })
+}
+
+export async function fetchParameters(): Promise<Parameter[]> {
+  const [params, validValues] = await Promise.all([parameters.fetchAll(), fetchValidValues()])
+  return withValues(params, validValues)
+}
+
+export async function fetchParameterById(id: string): Promise<Parameter> {
+  const [param, validValues] = await Promise.all([parameters.fetchById(id), fetchValidValues()])
+  return withValues([param], validValues)[0]!
+}

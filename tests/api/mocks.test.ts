@@ -13,6 +13,9 @@ import { fetchFindings, fetchFindingById, fetchFindingTypes } from '@/api/findin
 import { fetchNodes, fetchNodeById, fetchNodeTypes } from '@/api/nodes'
 import { fetchSystems, fetchSystemById, fetchSystemInstances } from '@/api/systems'
 import { fetchModel } from '@/api/model'
+import { fetchCapabilities } from '@/api/capabilities'
+import { fetchParameters } from '@/api/parameters'
+import { fetchOrders } from '@/api/orders'
 import { systems } from '@/mocks/systems'
 
 describe('bundled mocks (validated on the mock path too)', () => {
@@ -30,6 +33,9 @@ describe('bundled mocks (validated on the mock path too)', () => {
       ['node types', fetchNodeTypes],
       ['findings', fetchFindings],
       ['finding types', fetchFindingTypes],
+      ['capabilities', fetchCapabilities],
+      ['parameters', fetchParameters],
+      ['orders', fetchOrders],
     ]
     for (const [name, fetchAll] of lists) {
       const items = await fetchAll()
@@ -45,14 +51,18 @@ describe('bundled mocks (validated on the mock path too)', () => {
   it('joins flat versions, variants, and dependencies onto capabilities', async () => {
     const mail = await fetchCapabilityById('c1a2b3c4-0001-4a3b-8c1d-000000000001')
     expect(mail.versions?.length).toBeGreaterThan(0)
-    const current = mail.versions?.find((v) => v.capabilityVersionId === 'c1a2b3c4-0001-4a3b-8c1d-00000000v101')
+    const current = mail.versions?.find(
+      (v) => v.capabilityVersionId === 'c1a2b3c4-0001-4a3b-8c1d-00000000v101',
+    )
     expect(current?.variants?.length).toBeGreaterThan(0)
     expect(current?.variants?.[0].inputParameters?.length).toBeGreaterThan(0)
     expect(current?.variants?.[0].dependencies?.length).toBeGreaterThan(0)
   })
 
   it('decodes annotations from the wire entry-list form', async () => {
-    const withAnnotations = systems.find((s) => s.systemId === '1b000002-0000-4a1b-8b00-000000000002')
+    const withAnnotations = systems.find(
+      (s) => s.systemId === '1b000002-0000-4a1b-8b00-000000000002',
+    )
     await expect(fetchSystemById(withAnnotations!.systemId)).resolves.toMatchObject({
       annotations: { 'emeland.io/owner-identities': 'obs-team' },
     })

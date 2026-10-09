@@ -142,6 +142,7 @@ export const systemInstances = [
     displayName: 'Application (prod-eu)',
     system: '7a1b2c3d-4e5f-4a6b-8c9d-1e2f3a4b5c6d', // Application
     context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
+    orderItem: '0a1b2c3d-0001-4d5e-8f00-00000000i1a1', // Payments DE mail capacity
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:11Z' },
       { key: 'cluster', value: 'ber-prod' },
@@ -164,6 +165,7 @@ export const systemInstances = [
     displayName: 'Kong (prod-eu)',
     system: '8b2c3d4e-5f6a-4b7c-9d1e-2f3a4b5c6d7e', // Kong
     context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
+    orderItem: '0a1b2c3d-0001-4d5e-8f00-00000000i1e2', // Webshop API gateway route
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:08Z' },
       { key: 'cluster', value: 'ber-prod' },
@@ -186,6 +188,7 @@ export const systemInstances = [
     displayName: 'Grafana (prod)',
     system: '9c3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f', // Grafana
     context: 'a157790b-33ce-4ca8-9844-32386da44b6c', // Production
+    orderItem: '0a1b2c3d-0001-4d5e-8f00-00000000i1f1', // Payments observability
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:23:55Z' },
       { key: 'cluster', value: 'ber-prod' },
@@ -208,6 +211,7 @@ export const systemInstances = [
     displayName: 'Prometheus (prod)',
     system: 'a4d5e6f7-8b9c-4d1e-2f3a-4b5c6d7e8f9a', // Prometheus
     context: 'a157790b-33ce-4ca8-9844-32386da44b6c', // Production
+    orderItem: '0a1b2c3d-0001-4d5e-8f00-00000000i1f2', // Payments long-term metrics
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:01Z' },
       { key: 'cluster', value: 'ber-prod' },
@@ -219,6 +223,7 @@ export const systemInstances = [
     displayName: 'Prometheus Operator (prod)',
     system: 'b5e6f7a8-9c1d-4e2f-3a4b-5c6d7e8f9a1b', // Prometheus Operator
     context: 'a157790b-33ce-4ca8-9844-32386da44b6c', // Production
+    orderItem: '0a1b2c3d-0001-4d5e-8f00-00000000i1g2', // ML training kube-prometheus-stack
     annotations: [
       { key: 'eximpl.emeland.io/last-update', value: '2026-05-28T09:24:03Z' },
       { key: 'cluster', value: 'ber-prod' },

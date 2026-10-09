@@ -46,6 +46,15 @@ export const capabilityVersions = [
     },
   },
   {
+    capabilityVersionId: 'c1a2b3c4-0001-4a3b-8c1d-00000000v300',
+    displayName: '1.0.0',
+    capability: 'c1a2b3c4-0001-4a3b-8c1d-000000000003',
+    version: {
+      version: '1.0.0',
+      availableFrom: '2025-11-01T00:00:00Z',
+    },
+  },
+  {
     capabilityVersionId: 'c1a2b3c4-0001-4a3b-8c1d-00000000v401',
     displayName: '2.0.0',
     capability: 'c1a2b3c4-0001-4a3b-8c1d-000000000004',

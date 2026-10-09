@@ -87,4 +87,35 @@ export const variants = [
       '33337a1d-ba4f-493a-8452-27ab869487a3',
     ],
   },
+  // default variants (no required values) for the ordered versions, see orderItems.ts
+  {
+    variantId: '417c81fc-ba54-482a-9d9f-e83430019793',
+    displayName: 'default',
+    capabilityVersion: 'c1a2b3c4-0001-4a3b-8c1d-00000000v100',
+    requires: [],
+  },
+  {
+    variantId: '757978ec-e166-427f-8d88-c7fdaf183d80',
+    displayName: 'default',
+    capabilityVersion: 'c1a2b3c4-0001-4a3b-8c1d-00000000v300',
+    requires: [],
+  },
+  {
+    variantId: 'c93727c2-1393-4d3d-b67e-8dca2ca3c04b',
+    displayName: 'default',
+    capabilityVersion: 'c1a2b3c4-0001-4a3b-8c1d-00000000v401',
+    requires: [],
+  },
+  {
+    variantId: '9376eef2-ffd4-4c03-9904-9a9ac40429cc',
+    displayName: 'default',
+    capabilityVersion: 'c1a2b3c4-0001-4a3b-8c1d-00000000v500',
+    requires: [],
+  },
+  {
+    variantId: '2da94fdb-5ac9-4cc5-9d3d-f7eed973644d',
+    displayName: 'default',
+    capabilityVersion: 'c1a2b3c4-0001-4a3b-8c1d-00000000v600',
+    requires: [],
+  },
 ] satisfies VariantWire[]

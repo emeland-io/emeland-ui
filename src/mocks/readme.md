@@ -4,20 +4,22 @@
 
 ## Contents
 
-| File                    | Types                  | References                          |
-| ----------------------- | ---------------------- | ----------------------------------- |
-| `contexts.ts`           | ContextType, Context   | —                                   |
-| `systems.ts`            | System, SystemInstance | contexts                            |
-| `apis.ts`               | Api, ApiInstance       | systems                             |
-| `components.ts`         | Component              | systems, apis                       |
-| `findings.ts`           | FindingType, Finding   | contexts, systems                   |
-| `capabilities.ts`       | Capability             | —                                   |
-| `capabilityVersions.ts` | CapabilityVersion      | capabilities                        |
-| `variants.ts`           | Variant                | capabilityVersions, validValues     |
-| `dependencies.ts`       | Dependency             | variants, capabilities, validValues |
-| `validValues.ts`        | ValidValue             | parameters                          |
-| `parameters.ts`         | Parameter              | —                                   |
-| `orders.ts`             | Order                  | capabilities, params                |
+| File                    | Types                  | References                                          |
+| ----------------------- | ---------------------- | --------------------------------------------------- |
+| `contexts.ts`           | ContextType, Context   | —                                                   |
+| `systems.ts`            | System, SystemInstance | contexts, orderItems (via SystemInstance.orderItem) |
+| `apis.ts`               | Api, ApiInstance       | systems                                             |
+| `components.ts`         | Component              | systems, apis                                       |
+| `findings.ts`           | FindingType, Finding   | contexts, systems                                   |
+| `capabilities.ts`       | Capability             | —                                                   |
+| `capabilityVersions.ts` | CapabilityVersion      | capabilities                                        |
+| `variants.ts`           | Variant                | capabilityVersions, validValues                     |
+| `dependencies.ts`       | Dependency             | variants, capabilities, validValues                 |
+| `validValues.ts`        | ValidValue             | parameters                                          |
+| `parameters.ts`         | Parameter              | —                                                   |
+| `orders.ts`             | Order                  | —                                                   |
+| `orderItems.ts`         | OrderItem              | orders, capabilities, capabilityVersions, variants  |
+| `boundValues.ts`        | BoundValue             | orderItems, parameters, validValues                 |
 
 ## Cross-references
 
