@@ -236,7 +236,7 @@ const showStats = computed(() => stats.value !== '')
       <span
         v-for="kind in findingKindRows"
         :key="kind"
-        class="finding-chip flex items-center gap-1 rounded-full px-1.5 py-0.5 font-mono text-micro text-warning ring-1 ring-warning/40"
+        class="finding-chip flex items-center gap-1 rounded-full border border-warning/40 px-1.5 py-0.5 font-mono text-micro text-warning"
       >
         <IconAlertTriangle
           :size="9"
@@ -252,7 +252,7 @@ const showStats = computed(() => stats.value !== '')
       </span>
       <span
         v-if="!findingKindRows.length"
-        class="finding-chip flex items-center gap-1 rounded-full px-1.5 py-0.5 font-mono text-micro text-warning ring-1 ring-warning/40"
+        class="finding-chip flex items-center gap-1 rounded-full border border-warning/40 px-1.5 py-0.5 font-mono text-micro text-warning"
       >
         <IconAlertTriangle
           :size="9"

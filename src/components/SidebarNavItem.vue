@@ -27,12 +27,12 @@ function onLeave() {
   <router-link
     :to="item.route"
     :data-nav-route="item.route"
-    class="group flex items-center border-l-2 text-meta font-medium outline-none transition-colors"
+    class="group flex items-center text-meta font-medium outline-none transition-colors"
     :class="[
-      collapsed ? 'h-7 justify-center pr-0.5' : 'gap-2 px-3 py-1.5',
+      collapsed ? 'h-7 justify-center' : 'gap-2 px-3 py-1.5',
       isCursor
-        ? 'border-l-text-3 bg-bg-3 text-text-1'
-        : 'border-transparent text-text-2 hover:bg-bg-2',
+        ? 'bg-bg-3 text-text-1 shadow-[inset_2px_0_0_var(--color-text-3)]'
+        : 'text-text-2 hover:bg-bg-2',
     ]"
     active-class="active-nav"
     @mouseenter="onEnter"
@@ -54,7 +54,7 @@ function onLeave() {
       <span class="flex-1 truncate group-[.active-nav]:text-accent-text">{{ item.label }}</span>
       <span
         v-if="typeof item.badge === 'number'"
-        class="rounded-full bg-warning/10 px-1.5 font-mono text-meta text-warning ring-1 ring-warning/25"
+        class="rounded-full border border-warning/25 bg-warning/10 px-1.5 font-mono text-meta text-warning"
       >
         {{ item.badge }}
       </span>
@@ -64,7 +64,7 @@ function onLeave() {
 
 <style scoped>
 .active-nav {
-  border-left-color: var(--color-accent);
+  box-shadow: inset 2px 0 0 var(--color-accent);
   background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
   color: var(--color-accent-text);
 }

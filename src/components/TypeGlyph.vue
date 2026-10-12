@@ -37,7 +37,7 @@ const title = computed(() => {
 
 <template>
   <span
-    class="inline-flex w-5 shrink-0 items-center justify-center font-mono text-micro"
+    class="inline-flex h-5 w-5 shrink-0 items-center justify-center font-mono text-micro leading-none"
     :class="[
       instance ? 'type-chip-instance' : 'rounded-sm',
       tone === 'error' ? 'bg-error/10 text-error' : 'bg-bg-3 text-text-3',
