@@ -17,9 +17,12 @@ import type { InstanceListItem } from './gen/types.gen'
  * non-empty ids on every payload (`requireResourceId`) and the fields the
  * minimal list endpoints must carry (`requireListFields`).
  *
- * `decode` turns the byId response into the domain type, list items are
- * minimal (id + displayName) and expand through `fromList`, which defaults
- * to decoding a minimal response, since every decoder fills defaults.
+ * `decode` turns the byId response into the domain type. Minimal list items
+ * (id + displayName) expand through `fromList`, which defaults to decoding a
+ * minimal response, since every decoder fills defaults. Resources whose list
+ * endpoint returns full objects (`fullList` — modelsrv `FullListResponse`)
+ * decode those like a byId response; InstanceList refs still expand via byId
+ * (see `listRefId`).
  * The bundled mocks are wire-format fixtures and go through the same
  * validate -> decode pipeline as live responses
  *
@@ -42,8 +45,14 @@ export function makeResourceApi<
   /** wire id key of the resource ('systemId'); ids may also arrive as instanceId */
   idKey: string
   idOf: (item: T) => string
-  /** validates one item of the list response */
-  listSchema: z.ZodType<L>
+  /** validates one item of the minimal list response (unused with `fullList`) */
+  listSchema?: z.ZodType<L>
+  /**
+   * modelsrv FullListResponse: list may return full objects (decode like byId)
+   * or InstanceList refs (expand via byId). Without this flag the list is the
+   * minimal InstanceList shape and never hits byId.
+   */
+  fullList?: boolean
   /** validates the byId response */
   responseSchema: z.ZodType<R>
   /** fields every list item must carry, non-empty (the minimal list endpoints) */
@@ -92,6 +101,23 @@ export function makeResourceApi<
   async function fetchAll(): Promise<T[]> {
     if (USE_MOCKS) return loadMocks(config.namePlural)
     const data = await getJson<unknown>(config.listPath, config.namePlural)
+    if (config.fullList) {
+      if (!Array.isArray(data)) {
+        throw new ApiValidationError(config.namePlural, [
+          { path: [], message: 'expected an array' },
+        ])
+      }
+      return Promise.all(
+        data.map(async (item, i) => {
+          const indexWhat = `${config.namePlural}[${i}]`
+          const ref = listRefId(item, config.idKey, indexWhat)
+          if (ref === null) return decodeDetail(item, indexWhat)
+          const what = `${config.name} ${ref}`
+          return decodeDetail(await getJson<unknown>(config.byIdPath(ref), what), what)
+        }),
+      )
+    }
+    if (!config.listSchema) throw new Error(`${config.namePlural}: listSchema is required`)
     const items = parseApiResponse(z.array(config.listSchema), data, config.namePlural)
     // drift check on the first item (the array-level parse sees the whole list)
     if (Array.isArray(data)) warnOnUnknownKeys(data[0], items[0], config.namePlural)
@@ -115,6 +141,25 @@ export function makeResourceApi<
   }
 
   return { fetchAll, fetchById }
+}
+
+/**
+ * modelsrv picks each list endpoint's shape at codegen (`FullListResponse`):
+ * full objects carry their own id key, InstanceList refs only an instanceId.
+ * Returns null for a full object, the id to expand via byId for a ref.
+ */
+export function listRefId(item: unknown, idKey: string, what: string): string | null {
+  if (item === null || typeof item !== 'object' || Array.isArray(item)) {
+    throw new ApiValidationError(what, [{ path: [], message: 'expected an object' }])
+  }
+  const rec = item as Record<string, unknown>
+  const own = rec[idKey]
+  if (typeof own === 'string' && own) return null
+  const inst = rec.instanceId
+  if (typeof inst === 'string' && inst) return inst
+  throw new ApiValidationError(what, [
+    { path: [idKey], message: `missing id: expected ${idKey} or instanceId` },
+  ])
 }
 
 /** The fields the minimal list endpoints (zInstanceListItem) must carry */

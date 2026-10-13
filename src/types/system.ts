@@ -19,5 +19,6 @@ export interface SystemInstance {
   displayName: string
   system: UUID
   context?: UUID
+  orderItem?: UUID
   annotations: Annotations
 }

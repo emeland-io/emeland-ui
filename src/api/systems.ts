@@ -40,6 +40,7 @@ function decodeSystemInstance(res: SystemInstanceWire): SystemInstance {
     displayName: res.displayName ?? '',
     system: res.system ?? '',
     context: res.context,
+    ...(res.orderItem ? { orderItem: res.orderItem } : {}),
     annotations: decodeAnnotations(res.annotations),
   }
 }

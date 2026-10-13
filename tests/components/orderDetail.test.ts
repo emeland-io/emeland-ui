@@ -5,7 +5,9 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import OrderDetail from '@/components/orders/OrderDetail.vue'
 import type { Order } from '@/types/order'
 import { capabilities } from '@/mocks/capabilities'
+import { capabilityVersions } from '@/mocks/capabilityVersions'
 import { parameters } from '@/mocks/parameters'
+import { validValues } from '@/mocks/validValues'
 import { systems, systemInstances } from '@/mocks/systems'
 import { useCapabilitiesStore } from '@/stores/capabilities'
 import { useParametersStore } from '@/stores/parameters'
@@ -50,16 +52,19 @@ beforeEach(async () => {
   useCapabilitiesStore().capabilities = capabilities.map((c) => ({
     capabilityId: c.capabilityId,
     displayName: c.displayName,
-    versions: c.versions?.map((v) => ({
-      capabilityVersionId: v.capabilityVersionId,
-      version: v.version,
-    })),
+    versions: capabilityVersions
+      .filter((v) => v.capability === c.capabilityId)
+      .map((v) => ({
+        capabilityVersionId: v.capabilityVersionId,
+        version: v.version,
+      })),
     annotations: {},
   }))
   useParametersStore().parameters = parameters.map((p) => ({
     parameterId: p.parameterId,
     displayName: p.displayName,
-    values: p.values,
+    // a parameter's value set lives on the ValidValues pointing at it
+    values: validValues.filter((v) => v.parameter === p.parameterId).map((v) => v.displayName),
     annotations: {},
   }))
   const systemStore = useSystemStore()

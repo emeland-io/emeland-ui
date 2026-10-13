@@ -47,7 +47,13 @@ export const API = {
   // Phase 3 — Capabilities
   PRODUCTS: resource('/products'),
   CAPABILITIES: resource('/capabilities'),
+  CAPABILITY_VERSIONS: resource('/capabilityVersions'),
+  VARIANTS: resource('/variants'),
+  DEPENDENCIES: resource('/dependencies'),
+  VALID_VALUES: resource('/validValues'),
   ORDERS: resource('/orders'),
+  ORDER_ITEMS: resource('/orderItems'),
+  BOUND_VALUES: resource('/boundValues'),
   PARAMETERS: resource('/parameters'),
 
   // Phase 5 — Risk (Findings)
