@@ -64,7 +64,8 @@ const RESOURCES: Record<ResourceType, ResourceMeta> = {
   Product: { label: 'Product', route: null, chip: 'Pr' },
 
   // Phase 6
-  Metric: { label: 'Metric', route: null, chip: 'Me' },
+  Metric: { label: 'Metric', route: 'Metrics', chip: 'Me' },
+  MetricInstance: { label: 'Metric Instance', route: null, chip: 'Mi' },
   Threshold: { label: 'Threshold', route: null, chip: 'Th' },
   MetricValue: { label: 'Metric Value', route: null, chip: 'Mv' },
 

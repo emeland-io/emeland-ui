@@ -46,6 +46,7 @@ export type ResourceType =
   | 'Product'
   // Phase 6
   | 'Metric'
+  | 'MetricInstance'
   | 'Threshold'
   | 'MetricValue'
   // Phase 7

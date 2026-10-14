@@ -34,6 +34,16 @@ import {
   fetchFindingTypes,
   fetchFindingTypeById,
 } from '@/api/findings'
+import {
+  fetchMetrics,
+  fetchMetricById,
+  fetchMetricInstances,
+  fetchMetricInstanceById,
+  fetchMetricValues,
+  fetchMetricValueById,
+  fetchThresholds,
+  fetchThresholdById,
+} from '@/api/metrics'
 import { fetchModel } from '@/api/model'
 import { useToasts } from '@/composables/useToasts'
 import { systems, systemInstances } from '@/mocks/systems'
@@ -42,6 +52,7 @@ import { components, componentInstances } from '@/mocks/components'
 import { contexts, contextTypes } from '@/mocks/contexts'
 import { nodes, nodeTypes } from '@/mocks/nodes'
 import { findings, findingTypes } from '@/mocks/findings'
+import { metrics, metricInstances, metricValues, thresholds } from '@/mocks/metrics'
 import { model } from '@/mocks/model'
 
 const getJsonMock = vi.mocked(getJson)
@@ -203,6 +214,10 @@ describe('every module validates', () => {
     ['node types', fetchNodeTypes],
     ['findings', fetchFindings],
     ['finding types', fetchFindingTypes],
+    ['metrics', fetchMetrics],
+    ['metric instances', fetchMetricInstances],
+    ['metric values', fetchMetricValues],
+    ['thresholds', fetchThresholds],
   ]
 
   it.each(listCases)('%s: item without a valid id throws', async (_name, fetchAll) => {
@@ -229,6 +244,10 @@ describe('bundled mocks satisfy the wire schemas', () => {
       [nodes[0], fetchNodeById, nodes[0].nodeId],
       [nodeTypes[0], fetchNodeTypeById, nodeTypes[0].nodeTypeId],
       [findingTypes[0], fetchFindingTypeById, findingTypes[0].findingTypeId],
+      [metrics[0], fetchMetricById, metrics[0].metricId],
+      [metricInstances[0], fetchMetricInstanceById, metricInstances[0].metricInstanceId],
+      [metricValues[0], fetchMetricValueById, metricValues[0].metricValueId],
+      [thresholds[0], fetchThresholdById, thresholds[0].thresholdId],
     ]
     for (const [payload, fetchById, id] of detailCases) {
       getJsonMock.mockResolvedValue(payload)

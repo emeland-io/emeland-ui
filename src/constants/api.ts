@@ -60,6 +60,12 @@ export const API = {
   FINDINGS: resource('/findings'),
   FINDING_TYPES: resource('/findingTypes'),
 
+  // Phase 6 — Observability
+  METRICS: resource('/metrics'),
+  METRIC_INSTANCES: resource('/metricInstances'),
+  METRIC_VALUES: resource('/metricValues'),
+  THRESHOLDS: resource('/thresholds'),
+
   // Phase 8 — Artifacts
   ARTIFACTS: resource('/artifacts'),
   ARTIFACT_INSTANCES: resource('/artifactInstances'),
