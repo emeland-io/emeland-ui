@@ -1,0 +1,163 @@
+import { describe, it, expect, beforeEach } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { setActivePinia, createPinia } from 'pinia'
+import { createRouter, createMemoryHistory } from 'vue-router'
+import MetricDetail from '@/components/metrics/MetricDetail.vue'
+import { useMetricsStore } from '@/stores/metrics'
+import { useNodesStore } from '@/stores/nodes'
+import { useSystemStore } from '@/stores/systems'
+import type { Metric, MetricInstance } from '@/types/metric'
+
+const METRIC: Metric = {
+  metricId: 'm1',
+  displayName: 'p99 API latency',
+  description: 'End-to-end request latency at the 99th percentile.',
+  annotations: { 'emeland.io/unit': 'ms', 'emeland.io/dimension': 'latency' },
+}
+
+const INSTANCES: MetricInstance[] = [
+  {
+    metricInstanceId: 'i-orders',
+    displayName: 'p99 latency for orders-api',
+    metricId: 'm1',
+    subject: { resourceId: 'n-orders', resourceType: 'Node' },
+    annotations: {},
+  },
+  {
+    metricInstanceId: 'i-payments',
+    displayName: 'p99 latency for payments-api',
+    metricId: 'm1',
+    subject: { resourceId: 'si-app', resourceType: 'SystemInstance' },
+    annotations: { 'emeland.io/unit': 's' },
+  },
+]
+
+function seedStores() {
+  const metrics = useMetricsStore()
+  metrics.metrics = [METRIC]
+  metrics.metricInstances = INSTANCES
+  metrics.thresholds = [
+    {
+      thresholdId: 't-orders',
+      displayName: 'orders-api p99 warning',
+      metricInstanceId: 'i-orders',
+      annotations: { 'emeland.io/threshold.operator': 'gt', 'emeland.io/threshold.limit': '300' },
+    },
+    {
+      thresholdId: 't-payments',
+      displayName: 'payments-api p99 warning',
+      metricInstanceId: 'i-payments',
+      annotations: { 'emeland.io/threshold.operator': 'gt', 'emeland.io/threshold.limit': '0.3' },
+    },
+  ]
+  metrics.metricValues = [
+    {
+      metricValueId: 'v-orders',
+      displayName: 'Current p99 latency',
+      metricInstanceId: 'i-orders',
+      value: '412',
+      annotations: {},
+    },
+    {
+      metricValueId: 'v-payments',
+      displayName: 'Current p99 latency',
+      metricInstanceId: 'i-payments',
+      value: '0.188',
+      annotations: {},
+    },
+  ]
+  useNodesStore().nodes = [{ nodeId: 'n-orders', displayName: 'Sensor System A', annotations: {} }]
+  useSystemStore().systemInstances = [
+    {
+      systemInstanceId: 'si-app',
+      displayName: 'Application (prod-eu)',
+      system: 's-app',
+      annotations: {},
+    },
+  ]
+}
+
+function mountDetail(props: Record<string, unknown> = {}) {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }],
+  })
+  return mount(MetricDetail, {
+    props: { metric: METRIC, instances: INSTANCES, ...props },
+    global: { plugins: [router] },
+  })
+}
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+  seedStores()
+})
+
+describe('MetricDetail', () => {
+  it('shows the metric identity with dimension and unit tags', () => {
+    const w = mountDetail()
+    expect(w.text()).toContain('p99 API latency')
+    expect(w.text()).toContain('End-to-end request latency')
+    expect(w.text()).toContain('latency')
+    expect(w.text()).toContain('ms')
+    expect(w.text()).toContain('m1')
+  })
+
+  it('resolves subject names instead of ids', () => {
+    const w = mountDetail()
+    const text = w.text()
+    expect(text).toContain('Sensor System A')
+    expect(text).toContain('Application (prod-eu)')
+    expect(w.find('tbody').text()).not.toContain('n-orders')
+  })
+
+  it('renders each reading with its effective unit, condition and status', () => {
+    const w = mountDetail()
+    const rows = w.findAll('tbody tr')
+    expect(rows).toHaveLength(2)
+    const orders = rows.find((r) => r.text().includes('orders-api'))!
+    const payments = rows.find((r) => r.text().includes('payments-api'))!
+    expect(orders.text()).toContain('412')
+    expect(orders.text()).toContain('> 300 ms')
+    expect(orders.text()).toContain('over limit')
+    // instance-level unit override wins over the metric unit
+    expect(payments.text()).toContain('0.188')
+    expect(payments.text()).toContain('> 0.3 s')
+    expect(payments.text()).toContain('within limits')
+  })
+
+  it('puts breached readings first and tallies statuses in the readings header', () => {
+    const w = mountDetail()
+    expect(w.findAll('tbody tr')[0].text()).toContain('orders-api')
+    expect(w.text()).toContain('1 over limit')
+    expect(w.text()).toContain('1 within limits')
+    // mixed units (ms vs s): no comparable range
+    expect(w.text()).not.toContain('–')
+  })
+
+  it('shows the value range when all readings share one unit', () => {
+    const w = mountDetail({
+      instances: INSTANCES.map((i) => ({ ...i, annotations: {} })),
+    })
+    expect(w.text()).toContain('0.188 – 412 ms')
+  })
+
+  it('emits open-instance when a reading row is clicked', async () => {
+    const w = mountDetail()
+    const payments = w.findAll('tbody tr').find((r) => r.text().includes('payments'))!
+    await payments.trigger('click')
+    expect(w.emitted('open-instance')).toEqual([['i-payments']])
+  })
+
+  it('explains an instance-less metric in the section idiom', () => {
+    const w = mountDetail({ instances: [] })
+    expect(w.text()).toContain('Instances')
+    expect(w.text()).toContain('No metric instances reference this metric.')
+    expect(w.find('table').exists()).toBe(false)
+  })
+
+  it('shows the empty state without a metric', () => {
+    const w = mountDetail({ metric: undefined, instances: [] })
+    expect(w.text()).toContain('Select a metric to inspect')
+  })
+})

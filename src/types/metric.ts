@@ -95,7 +95,6 @@ export type ThresholdCondition =
   | { kind: 'operator'; operator: string; limit: string }
   | { kind: 'expression'; expression: string; language?: string }
 
-
 export function thresholdCondition(t: Threshold): ThresholdCondition | undefined {
   const expression = t.annotations[THRESHOLD_ANN.expression]
   if (expression) {
@@ -165,11 +164,27 @@ export function orderedThresholdConditions(
 
 export type InstanceStatus = 'breached' | 'ok' | 'unknown' | 'no-reading'
 
+/** every status in display order: the worst first */
+export const INSTANCE_STATUSES: readonly InstanceStatus[] = [
+  'breached',
+  'ok',
+  'unknown',
+  'no-reading',
+]
+
 export const INSTANCE_STATUS_LABEL: Record<InstanceStatus, string> = {
   breached: 'over limit',
   ok: 'within limits',
   unknown: 'unevaluated',
   'no-reading': 'no reading',
+}
+
+/** tooltip explaining each status, the derivation happens client-side */
+export const INSTANCE_STATUS_TITLE: Record<InstanceStatus, string> = {
+  breached: 'A current value breaches an operator threshold (derived client-side)',
+  ok: 'All evaluable thresholds hold for the current values (derived client-side)',
+  unknown: 'No threshold could be evaluated: none defined, expression-only, or non-numeric value',
+  'no-reading': 'No current value reported',
 }
 
 export function instanceStatus(thresholds: Threshold[], values: MetricValue[]): InstanceStatus {

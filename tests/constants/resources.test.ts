@@ -80,6 +80,7 @@ describe('resources constants', () => {
       'API',
       'Capability',
       'Order',
+      'Metric',
     ]
     for (const type of navigable) {
       expect(routeForResource(type)).not.toBeNull()
@@ -96,7 +97,7 @@ describe('resources constants', () => {
       'Permission',
       'Parameter',
       'Product',
-      'Metric',
+      'MetricInstance',
       'Threshold',
       'MetricValue',
       'Capacity',
