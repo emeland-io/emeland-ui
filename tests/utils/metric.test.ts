@@ -5,6 +5,7 @@ import {
   formatThreshold,
   instanceStatus,
   instanceUnit,
+  orderedThresholds,
   parseMetricNumber,
   thresholdCondition,
 } from '@/types/metric'
@@ -153,6 +154,29 @@ describe('instanceStatus', () => {
     expect(instanceStatus([], [value('188')])).toBe('unknown')
     expect(instanceStatus([expr], [value('188')])).toBe('unknown')
     expect(instanceStatus([gt300], [value('degraded')])).toBe('unknown')
+  })
+})
+
+describe('orderedThresholds', () => {
+  it('lists breached thresholds first, then operators, then expressions', () => {
+    const gt500: Threshold = {
+      thresholdId: 't-crit',
+      displayName: 'critical',
+      metricInstanceId: 'i',
+      annotations: { 'emeland.io/threshold.operator': 'gt', 'emeland.io/threshold.limit': '500' },
+    }
+    const ordered = orderedThresholds([expr, gt500, gt300], [value('412')])
+    expect(ordered).toEqual([gt300, gt500, expr])
+  })
+
+  it('orders unbreached operator thresholds by ascending limit', () => {
+    const gt500: Threshold = {
+      thresholdId: 't-crit',
+      displayName: 'critical',
+      metricInstanceId: 'i',
+      annotations: { 'emeland.io/threshold.operator': 'gt', 'emeland.io/threshold.limit': '500' },
+    }
+    expect(orderedThresholds([gt500, gt300], [value('100')])).toEqual([gt300, gt500])
   })
 })
 

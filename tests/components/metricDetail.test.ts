@@ -6,6 +6,7 @@ import MetricDetail from '@/components/metrics/MetricDetail.vue'
 import { useMetricsStore } from '@/stores/metrics'
 import { useNodesStore } from '@/stores/nodes'
 import { useSystemStore } from '@/stores/systems'
+import { useFindingsStore } from '@/stores/findings'
 import type { Metric, MetricInstance } from '@/types/metric'
 
 const METRIC: Metric = {
@@ -44,6 +45,12 @@ function seedStores() {
       annotations: { 'emeland.io/threshold.operator': 'gt', 'emeland.io/threshold.limit': '300' },
     },
     {
+      thresholdId: 't-orders-critical',
+      displayName: 'orders-api p99 critical',
+      metricInstanceId: 'i-orders',
+      annotations: { 'emeland.io/threshold.operator': 'gt', 'emeland.io/threshold.limit': '500' },
+    },
+    {
       thresholdId: 't-payments',
       displayName: 'payments-api p99 warning',
       metricInstanceId: 'i-payments',
@@ -59,10 +66,31 @@ function seedStores() {
       annotations: {},
     },
     {
+      metricValueId: 'v-orders-prev',
+      displayName: 'Previous window p99',
+      metricInstanceId: 'i-orders',
+      value: '350',
+      annotations: {},
+    },
+    {
       metricValueId: 'v-payments',
       displayName: 'Current p99 latency',
       metricInstanceId: 'i-payments',
       value: '0.188',
+      annotations: {},
+    },
+  ]
+  useFindingsStore().findings = [
+    {
+      findingId: 'f-orders',
+      displayName: 'Latency objective missed',
+      resources: [
+        {
+          resourceId: 'i-orders',
+          displayName: 'p99 latency for orders-api',
+          resourceType: 'MetricInstance',
+        },
+      ],
       annotations: {},
     },
   ]
@@ -124,6 +152,35 @@ describe('MetricDetail', () => {
     expect(payments.text()).toContain('0.188')
     expect(payments.text()).toContain('> 0.3 s')
     expect(payments.text()).toContain('within limits')
+  })
+
+  it('lists every threshold with its name, breached first', () => {
+    const w = mountDetail()
+    const orders = w.findAll('tbody tr').find((r) => r.text().includes('orders-api'))!
+    const text = orders.text()
+    expect(text).toContain('> 300 ms')
+    expect(text).toContain('> 500 ms')
+    expect(text.indexOf('p99 warning')).toBeLessThan(text.indexOf('p99 critical'))
+  })
+
+  it('lists every value with its name', () => {
+    const w = mountDetail()
+    const orders = w.findAll('tbody tr').find((r) => r.text().includes('orders-api'))!
+    expect(orders.text()).toContain('412')
+    expect(orders.text()).toContain('350')
+    expect(orders.text()).toContain('Previous window p99')
+    expect(orders.text()).not.toContain('+1')
+  })
+
+  it('marks an instance-level unit override and shows findings per row', () => {
+    const w = mountDetail()
+    const rows = w.findAll('tbody tr')
+    const orders = rows.find((r) => r.text().includes('orders-api'))!
+    const payments = rows.find((r) => r.text().includes('payments-api'))!
+    expect(payments.find('[title^="Unit set on the instance"]').exists()).toBe(true)
+    expect(orders.find('[title^="Unit set on the instance"]').exists()).toBe(false)
+    expect(orders.find('[title="1 finding"]').exists()).toBe(true)
+    expect(payments.find('[title="1 finding"]').exists()).toBe(false)
   })
 
   it('puts breached readings first and tallies statuses in the readings header', () => {

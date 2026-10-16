@@ -5,9 +5,11 @@ import {
   IconArrowUp,
   IconArrowUpRight,
   IconLayoutSidebarRight,
+  IconMathFunction,
   IconSearch,
 } from '@tabler/icons-vue'
 import { useMetricsStore } from '@/stores/metrics'
+import { useFindingsStore } from '@/stores/findings'
 import { useSubjectLabels } from '@/composables/useSubjectLabels'
 import { useResourceNav } from '@/composables/useResourceNav'
 import { resourceLabel } from '@/constants/resources'
@@ -15,17 +17,30 @@ import TypeGlyph from '@/components/TypeGlyph.vue'
 import TypeTag from '@/components/TypeTag.vue'
 import SkeletonBlock from '@/components/view/SkeletonBlock.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
+import FindingsBadge from '@/components/list/FindingsBadge.vue'
 import {
   INSTANCE_STATUSES,
   INSTANCE_STATUS_LABEL,
   INSTANCE_STATUS_TITLE,
+  METRIC_ANN,
+  evaluateThreshold,
   formatThreshold,
   instanceUnit,
-  orderedThresholdConditions,
+  metricExpression,
+  metricLanguage,
+  metricUnit,
+  orderedThresholds,
   parseMetricNumber,
   thresholdLanguage,
 } from '@/types/metric'
-import type { InstanceStatus, Metric, MetricInstance, MetricSubject } from '@/types/metric'
+import type {
+  InstanceStatus,
+  Metric,
+  MetricInstance,
+  MetricSubject,
+  MetricValue,
+  Threshold,
+} from '@/types/metric'
 
 const props = withDefaults(
   defineProps<{
@@ -43,6 +58,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useMetricsStore()
+const findingsStore = useFindingsStore()
 const { subjectLabel, subjectNavTarget } = useSubjectLabels()
 const { goToResource } = useResourceNav()
 
@@ -74,12 +90,12 @@ const COLUMNS: Column[] = [
   { key: 'name', label: 'Instance' },
   { key: 'subject', label: 'Subject', width: 'w-[26%]' },
   { key: 'value', label: 'Value', align: 'right', width: 'w-32' },
-  { key: 'thresholds', label: 'Threshold', width: 'w-44' },
+  { key: 'thresholds', label: 'Threshold', width: 'w-48' },
   { key: 'status', label: 'Status', width: 'w-32' },
 ]
 
-/** conditions listed per row before "+n more" takes over */
-const MAX_CONDITIONS = 3
+/** thresholds listed per row before "+n more" takes over */
+const MAX_THRESHOLDS = 3
 
 const STATUS_TONE: Record<InstanceStatus, 'warning' | 'muted'> = {
   breached: 'warning',
@@ -93,16 +109,32 @@ const showFilter = computed(() => props.instances.length > 8)
 
 const relatedLoading = computed(() => store.valuesLoading || store.thresholdsLoading)
 
+interface Reading {
+  value: MetricValue
+  breached: boolean
+}
+
+interface ThresholdRow {
+  threshold: Threshold
+  condition: string | undefined
+  breached: boolean
+}
+
 interface Row {
   inst: MetricInstance
   id: string
   subject: string
   unit: string | undefined
-  values: ReturnType<typeof store.getValuesFor>
+  unitOverride: boolean
+  expression: string | undefined
+  language: string | undefined
+  findings: number
+  values: MetricValue[]
+  readings: Reading[]
   primary: string | undefined
   numeric: number | undefined
-  thresholds: ReturnType<typeof store.getThresholdsFor>
-  conditions: string[]
+  thresholds: Threshold[]
+  thresholdRows: ThresholdRow[]
   status: InstanceStatus
 }
 
@@ -111,18 +143,31 @@ const rows = computed<Row[]>(() =>
     const id = inst.metricInstanceId
     const unit = instanceUnit(inst, props.metric)
     const values = store.getValuesFor(id)
-    const thresholds = store.getThresholdsFor(id)
+    const thresholds = orderedThresholds(store.getThresholdsFor(id), values)
     const primary = values[0]?.value
+    const ownUnit = inst.annotations[METRIC_ANN.unit]
     return {
       inst,
       id,
       subject: subjectLabel(inst.subject),
       unit,
+      unitOverride: !!ownUnit && ownUnit !== metricUnit(props.metric),
+      expression: metricExpression(inst.annotations),
+      language: metricLanguage(inst.annotations),
+      findings: findingsStore.findingCountFor(id),
       values,
+      readings: values.map((value) => ({
+        value,
+        breached: thresholds.some((t) => evaluateThreshold(t, value.value) === 'breached'),
+      })),
       primary,
       numeric: primary === undefined ? undefined : parseMetricNumber(primary),
       thresholds,
-      conditions: orderedThresholdConditions(thresholds, values, unit),
+      thresholdRows: thresholds.map((threshold) => ({
+        threshold,
+        condition: formatThreshold(threshold, unit),
+        breached: values.some((v) => evaluateThreshold(threshold, v.value) === 'breached'),
+      })),
       status: store.statusByInstance.get(id) ?? 'no-reading',
     }
   }),
@@ -172,9 +217,15 @@ const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
   if (!q) return rows.value
   return rows.value.filter((r) =>
-    [r.inst.displayName, r.id, r.subject, r.primary, ...r.conditions].some((f) =>
-      (f ?? '').toLowerCase().includes(q),
-    ),
+    [
+      r.inst.displayName,
+      r.id,
+      r.subject,
+      ...r.values.map((v) => v.value),
+      ...r.values.map((v) => v.displayName),
+      ...r.thresholdRows.map((t) => t.condition),
+      ...r.thresholds.map((t) => t.displayName),
+    ].some((f) => (f ?? '').toLowerCase().includes(q)),
   )
 })
 
@@ -227,13 +278,23 @@ function valuesTitle(r: Row): string {
 
 function thresholdsTitle(r: Row): string {
   if (r.thresholds.length === 0) return 'No thresholds'
-  return r.thresholds
-    .map((t) => {
-      const lang = thresholdLanguage(t)
-      const cond = formatThreshold(t, r.unit)
-      return `${t.displayName}${cond ? `: ${cond}` : ''}${lang ? ` (${lang})` : ''}`
+  return r.thresholdRows
+    .map(({ threshold, condition }) => {
+      const lang = thresholdLanguage(threshold)
+      return `${threshold.displayName}${condition ? `: ${condition}` : ''}${lang ? ` (${lang})` : ''}`
     })
     .join('\n')
+}
+
+function unitTitle(r: Row): string | undefined {
+  if (!r.unitOverride) return undefined
+  const base = metricUnit(props.metric)
+  return base ? `Unit set on the instance (metric unit: ${base})` : 'Unit set on the instance'
+}
+
+function expressionTitle(r: Row): string | undefined {
+  if (!r.expression) return undefined
+  return r.language ? `${r.language}: ${r.expression}` : r.expression
 }
 </script>
 
@@ -341,11 +402,22 @@ function thresholdsTitle(r: Row): string {
               />
             </td>
             <td class="px-2 py-2">
-              <div
-                class="truncate font-medium text-text-1"
-                :title="r.inst.displayName"
-              >
-                {{ r.inst.displayName }}
+              <div class="flex min-w-0 items-center gap-1.5">
+                <span
+                  class="min-w-0 truncate font-medium text-text-1"
+                  :title="r.inst.displayName"
+                >
+                  {{ r.inst.displayName }}
+                </span>
+                <IconMathFunction
+                  v-if="r.expression"
+                  :size="13"
+                  :stroke-width="1.75"
+                  class="shrink-0 text-text-4"
+                  :title="expressionTitle(r)"
+                  aria-label="Has an expression"
+                />
+                <FindingsBadge :count="r.findings" />
               </div>
               <div
                 v-if="r.inst.description"
@@ -393,24 +465,33 @@ function thresholdsTitle(r: Row): string {
                 v-if="relatedLoading && r.values.length === 0"
                 class="ml-auto h-4 w-16"
               />
-              <template v-else-if="r.primary !== undefined">
+              <template v-else-if="r.readings.length > 0">
                 <span
-                  class="text-body font-medium"
-                  :class="r.status === 'breached' ? 'text-warning' : 'text-text-1'"
+                  v-for="{ value, breached } in r.readings"
+                  :key="value.metricValueId"
+                  class="block"
                 >
-                  {{ r.primary }}
-                </span>
-                <span
-                  v-if="r.unit"
-                  class="ml-1 text-meta text-text-3"
-                >
-                  {{ r.unit }}
-                </span>
-                <span
-                  v-if="r.values.length > 1"
-                  class="ml-1 text-micro text-text-4"
-                >
-                  +{{ r.values.length - 1 }}
+                  <span
+                    class="text-body font-medium"
+                    :class="breached ? 'text-warning' : 'text-text-1'"
+                  >
+                    {{ value.value }}
+                  </span>
+                  <span
+                    v-if="r.unit"
+                    class="ml-1 text-meta text-text-3"
+                    :class="r.unitOverride ? 'underline decoration-dotted underline-offset-2' : ''"
+                    :title="unitTitle(r)"
+                  >
+                    {{ r.unit }}
+                  </span>
+                  <span
+                    v-if="r.readings.length > 1"
+                    class="block truncate text-micro text-text-4"
+                    :title="value.displayName"
+                  >
+                    {{ value.displayName }}
+                  </span>
                 </span>
               </template>
               <span
@@ -428,26 +509,33 @@ function thresholdsTitle(r: Row): string {
                 v-if="relatedLoading && r.thresholds.length === 0"
                 class="h-4 w-20"
               />
-              <template v-else-if="r.conditions.length > 0">
+              <template v-else-if="r.thresholdRows.length > 0">
                 <span
-                  v-for="(cond, i) in r.conditions.slice(0, MAX_CONDITIONS)"
-                  :key="i"
-                  class="block truncate"
-                  :class="
-                    i === 0 && r.status === 'breached'
-                      ? 'text-warning'
-                      : i === 0
-                        ? 'text-text-2'
-                        : 'text-text-4'
-                  "
+                  v-for="{ threshold, condition, breached } in r.thresholdRows.slice(
+                    0,
+                    MAX_THRESHOLDS,
+                  )"
+                  :key="threshold.thresholdId"
+                  class="block"
                 >
-                  {{ cond }}
+                  <span
+                    class="block truncate"
+                    :class="breached ? 'text-warning' : 'text-text-2'"
+                  >
+                    {{ condition ?? 'No condition declared' }}
+                  </span>
+                  <span
+                    class="block truncate text-micro text-text-4"
+                    :title="threshold.displayName"
+                  >
+                    {{ threshold.displayName }}
+                  </span>
                 </span>
                 <span
-                  v-if="r.conditions.length > MAX_CONDITIONS"
+                  v-if="r.thresholdRows.length > MAX_THRESHOLDS"
                   class="block text-micro text-text-4"
                 >
-                  +{{ r.conditions.length - MAX_CONDITIONS }} more
+                  +{{ r.thresholdRows.length - MAX_THRESHOLDS }} more
                 </span>
               </template>
               <span

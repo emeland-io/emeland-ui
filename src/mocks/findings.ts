@@ -42,6 +42,18 @@ export const findingTypes = [
     description: 'A Binding references a Role that does not exist in the model.',
     annotations: [{ key: 'built-in', value: 'true' }],
   },
+  {
+    findingTypeId: 'a7b8c9d1-e2f3-4a4b-8c6d-7e8f9a1b2c3d',
+    displayName: 'ThresholdBreached',
+    description: 'The current value of a metric instance breaches one of its thresholds.',
+    annotations: [],
+  },
+  {
+    findingTypeId: 'b8c9d1e2-f3a4-4b5c-8d7e-8f9a1b2c3d4e',
+    displayName: 'MetricNotFound',
+    description: 'A MetricInstance references a Metric that does not exist in the model.',
+    annotations: [{ key: 'built-in', value: 'true' }],
+  },
 ] satisfies FindingTypeWire[]
 
 /**
@@ -61,6 +73,15 @@ export const findingTypes = [
  *   RBAC (no roles/bindings mocks yet):
  *     deployer-binding:   cccc0001-0000-4000-8000-000000000001 (Binding)
  *     (missing Role):     dddd0001-0000-4000-8000-000000000001
+ *   From metrics.ts:
+ *     CPU utilization for App Backend (prod-eu): a1a1a1a1-0003-4000-8000-000000000003 (MetricInstance)
+ *     Consumer lag of the billing consumer:      a1a1a1a1-0006-4000-8000-000000000006 (MetricInstance)
+ *     Gateway saturation:                        99999999-9999-4999-8999-999999999999 (MetricInstance)
+ *     (missing Metric):                          00000000-dead-4000-8000-000000000000
+ *   From components.ts:
+ *     App Backend (prod-eu): d3a1b2c3-0000-4d5e-8f00-000000000003 (ComponentInstance)
+ *   From api.ts:
+ *     Event Bus: ac3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f (API)
  */
 export const findings = [
   {
@@ -231,5 +252,84 @@ export const findings = [
       },
     ],
     annotations: [{ key: 'eximpl.emeland.io/detected-at', value: '2026-05-28T11:12:00Z' }],
+  },
+  {
+    findingId: '18a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b63',
+
+    reference: 'emeland://findingId/18a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b63',
+    displayName: 'CPU saturation on App Backend (prod-eu)',
+    description: '1 minute average of 91 % is above the 85 % warning threshold.',
+    findingType: {
+      findingTypeId: 'a7b8c9d1-e2f3-4a4b-8c6d-7e8f9a1b2c3d',
+      displayName: 'ThresholdBreached',
+    },
+    resources: [
+      {
+        id: 'a1a1a1a1-0003-4000-8000-000000000003',
+        displayName: 'CPU utilization for App Backend (prod-eu)',
+        resourceType: 'MetricInstance',
+      },
+      {
+        id: 'd3a1b2c3-0000-4d5e-8f00-000000000003',
+        displayName: 'App Backend (prod-eu)',
+        resourceType: 'ComponentInstance',
+      },
+    ],
+    annotations: [
+      { key: 'threshold', value: 'backend CPU warning' },
+      { key: 'eximpl.emeland.io/detected-at', value: '2026-06-02T07:41:10Z' },
+    ],
+  },
+  {
+    findingId: '19a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b64',
+
+    reference: 'emeland://findingId/19a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b64',
+    displayName: 'Billing consumer lag exceeds SLO',
+    description: '18234 unprocessed order events; the billing SLO allows 10000.',
+    findingType: {
+      findingTypeId: 'd4e5f6a7-b8c9-4d1e-2f3a-4b5c6d7e8f9a',
+      displayName: 'ConsumerLagExceeded',
+    },
+    resources: [
+      {
+        id: 'a1a1a1a1-0006-4000-8000-000000000006',
+        displayName: 'Consumer lag of the billing consumer',
+        resourceType: 'MetricInstance',
+      },
+      {
+        id: 'ac3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f',
+        displayName: 'Event Bus',
+        resourceType: 'API',
+      },
+    ],
+    annotations: [
+      { key: 'consumer-group', value: 'billing' },
+      { key: 'eximpl.emeland.io/detected-at', value: '2026-06-02T07:55:03Z' },
+    ],
+  },
+  {
+    findingId: '20a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b65',
+
+    reference: 'emeland://findingId/20a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b65',
+    displayName: 'Metric reference not found',
+    description:
+      'Metric instance "Gateway saturation" references a metric that does not exist in the model.',
+    findingType: {
+      findingTypeId: 'b8c9d1e2-f3a4-4b5c-8d7e-8f9a1b2c3d4e',
+      displayName: 'MetricNotFound',
+    },
+    resources: [
+      {
+        id: '99999999-9999-4999-8999-999999999999',
+        displayName: 'Gateway saturation',
+        resourceType: 'MetricInstance',
+      },
+      {
+        id: '00000000-dead-4000-8000-000000000000',
+        displayName: '',
+        resourceType: 'Metric',
+      },
+    ],
+    annotations: [{ key: 'eximpl.emeland.io/detected-at', value: '2026-06-01T22:10:44Z' }],
   },
 ] satisfies FindingViewWire[]

@@ -147,19 +147,18 @@ export function evaluateThreshold(t: Threshold, value: string): ThresholdVerdict
   return breached ? 'breached' : 'ok'
 }
 
-export function orderedThresholdConditions(
-  thresholds: Threshold[],
-  values: MetricValue[],
-  unit?: string,
-): string[] {
+export function orderedThresholds(thresholds: Threshold[], values: MetricValue[]): Threshold[] {
   const rank = (t: Threshold) => {
     if (values.some((v) => evaluateThreshold(t, v.value) === 'breached')) return 0
     return thresholdCondition(t)?.kind === 'operator' ? 1 : 2
   }
-  return [...thresholds]
-    .sort((a, b) => rank(a) - rank(b))
-    .map((t) => formatThreshold(t, unit))
-    .filter((c): c is string => !!c)
+  const limit = (t: Threshold) => {
+    const c = thresholdCondition(t)
+    return c?.kind === 'operator' ? parseMetricNumber(c.limit) : undefined
+  }
+  return [...thresholds].sort(
+    (a, b) => rank(a) - rank(b) || (limit(a) ?? Infinity) - (limit(b) ?? Infinity),
+  )
 }
 
 export type InstanceStatus = 'breached' | 'ok' | 'unknown' | 'no-reading'
