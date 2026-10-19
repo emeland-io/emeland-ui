@@ -73,15 +73,20 @@ export const findingTypes = [
  *   RBAC (no roles/bindings mocks yet):
  *     deployer-binding:   cccc0001-0000-4000-8000-000000000001 (Binding)
  *     (missing Role):     dddd0001-0000-4000-8000-000000000001
- *   From metrics.ts:
- *     CPU utilization for App Backend (ber-prod): a1a1a1a1-0003-4000-8000-000000000003 (MetricInstance)
- *     Consumer lag of the billing consumer:      a1a1a1a1-0006-4000-8000-000000000006 (MetricInstance)
- *     Gateway saturation:                        99999999-9999-4999-8999-999999999999 (MetricInstance)
- *     (missing Metric):                          00000000-dead-4000-8000-000000000000
+ *   From metrics.ts (MetricInstance):
+ *     CPU utilization for App Backend (ber-prod):              a1a1a1a1-0003-4000-8000-000000000003
+ *     Consumer lag of deploy-notifier on deployment.lifecycle: a1a1a1a1-0006-4000-8000-000000000006
+ *     Error rate of Public Gateway (ber-prod):                 a1a1a1a1-0015-4000-8000-000000000015
+ *     Dead-letter events of topic deployment.lifecycle:        a1a1a1a1-0016-4000-8000-000000000016
+ *     Container restarts of Kong Gateway (ber-prod):           a1a1a1a1-0018-4000-8000-000000000018
+ *     Gateway saturation:                                      99999999-9999-4999-8999-999999999999
+ *     (missing Metric):                                        00000000-dead-4000-8000-000000000000
  *   From components.ts:
- *     App Backend (ber-prod): d3a1b2c3-0000-4d5e-8f00-000000000003 (ComponentInstance)
+ *     App Backend (ber-prod):  d3a1b2c3-0000-4d5e-8f00-000000000003 (ComponentInstance)
+ *     Kong Gateway (ber-prod): d5a1b2c3-0000-4d5e-8f00-000000000005 (ComponentInstance)
  *   From api.ts:
- *     Event Bus: ac3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f (API)
+ *     Event Bus:                 ac3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f (API)
+ *     Public Gateway (ber-prod): ed1b2c3d-0000-4d5e-8f00-000000000001 (ApiInstance)
  */
 export const findings = [
   {
@@ -284,8 +289,9 @@ export const findings = [
     findingId: '19a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b64',
 
     reference: 'emeland://findingId/19a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b64',
-    displayName: 'Billing consumer lag exceeds SLO',
-    description: '18234 unprocessed order events; the billing SLO allows 10000.',
+    displayName: 'deploy-notifier consumer lag exceeds SLO',
+    description:
+      '18234 unprocessed deployment events on deployment.lifecycle; the notification SLO allows 10000.',
     findingType: {
       findingTypeId: 'd4e5f6a7-b8c9-4d1e-2f3a-4b5c6d7e8f9a',
       displayName: 'ConsumerLagExceeded',
@@ -293,7 +299,7 @@ export const findings = [
     resources: [
       {
         id: 'a1a1a1a1-0006-4000-8000-000000000006',
-        displayName: 'Consumer lag of the billing consumer',
+        displayName: 'Consumer lag of deploy-notifier on deployment.lifecycle',
         resourceType: 'MetricInstance',
       },
       {
@@ -303,7 +309,8 @@ export const findings = [
       },
     ],
     annotations: [
-      { key: 'consumer-group', value: 'billing' },
+      { key: 'consumer-group', value: 'deploy-notifier' },
+      { key: 'topic', value: 'deployment.lifecycle' },
       { key: 'eximpl.emeland.io/detected-at', value: '2026-06-02T07:55:03Z' },
     ],
   },
@@ -331,5 +338,91 @@ export const findings = [
       },
     ],
     annotations: [{ key: 'eximpl.emeland.io/detected-at', value: '2026-06-01T22:10:44Z' }],
+  },
+  {
+    findingId: '21a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b66',
+
+    reference: 'emeland://findingId/21a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b66',
+    displayName: 'Public Gateway 5xx rate above SLO',
+    description:
+      '6.1 % of requests through the public gateway fail; the availability SLO allows 5 %.',
+    findingType: {
+      findingTypeId: 'a7b8c9d1-e2f3-4a4b-8c6d-7e8f9a1b2c3d',
+      displayName: 'ThresholdBreached',
+    },
+    resources: [
+      {
+        id: 'a1a1a1a1-0015-4000-8000-000000000015',
+        displayName: 'Error rate of Public Gateway (ber-prod)',
+        resourceType: 'MetricInstance',
+      },
+      {
+        id: 'ed1b2c3d-0000-4d5e-8f00-000000000001',
+        displayName: 'Public Gateway (ber-prod)',
+        resourceType: 'ApiInstance',
+      },
+    ],
+    annotations: [
+      { key: 'threshold', value: 'gateway error-rate warning' },
+      { key: 'eximpl.emeland.io/detected-at', value: '2026-06-02T08:02:31Z' },
+    ],
+  },
+  {
+    findingId: '22a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b67',
+
+    reference: 'emeland://findingId/22a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b67',
+    displayName: 'Kong Gateway pods restarting',
+    description:
+      'The kong container restarted 4 times within the last hour; 3 restarts indicate a crash loop.',
+    findingType: {
+      findingTypeId: 'a7b8c9d1-e2f3-4a4b-8c6d-7e8f9a1b2c3d',
+      displayName: 'ThresholdBreached',
+    },
+    resources: [
+      {
+        id: 'a1a1a1a1-0018-4000-8000-000000000018',
+        displayName: 'Container restarts of Kong Gateway (ber-prod)',
+        resourceType: 'MetricInstance',
+      },
+      {
+        id: 'd5a1b2c3-0000-4d5e-8f00-000000000005',
+        displayName: 'Kong Gateway (ber-prod)',
+        resourceType: 'ComponentInstance',
+      },
+    ],
+    annotations: [
+      { key: 'threshold', value: 'gateway restart loop' },
+      { key: 'namespace', value: 'kong' },
+      { key: 'eximpl.emeland.io/detected-at', value: '2026-06-02T07:58:16Z' },
+    ],
+  },
+  {
+    findingId: '23a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b68',
+
+    reference: 'emeland://findingId/23a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b68',
+    displayName: 'Dead-letter events on deployment.lifecycle',
+    description:
+      '7 deployment events were parked on the dead-letter topic after three failed deliveries.',
+    findingType: {
+      findingTypeId: 'a7b8c9d1-e2f3-4a4b-8c6d-7e8f9a1b2c3d',
+      displayName: 'ThresholdBreached',
+    },
+    resources: [
+      {
+        id: 'a1a1a1a1-0016-4000-8000-000000000016',
+        displayName: 'Dead-letter events of topic deployment.lifecycle',
+        resourceType: 'MetricInstance',
+      },
+      {
+        id: 'ac3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f',
+        displayName: 'Event Bus',
+        resourceType: 'API',
+      },
+    ],
+    annotations: [
+      { key: 'threshold', value: 'dead-letter events present' },
+      { key: 'topic', value: 'deployment.lifecycle.dlq' },
+      { key: 'eximpl.emeland.io/detected-at', value: '2026-06-02T08:04:50Z' },
+    ],
   },
 ] satisfies FindingViewWire[]
