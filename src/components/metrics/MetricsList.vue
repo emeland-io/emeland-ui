@@ -111,6 +111,8 @@ function mappingState(inst: MetricInstance) {
         <InstanceCountBadge
           v-if="store.instancesLoaded"
           :count="instanceCount(metric.metricId)"
+          noun="metric instance"
+          glyph="metric"
         />
       </template>
     </ResourceListRow>
