@@ -64,7 +64,7 @@ export const findingTypes = [
  *     Altsystem:        0a000000-0000-4211-8000-000000000008 (parent is missing)
  *     (missing parent): ffffffff-0000-4211-8000-0000000000ff
  *   From systems.ts:
- *     Application (prod-eu): e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e (SystemInstance)
+ *     Application (ber-prod): e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e (SystemInstance)
  *     Application:           7a1b2c3d-4e5f-4a6b-8c9d-1e2f3a4b5c6d (System)
  *     Prometheus (prod):     2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e (SystemInstance)
  *   From nodes.ts:
@@ -74,12 +74,12 @@ export const findingTypes = [
  *     deployer-binding:   cccc0001-0000-4000-8000-000000000001 (Binding)
  *     (missing Role):     dddd0001-0000-4000-8000-000000000001
  *   From metrics.ts:
- *     CPU utilization for App Backend (prod-eu): a1a1a1a1-0003-4000-8000-000000000003 (MetricInstance)
+ *     CPU utilization for App Backend (ber-prod): a1a1a1a1-0003-4000-8000-000000000003 (MetricInstance)
  *     Consumer lag of the billing consumer:      a1a1a1a1-0006-4000-8000-000000000006 (MetricInstance)
  *     Gateway saturation:                        99999999-9999-4999-8999-999999999999 (MetricInstance)
  *     (missing Metric):                          00000000-dead-4000-8000-000000000000
  *   From components.ts:
- *     App Backend (prod-eu): d3a1b2c3-0000-4d5e-8f00-000000000003 (ComponentInstance)
+ *     App Backend (ber-prod): d3a1b2c3-0000-4d5e-8f00-000000000003 (ComponentInstance)
  *   From api.ts:
  *     Event Bus: ac3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f (API)
  */
@@ -122,7 +122,7 @@ export const findings = [
     resources: [
       {
         id: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e',
-        displayName: 'Application (prod-eu)',
+        displayName: 'Application (ber-prod)',
         resourceType: 'SystemInstance',
       },
       {
@@ -257,7 +257,7 @@ export const findings = [
     findingId: '18a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b63',
 
     reference: 'emeland://findingId/18a2b3c4-d5e6-4f7a-8b9c-0d1e2f3a4b63',
-    displayName: 'CPU saturation on App Backend (prod-eu)',
+    displayName: 'CPU saturation on App Backend (ber-prod)',
     description: '1 minute average of 91 % is above the 85 % warning threshold.',
     findingType: {
       findingTypeId: 'a7b8c9d1-e2f3-4a4b-8c6d-7e8f9a1b2c3d',
@@ -266,12 +266,12 @@ export const findings = [
     resources: [
       {
         id: 'a1a1a1a1-0003-4000-8000-000000000003',
-        displayName: 'CPU utilization for App Backend (prod-eu)',
+        displayName: 'CPU utilization for App Backend (ber-prod)',
         resourceType: 'MetricInstance',
       },
       {
         id: 'd3a1b2c3-0000-4d5e-8f00-000000000003',
-        displayName: 'App Backend (prod-eu)',
+        displayName: 'App Backend (ber-prod)',
         resourceType: 'ComponentInstance',
       },
     ],

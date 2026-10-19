@@ -98,7 +98,7 @@ function seedStores() {
   useSystemStore().systemInstances = [
     {
       systemInstanceId: 'si-app',
-      displayName: 'Application (prod-eu)',
+      displayName: 'Application (ber-prod)',
       system: 's-app',
       annotations: {},
     },
@@ -135,7 +135,7 @@ describe('MetricDetail', () => {
     const w = mountDetail()
     const text = w.text()
     expect(text).toContain('Sensor System A')
-    expect(text).toContain('Application (prod-eu)')
+    expect(text).toContain('Application (ber-prod)')
     expect(w.find('tbody').text()).not.toContain('n-orders')
   })
 

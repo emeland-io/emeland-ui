@@ -135,7 +135,7 @@ const MISSING_SYSINST = 'ffffffff-0000-4c2d-9c00-0000000000dd'
 export const componentInstances = [
   {
     componentInstanceId: 'd1a1b2c3-0000-4d5e-8f00-000000000001',
-    displayName: 'App Frontend (prod-eu)',
+    displayName: 'App Frontend (ber-prod)',
     component: 'ca1b2c3d-4e5f-4a6b-8c9d-1e2f3a4b5c6d',
     systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e',
     consumes: [],
@@ -161,7 +161,7 @@ export const componentInstances = [
   },
   {
     componentInstanceId: 'd3a1b2c3-0000-4d5e-8f00-000000000003',
-    displayName: 'App Backend (prod-eu)',
+    displayName: 'App Backend (ber-prod)',
     component: 'cb2c3d4e-5f6a-4b7c-9d1e-2f3a4b5c6d7e',
     systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e',
     consumes: [],
@@ -187,7 +187,7 @@ export const componentInstances = [
   },
   {
     componentInstanceId: 'd5a1b2c3-0000-4d5e-8f00-000000000005',
-    displayName: 'Kong Gateway (prod-eu)',
+    displayName: 'Kong Gateway (ber-prod)',
     component: 'cc3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f',
     systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f',
     consumes: [],
@@ -272,7 +272,7 @@ export const componentInstances = [
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000a1',
     displayName: 'Mystery Container',
     component: MISSING_COMPONENT, // dangling reference (unmapped demo)
-    systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (prod-eu)
+    systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (ber-prod)
     consumes: [],
     provides: [],
     annotations: [
@@ -330,7 +330,7 @@ export const componentInstances = [
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000b1',
     displayName: 'Discovered Container (redis)',
     component: 'ffffffff-0000-4211-8000-0000000000cd', // unresolvable component reference
-    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (ber-prod)
     consumes: [],
     provides: [],
     annotations: [
@@ -342,7 +342,7 @@ export const componentInstances = [
     componentInstanceId: 'd11a1b2c-0000-4d5e-8f00-0000000000b2',
     displayName: 'Discovered Container (nginx)',
     component: 'ffffffff-0000-4211-8000-0000000000cd',
-    systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (prod-eu)
+    systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (ber-prod)
     consumes: [],
     provides: [],
     annotations: [

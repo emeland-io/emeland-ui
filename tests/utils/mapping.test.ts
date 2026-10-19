@@ -24,7 +24,7 @@ describe('groupByBrokenRef', () => {
   })
 
   it('resolves labels via labelOf and clears the state when the reference exists', () => {
-    const known = new Map([['si-1', 'Kong (prod-eu)']])
+    const known = new Map([['si-1', 'Kong (ber-prod)']])
     const items = [
       { id: 'a', ref: 'si-1' },
       { id: 'b', ref: 'si-missing' },
@@ -39,7 +39,7 @@ describe('groupByBrokenRef', () => {
     )
 
     const resolved = groups.find((g) => g.key === 'si-1')!
-    expect(resolved.label).toBe('Kong (prod-eu)')
+    expect(resolved.label).toBe('Kong (ber-prod)')
     expect(resolved.state).toBeUndefined()
 
     const broken = groups.find((g) => g.key === 'si-missing')!

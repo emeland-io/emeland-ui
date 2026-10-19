@@ -4,13 +4,13 @@
  * Subjects reference resources from other mock files:
  *   Nodes (nodes.ts):            Sensor System A  b1c2d3e4-f5a6-4b7c-8d9e-1f2a3b4c5d6e
  *                                Sensor System B  c2d3e4f5-a6b7-4c8d-9e1f-2a3b4c5d6e7f
- *   SystemInstance (systems.ts): Application (prod-eu)  e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e
- *   ApiInstance (api.ts):        Command API (prod-eu)  ea1b2c3d-0000-4d5e-8f00-000000000001
+ *   SystemInstance (systems.ts): Application (ber-prod)  e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e
+ *   ApiInstance (api.ts):        Command API (ber-prod)  ea1b2c3d-0000-4d5e-8f00-000000000001
  *   API (api.ts):                Event Bus              ac3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f
  *                                Public Gateway         ad4e5f6a-7b8c-4d9e-1f2a-3b4c5d6e7f8a
  *   ComponentInstance (components.ts):
- *                                App Backend (prod-eu)  d3a1b2c3-0000-4d5e-8f00-000000000003
- *                                Kong Gateway (prod-eu) d5a1b2c3-0000-4d5e-8f00-000000000005
+ *                                App Backend (ber-prod)  d3a1b2c3-0000-4d5e-8f00-000000000003
+ *                                Kong Gateway (ber-prod) d5a1b2c3-0000-4d5e-8f00-000000000005
  *                                Grafana Server (prod)  d7a1b2c3-0000-4d5e-8f00-000000000007
  *
  */
@@ -87,17 +87,17 @@ const TH = {
 const ORDERS_NODE = 'b1c2d3e4-f5a6-4b7c-8d9e-1f2a3b4c5d6e'
 /** Node from mocks/nodes.ts — Sensor System B */
 const PAYMENTS_NODE = 'c2d3e4f5-a6b7-4c8d-9e1f-2a3b4c5d6e7f'
-/** SystemInstance from mocks/systems.ts — Application (prod-eu) */
+/** SystemInstance from mocks/systems.ts — Application (ber-prod) */
 const APP_PROD_EU = 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e'
-/** ApiInstance from mocks/api.ts — Command API (prod-eu) */
+/** ApiInstance from mocks/api.ts — Command API (ber-prod) */
 const COMMAND_API_PROD_EU = 'ea1b2c3d-0000-4d5e-8f00-000000000001'
 /** API from mocks/api.ts — Event Bus */
 const EVENT_BUS_API = 'ac3d4e5f-6a7b-4c8d-1e2f-3a4b5c6d7e8f'
 /** API from mocks/api.ts — Public Gateway */
 const PUBLIC_GATEWAY_API = 'ad4e5f6a-7b8c-4d9e-1f2a-3b4c5d6e7f8a'
-/** ComponentInstance from mocks/components.ts — App Backend (prod-eu) */
+/** ComponentInstance from mocks/components.ts — App Backend (ber-prod) */
 const APP_BACKEND_PROD_EU = 'd3a1b2c3-0000-4d5e-8f00-000000000003'
-/** ComponentInstance from mocks/components.ts — Kong Gateway (prod-eu) */
+/** ComponentInstance from mocks/components.ts — Kong Gateway (ber-prod) */
 const KONG_PROD_EU = 'd5a1b2c3-0000-4d5e-8f00-000000000005'
 /** ComponentInstance from mocks/components.ts — Grafana Server (prod) */
 const GRAFANA_PROD = 'd7a1b2c3-0000-4d5e-8f00-000000000007'
@@ -213,7 +213,7 @@ export const metricInstances = [
   },
   {
     metricInstanceId: MI.paymentsErrorRate,
-    displayName: 'Error rate for payments (prod-eu)',
+    displayName: 'Error rate for payments (ber-prod)',
     description: 'Reported in percent by the payments team dashboard.',
     metricRef: { metricId: M.errorRate },
     subject: { resourceId: APP_PROD_EU, resourceType: 'SystemInstance' },
@@ -261,7 +261,7 @@ export const metricInstances = [
   },
   {
     metricInstanceId: MI.backendCpu,
-    displayName: 'CPU utilization for App Backend (prod-eu)',
+    displayName: 'CPU utilization for App Backend (ber-prod)',
     description: 'Two readings: a 1 minute and a 15 minute average.',
     metricRef: { metricId: M.cpuUtilization },
     subject: { resourceId: APP_BACKEND_PROD_EU, resourceType: 'ComponentInstance' },
@@ -275,7 +275,7 @@ export const metricInstances = [
   },
   {
     metricInstanceId: MI.kongCpu,
-    displayName: 'CPU utilization for Kong Gateway (prod-eu)',
+    displayName: 'CPU utilization for Kong Gateway (ber-prod)',
     metricRef: { metricId: M.cpuUtilization },
     subject: { resourceId: KONG_PROD_EU, resourceType: 'ComponentInstance' },
     annotations: [],
