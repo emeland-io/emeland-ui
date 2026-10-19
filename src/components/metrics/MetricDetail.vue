@@ -97,7 +97,7 @@ const relatedFindings = useFindingsForResource(
         @select="emit('open-instance', $event)"
       />
       <div v-else>
-        <SectionLabel :count="0">Instances</SectionLabel>
+        <SectionLabel :count="0">Metric instances</SectionLabel>
         <p class="text-data leading-snug text-text-4">No metric instances reference this metric.</p>
       </div>
 

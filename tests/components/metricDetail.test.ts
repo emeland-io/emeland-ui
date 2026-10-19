@@ -208,7 +208,7 @@ describe('MetricDetail', () => {
 
   it('explains an instance-less metric in the section idiom', () => {
     const w = mountDetail({ instances: [] })
-    expect(w.text()).toContain('Instances')
+    expect(w.text()).toContain('Metric instances')
     expect(w.text()).toContain('No metric instances reference this metric.')
     expect(w.find('table').exists()).toBe(false)
   })

@@ -301,7 +301,7 @@ function expressionTitle(r: Row): string | undefined {
 <template>
   <div>
     <div class="flex items-baseline justify-between gap-3">
-      <SectionLabel :count="instances.length">Instances</SectionLabel>
+      <SectionLabel :count="instances.length">Metric instances</SectionLabel>
       <span class="flex min-w-0 shrink items-center gap-3">
         <span
           class="flex min-w-0 shrink items-center gap-3 font-mono text-micro text-text-4"
