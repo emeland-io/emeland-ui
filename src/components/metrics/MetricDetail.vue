@@ -14,6 +14,7 @@ import MetricInstancesTable from '@/components/metrics/MetricInstancesTable.vue'
 import { pluralize } from '@/utils/text'
 import { metricDimension, metricUnit } from '@/types/metric'
 import type { Metric, MetricInstance } from '@/types/metric'
+import type { Finding } from '@/types/finding'
 
 const props = defineProps<{
   metric: Metric | undefined
@@ -37,10 +38,20 @@ const breachedCount = computed(
       .length,
 )
 
+// findings on the metric itself and on any of its instances
 const relatedFindings = useFindingsForResource(
   () => findingsStore.findings,
-  () => props.metric?.metricId ?? '',
+  () => [props.metric?.metricId ?? '', ...props.instances.map((i) => i.metricInstanceId)],
 )
+
+/** which instance a rolled-up finding belongs to; none when it is on the metric */
+function findingNote(f: Finding): string | undefined {
+  const own = new Set(props.instances.map((i) => i.metricInstanceId))
+  const res = f.resources.find((r) => own.has(r.resourceId))
+  if (!res) return undefined
+  const name = store.metricInstanceMap.get(res.resourceId)?.displayName || res.displayName
+  return `on ${name}`
+}
 </script>
 
 <template>
@@ -106,7 +117,10 @@ const relatedFindings = useFindingsForResource(
         class="grid gap-x-8 gap-y-5 border-t border-border-1 pt-5 @3xl:grid-cols-2 @3xl:[&>*:nth-child(2)]:border-l @3xl:[&>*:nth-child(2)]:border-border-1/50 @3xl:[&>*:nth-child(2)]:pl-8"
       >
         <!-- Related findings -->
-        <DetailFindingsSection :findings="relatedFindings" />
+        <DetailFindingsSection
+          :findings="relatedFindings"
+          :note-for="findingNote"
+        />
         <!-- Annotations -->
         <DetailAnnotationsSection :annotations="metric.annotations" />
       </div>

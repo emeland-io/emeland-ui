@@ -5,7 +5,7 @@ import { useFindingsStore } from '@/stores/findings'
 import { useSubjectLabels } from '@/composables/useSubjectLabels'
 import { useMetricRefGroups } from '@/composables/useUnmappedGroups'
 import MappingTag from '@/components/MappingTag.vue'
-import TypeGlyph from '@/components/TypeGlyph.vue'
+import SubjectGlyph from '@/components/metrics/SubjectGlyph.vue'
 import UnmappedSection from '@/components/UnmappedSection.vue'
 import ResourceListRow from '@/components/list/ResourceListRow.vue'
 import FindingsBadge from '@/components/list/FindingsBadge.vue'
@@ -135,7 +135,7 @@ function mappingState(inst: MetricInstance) {
         class="flex min-w-0 items-center gap-1 font-mono text-meta text-text-4"
         :title="`${inst.subject.resourceType} ${inst.subject.resourceId}`"
       >
-        <TypeGlyph :type="inst.subject.resourceType" />
+        <SubjectGlyph :type="inst.subject.resourceType" />
         <span class="truncate">{{ subjectLabel(inst.subject) }}</span>
       </span>
     </template>

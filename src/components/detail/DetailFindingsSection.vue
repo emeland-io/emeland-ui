@@ -6,6 +6,7 @@ import type { Finding } from '@/types/finding'
 
 defineProps<{
   findings: Finding[]
+  noteFor?: (f: Finding) => string | undefined
 }>()
 
 const { goToFinding } = useResourceNav()
@@ -29,6 +30,7 @@ const { goToFinding } = useResourceNav()
       v-for="f in findings"
       :key="f.findingId"
       :finding="f"
+      :note="noteFor?.(f)"
       @open="goToFinding"
     />
   </div>

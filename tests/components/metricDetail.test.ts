@@ -199,6 +199,60 @@ describe('MetricDetail', () => {
     expect(w.text()).toContain('0.188 – 412 ms')
   })
 
+  it('rolls findings on the instances up into the findings section', () => {
+    useFindingsStore().findings.push({
+      findingId: 'f-metric',
+      displayName: 'Metric lacks an owner',
+      resources: [{ resourceId: 'm1', displayName: 'p99 API latency', resourceType: 'Metric' }],
+      annotations: {},
+    })
+    const w = mountDetail()
+    const text = w.text()
+    expect(text).toContain('Latency objective missed')
+    expect(text).toContain('on p99 latency for orders-api')
+    expect(text).toContain('Metric lacks an owner')
+    expect(text).not.toContain('No findings.')
+    expect(w.findAll('[title^="on "]')).toHaveLength(1)
+  })
+
+  it('shows subjects with the glyph of their type, instances in the instance shape', () => {
+    const w = mountDetail()
+    const rows = w.findAll('tbody tr')
+    const orders = rows.find((r) => r.text().includes('orders-api'))!
+    const payments = rows.find((r) => r.text().includes('payments-api'))!
+    expect(orders.find('[title="Node"]').text()).toBe('N')
+    const app = payments.find('[title="System instance"]')
+    expect(app.text()).toBe('S')
+    expect(app.classes()).toContain('type-chip-instance')
+  })
+
+  it('opens a row with the keyboard and moves focus between rows', async () => {
+    const w = mountDetail()
+    const rows = w.findAll('tbody tr')
+    await rows[1].trigger('keydown', { key: 'Enter' })
+    expect(w.emitted('open-instance')).toEqual([['i-payments']])
+    expect(rows[0].attributes('tabindex')).toBe('0')
+  })
+
+  it('moves focus to the next row on ArrowDown', async () => {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }],
+    })
+    const w = mount(MetricDetail, {
+      props: { metric: METRIC, instances: INSTANCES },
+      global: { plugins: [router] },
+      attachTo: document.body,
+    })
+    const rows = w.findAll('tbody tr')
+    ;(rows[0].element as HTMLElement).focus()
+    await rows[0].trigger('keydown', { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(rows[1].element)
+    await rows[1].trigger('keydown', { key: 'ArrowUp' })
+    expect(document.activeElement).toBe(rows[0].element)
+    w.unmount()
+  })
+
   it('emits open-instance when a reading row is clicked', async () => {
     const w = mountDetail()
     const payments = w.findAll('tbody tr').find((r) => r.text().includes('payments'))!

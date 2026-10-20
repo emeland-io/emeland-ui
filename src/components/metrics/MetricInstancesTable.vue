@@ -13,7 +13,7 @@ import { useFindingsStore } from '@/stores/findings'
 import { useSubjectLabels } from '@/composables/useSubjectLabels'
 import { useResourceNav } from '@/composables/useResourceNav'
 import { resourceLabel } from '@/constants/resources'
-import TypeGlyph from '@/components/TypeGlyph.vue'
+import SubjectGlyph from '@/components/metrics/SubjectGlyph.vue'
 import TypeTag from '@/components/TypeTag.vue'
 import SkeletonBlock from '@/components/view/SkeletonBlock.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
@@ -90,8 +90,8 @@ const COLUMNS: Column[] = [
   { key: 'name', label: 'Instance' },
   { key: 'subject', label: 'Subject', width: 'w-[26%]' },
   { key: 'value', label: 'Value', align: 'right', width: 'w-32' },
-  { key: 'thresholds', label: 'Threshold', width: 'w-48' },
-  { key: 'status', label: 'Status', width: 'w-32' },
+  { key: 'thresholds', label: 'Threshold', width: 'w-56' },
+  { key: 'status', label: 'Status', width: 'w-28' },
 ]
 
 /** thresholds listed per row before "+n more" takes over */
@@ -271,6 +271,20 @@ function sortBy(key: SortKey) {
   }
 }
 
+function onRowKeydown(e: KeyboardEvent, id: string) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault()
+    emit('select', id)
+    return
+  }
+  if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
+  e.preventDefault()
+  e.stopPropagation()
+  const row = e.currentTarget as HTMLElement
+  const next = e.key === 'ArrowDown' ? row.nextElementSibling : row.previousElementSibling
+  if (next instanceof HTMLElement) next.focus()
+}
+
 function valuesTitle(r: Row): string {
   if (r.values.length === 0) return 'No current value reported'
   return r.values.map((v) => `${v.displayName}: ${v.value}${r.unit ? ` ${r.unit}` : ''}`).join('\n')
@@ -382,10 +396,12 @@ function expressionTitle(r: Row): string | undefined {
             v-for="r in sorted"
             :key="r.id"
             :data-instance-row-id="r.id"
-            class="cursor-pointer border-b border-border-1 transition-colors last:border-b-0"
+            tabindex="0"
+            class="cursor-pointer border-b border-border-1 transition-colors last:border-b-0 focus-visible:bg-accent/10 focus-visible:outline-none"
             :class="r.id === activeInstanceId ? 'bg-bg-2' : 'hover:bg-bg-1'"
             title="Show instance details"
             @click="emit('select', r.id)"
+            @keydown="onRowKeydown($event, r.id)"
           >
             <td class="w-6 py-2 pl-1">
               <IconLayoutSidebarRight
@@ -436,7 +452,7 @@ function expressionTitle(r: Row): string | undefined {
                 :title="subjectTitle(r.inst.subject)"
                 @click.stop="goToSubject(r.inst.subject)"
               >
-                <TypeGlyph :type="r.inst.subject.resourceType" />
+                <SubjectGlyph :type="r.inst.subject.resourceType" />
                 <span
                   class="truncate font-mono text-meta text-text-3 transition-colors"
                   :class="subjectNavTarget(r.inst.subject) ? 'group-hover/subject:text-accent' : ''"
@@ -525,7 +541,7 @@ function expressionTitle(r: Row): string | undefined {
                     {{ condition ?? 'No condition declared' }}
                   </span>
                   <span
-                    class="block truncate text-micro text-text-4"
+                    class="line-clamp-2 break-words text-micro leading-snug text-text-4"
                     :title="threshold.displayName"
                   >
                     {{ threshold.displayName }}

@@ -78,6 +78,16 @@ const RESOURCES: Record<ResourceType, ResourceMeta> = {
   ArtifactInstance: { label: 'Artifact Instance', route: null, chip: 'Ai' },
 }
 
+const INSTANCE_PARENT: Partial<Record<ResourceType, ResourceType>> = {
+  SystemInstance: 'System',
+  ApiInstance: 'API',
+  ComponentInstance: 'Component',
+}
+
+export function instanceParentType(type: ResourceType): ResourceType | undefined {
+  return INSTANCE_PARENT[type]
+}
+
 export function chipLetterFor(type: ResourceType): string {
   return RESOURCES[type]?.chip ?? '?'
 }

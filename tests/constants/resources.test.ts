@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   chipLetterFor,
+  instanceParentType,
   isKnownResourceType,
   isResourceNavigable,
   resourceLabel,
@@ -113,5 +114,18 @@ describe('resources constants', () => {
     expect(chipLetterFor('Nope' as ResourceType)).toBe('?')
     expect(resourceLabel('Nope' as ResourceType)).toBe('Nope')
     expect(routeForResource('Nope' as ResourceType)).toBeNull()
+  })
+})
+
+describe('instanceParentType', () => {
+  it('maps instance types to the resource they instantiate', () => {
+    expect(instanceParentType('SystemInstance')).toBe('System')
+    expect(instanceParentType('ApiInstance')).toBe('API')
+    expect(instanceParentType('ComponentInstance')).toBe('Component')
+  })
+
+  it('is undefined for non-instance types', () => {
+    expect(instanceParentType('Node')).toBeUndefined()
+    expect(instanceParentType('Metric')).toBeUndefined()
   })
 })
