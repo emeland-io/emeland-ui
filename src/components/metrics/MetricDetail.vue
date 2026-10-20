@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useMetricsStore } from '@/stores/metrics'
 import { useFindingsStore } from '@/stores/findings'
 import { useFindingsForResource } from '@/composables/useFindingsForResource'
@@ -24,10 +24,19 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'open-instance': [id: string]
+  'update:orderedIds': [ids: string[]]
 }>()
 
 const store = useMetricsStore()
 const findingsStore = useFindingsStore()
+
+watch(
+  () => props.instances.length === 0,
+  (empty) => {
+    if (empty) emit('update:orderedIds', [])
+  },
+  { immediate: true },
+)
 
 const dimension = computed(() => (props.metric ? metricDimension(props.metric) : undefined))
 const unit = computed(() => (props.metric ? metricUnit(props.metric) : undefined))
@@ -106,6 +115,7 @@ function findingNote(f: Finding): string | undefined {
         :metric="metric"
         :active-instance-id="activeInstanceId"
         @select="emit('open-instance', $event)"
+        @update:ordered-ids="emit('update:orderedIds', $event)"
       />
       <div v-else>
         <SectionLabel :count="0">Metric instances</SectionLabel>

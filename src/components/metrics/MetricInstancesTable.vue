@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   IconArrowDown,
   IconArrowUp,
@@ -56,6 +56,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   select: [id: string]
+  'update:orderedIds': [ids: string[]]
 }>()
 
 const store = useMetricsStore()
@@ -277,6 +278,12 @@ const sorted = computed(() => {
       a.id.localeCompare(b.id),
   )
 })
+
+watch(
+  () => sorted.value.map((r) => r.id),
+  (ids) => emit('update:orderedIds', ids),
+  { immediate: true },
+)
 
 function sortBy(key: SortKey) {
   if (sortKey.value === key) {

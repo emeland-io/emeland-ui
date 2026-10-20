@@ -260,6 +260,18 @@ describe('MetricDetail', () => {
     expect(w.emitted('open-instance')).toEqual([['i-payments']])
   })
 
+  it('reports the displayed row order for drawer navigation', async () => {
+    const w = mountDetail()
+    expect(w.emitted('update:orderedIds')?.at(-1)).toEqual([['i-orders', 'i-payments']])
+    const valueHeader = w.findAll('th').find((th) => th.text().includes('Value'))!
+    await valueHeader.trigger('click')
+    expect(w.emitted('update:orderedIds')?.at(-1)).toEqual([['i-orders', 'i-payments']])
+    await valueHeader.trigger('click')
+    expect(w.emitted('update:orderedIds')?.at(-1)).toEqual([['i-payments', 'i-orders']])
+    await w.setProps({ instances: [] })
+    expect(w.emitted('update:orderedIds')?.at(-1)).toEqual([[]])
+  })
+
   it('explains an instance-less metric in the section idiom', () => {
     const w = mountDetail({ instances: [] })
     expect(w.text()).toContain('Metric instances')

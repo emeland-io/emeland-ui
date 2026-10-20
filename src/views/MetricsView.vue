@@ -172,6 +172,18 @@ const selectedInstances = computed(() =>
   selectedId.value ? store.getInstancesForMetric(selectedId.value) : [],
 )
 
+const detailOrderedIds = ref<string[]>([])
+
+function instancesForDrawer(metricId: string): MetricInstance[] {
+  const fromTable =
+    metricId === selectedId.value
+      ? detailOrderedIds.value
+          .map((id) => store.metricInstanceMap.get(id))
+          .filter((i): i is MetricInstance => !!i && i.metricId === metricId)
+      : []
+  return fromTable.length > 0 ? fromTable : store.getInstancesForMetric(metricId)
+}
+
 const { unmappedOrderedIds } = useMetricRefGroups(
   unmappedFiltered,
   (i) => i.metricId,
@@ -192,7 +204,7 @@ const {
   unmappedOrderedIds: () => unmappedOrderedIds.value,
   unmappedFiltered: () => unmappedFiltered.value,
   selectedId,
-  instancesFor: (id) => store.getInstancesForMetric(id),
+  instancesFor: instancesForDrawer,
   lastResourceRowId: () => filteredMetrics.value.at(-1)?.metricId,
   selectResource: selectMetric,
 })
@@ -304,6 +316,7 @@ onMounted(async () => {
           :instances="selectedInstances"
           :active-instance-id="instanceDrawerOpen ? selectedInstanceId : ''"
           @open-instance="openInstance"
+          @update:ordered-ids="detailOrderedIds = $event"
         />
       </template>
     </ListDetail>
