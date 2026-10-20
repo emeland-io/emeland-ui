@@ -12,6 +12,7 @@ import { useMetricsStore } from '@/stores/metrics'
 import { useFindingsStore } from '@/stores/findings'
 import { useSubjectLabels } from '@/composables/useSubjectLabels'
 import { useResourceNav } from '@/composables/useResourceNav'
+import { useColumnWidths } from '@/composables/useColumnWidths'
 import { resourceLabel } from '@/constants/resources'
 import SubjectGlyph from '@/components/metrics/SubjectGlyph.vue'
 import TypeTag from '@/components/TypeTag.vue'
@@ -82,17 +83,33 @@ interface Column {
   key: SortKey
   label: string
   align?: 'right'
-  /** fixed width class; the name column takes the rest (table-fixed) */
-  width?: string
+  /** initial width in px; the name column starts auto and takes the rest */
+  width?: number
+  min?: number
 }
 
 const COLUMNS: Column[] = [
-  { key: 'name', label: 'Instance' },
-  { key: 'subject', label: 'Subject', width: 'w-[26%]' },
-  { key: 'value', label: 'Value', align: 'right', width: 'w-32' },
-  { key: 'thresholds', label: 'Threshold', width: 'w-56' },
-  { key: 'status', label: 'Status', width: 'w-28' },
+  { key: 'name', label: 'Instance', min: 160 },
+  { key: 'subject', label: 'Subject', width: 192, min: 96 },
+  { key: 'value', label: 'Value', align: 'right', width: 120, min: 80 },
+  { key: 'thresholds', label: 'Threshold', width: 208, min: 120 },
+  { key: 'status', label: 'Status', width: 104, min: 96 },
 ]
+
+const INDICATOR_WIDTH = 24
+
+const {
+  isResizing,
+  onResizeStart,
+  reset: resetColumn,
+  colStyle,
+  hasAuto,
+  minTotalWidth,
+} = useColumnWidths(COLUMNS, { storageKey: 'emeland-metric-instance-columns' })
+
+const tableStyle = computed(() => ({ minWidth: `${minTotalWidth.value + INDICATOR_WIDTH}px` }))
+
+const fillerStyle = computed(() => (hasAuto.value ? { width: '0px' } : undefined))
 
 /** thresholds listed per row before "+n more" takes over */
 const MAX_THRESHOLDS = 3
@@ -367,28 +384,56 @@ function expressionTitle(r: Row): string | undefined {
     </div>
 
     <div class="overflow-x-auto">
-      <table class="w-full table-fixed border-collapse text-data">
+      <table
+        class="w-full table-fixed border-collapse text-data"
+        :class="isResizing ? 'select-none' : ''"
+        :style="tableStyle"
+      >
+        <colgroup>
+          <col :style="{ width: `${INDICATOR_WIDTH}px` }" />
+          <col
+            v-for="col in COLUMNS"
+            :key="col.key"
+            :style="colStyle(col.key)"
+          />
+          <col :style="fillerStyle" />
+        </colgroup>
         <thead>
           <tr class="border-b border-border-2">
-            <th class="w-6 py-2 pl-1" />
+            <th class="py-2 pl-1" />
             <th
               v-for="col in COLUMNS"
               :key="col.key"
-              class="cursor-pointer select-none whitespace-nowrap py-2 font-medium text-text-3 transition-colors hover:text-text-1"
-              :class="[col.align === 'right' ? 'text-right' : 'text-left', col.width ?? '', 'px-2']"
+              class="relative cursor-pointer select-none whitespace-nowrap py-2 font-medium text-text-3 transition-colors hover:text-text-1"
+              :class="[col.align === 'right' ? 'text-right' : 'text-left', 'px-2']"
               :aria-sort="sortKey === col.key ? (sortAsc ? 'ascending' : 'descending') : undefined"
               @click="sortBy(col.key)"
             >
-              <span class="inline-flex items-center gap-1">
-                {{ col.label }}
+              <span class="inline-flex max-w-full items-center gap-1">
+                <span class="truncate">{{ col.label }}</span>
                 <component
                   :is="sortAsc ? IconArrowUp : IconArrowDown"
                   v-if="sortKey === col.key"
                   :size="12"
                   :stroke-width="2"
+                  class="shrink-0"
+                />
+              </span>
+              <span
+                class="absolute inset-y-0 -right-1 z-10 w-2 cursor-col-resize"
+                :data-resize-handle="col.key"
+                title="Drag to resize, double-click to reset"
+                @mousedown.prevent.stop="onResizeStart(col.key, $event)"
+                @click.stop
+                @dblclick.stop="resetColumn(col.key)"
+              >
+                <span
+                  class="absolute inset-y-1 left-1 w-0.5 transition-colors"
+                  :class="isResizing ? 'bg-accent/60' : 'bg-transparent hover:bg-accent/40'"
                 />
               </span>
             </th>
+            <th />
           </tr>
         </thead>
         <tbody>
@@ -403,7 +448,7 @@ function expressionTitle(r: Row): string | undefined {
             @click="emit('select', r.id)"
             @keydown="onRowKeydown($event, r.id)"
           >
-            <td class="w-6 py-2 pl-1">
+            <td class="py-2 pl-1">
               <IconLayoutSidebarRight
                 v-if="r.id === activeInstanceId"
                 :size="13"
@@ -575,6 +620,7 @@ function expressionTitle(r: Row): string | undefined {
                 {{ INSTANCE_STATUS_LABEL[r.status] }}
               </TypeTag>
             </td>
+            <td />
           </tr>
         </tbody>
       </table>
