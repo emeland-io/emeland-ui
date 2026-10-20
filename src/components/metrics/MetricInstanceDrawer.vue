@@ -12,6 +12,7 @@ import TypeTag from '@/components/TypeTag.vue'
 import WellKnownAnnotationsTable from '@/components/WellKnownAnnotationsTable.vue'
 import MappingTag from '@/components/MappingTag.vue'
 import RelationRow from '@/components/RelationRow.vue'
+import CopyButton from '@/components/CopyButton.vue'
 import DrawerIdRow from '@/components/drawer/DrawerIdRow.vue'
 import DrawerAnnotationsSection from '@/components/drawer/DrawerAnnotationsSection.vue'
 import DetailFindingsSection from '@/components/detail/DetailFindingsSection.vue'
@@ -303,7 +304,14 @@ const { navIndex, step: stepInstance } = useDrawerNav({
           >
             {{ language }}
           </span>
-          <code class="min-w-0 break-all font-mono text-meta text-text-2">{{ expression }}</code>
+          <code class="min-w-0 flex-1 break-all font-mono text-meta text-text-2">
+            {{ expression }}
+          </code>
+          <CopyButton
+            :value="expression"
+            :size="13"
+            class="mt-0.5"
+          />
         </div>
       </div>
 
