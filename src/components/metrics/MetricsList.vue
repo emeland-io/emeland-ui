@@ -11,7 +11,6 @@ import ResourceListRow from '@/components/list/ResourceListRow.vue'
 import FindingsBadge from '@/components/list/FindingsBadge.vue'
 import InstanceCountBadge from '@/components/list/InstanceCountBadge.vue'
 import { mappingStateOf } from '@/utils/mapping'
-import { pluralize } from '@/utils/text'
 import { metricDimension, metricUnit } from '@/types/metric'
 import type { Metric, MetricInstance } from '@/types/metric'
 
@@ -66,8 +65,23 @@ function breachedCount(id: string): number {
   return breachedByMetric.value.get(id) ?? 0
 }
 
+/** findings per metric: on the metric itself or on any of its instances, each counted once */
+const findingsByMetric = computed(() => {
+  const counts = new Map<string, number>()
+  for (const f of findingsStore.findings) {
+    const touched = new Set<string>()
+    for (const r of f.resources) {
+      if (store.metricMap.has(r.resourceId)) touched.add(r.resourceId)
+      const viaInstance = store.metricInstanceMap.get(r.resourceId)?.metricId
+      if (viaInstance) touched.add(viaInstance)
+    }
+    for (const id of touched) counts.set(id, (counts.get(id) ?? 0) + 1)
+  }
+  return counts
+})
+
 function findingCount(id: string): number {
-  return findingsStore.findingCountFor(id)
+  return findingsByMetric.value.get(id) ?? 0
 }
 
 function mappingState(inst: MetricInstance) {
@@ -101,16 +115,10 @@ function mappingState(inst: MetricInstance) {
       </span>
       <template #badges>
         <FindingsBadge :count="findingCount(metric.metricId)" />
-        <span
-          v-if="breachedCount(metric.metricId) > 0"
-          class="flex shrink-0 items-center rounded-full border border-warning/20 bg-warning/10 px-1.5 py-0.5 font-mono text-micro tabular-nums text-warning"
-          :title="`${pluralize(breachedCount(metric.metricId), 'instance')} over limit (derived from current values)`"
-        >
-          {{ breachedCount(metric.metricId) }} over limit
-        </span>
         <InstanceCountBadge
           v-if="store.instancesLoaded"
           :count="instanceCount(metric.metricId)"
+          :breached="breachedCount(metric.metricId)"
           noun="metric instance"
           glyph="metric"
         />

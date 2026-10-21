@@ -4,6 +4,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import MetricsList from '@/components/metrics/MetricsList.vue'
 import { useMetricsStore } from '@/stores/metrics'
 import { useNodesStore } from '@/stores/nodes'
+import { useFindingsStore } from '@/stores/findings'
 import type { Metric, MetricInstance } from '@/types/metric'
 
 const METRICS: Metric[] = [
@@ -41,6 +42,7 @@ function seedStores() {
   const metrics = useMetricsStore()
   metrics.metrics = METRICS
   metrics.metricInstances = INSTANCES
+  metrics.instancesLoaded = true
   metrics.thresholds = [
     {
       thresholdId: 't-orders',
@@ -86,9 +88,39 @@ describe('MetricsList', () => {
     expect(latency.text()).toContain('p99 API latency')
     expect(latency.text()).toContain('latency')
     expect(latency.text()).toContain('ms')
-    expect(latency.text()).toContain('1 over limit')
+    const badge = latency.find('[title$="(derived from current values)"]')
+    expect(badge.text()).toBe('1/1')
+    expect(badge.attributes('title')).toBe(
+      '1 metric instance, 1 over limit (derived from current values)',
+    )
     const queue = rows.find((r) => r.attributes('data-row-id') === 'm2')!
-    expect(queue.text()).not.toContain('over limit')
+    expect(queue.find('[title$="(derived from current values)"]').exists()).toBe(false)
+  })
+
+  it('counts findings on the metric and on its instances once each', () => {
+    useFindingsStore().findings = [
+      {
+        findingId: 'f-instance',
+        displayName: 'Latency objective missed',
+        resources: [
+          { resourceId: 'i-orders', displayName: 'p99 latency', resourceType: 'MetricInstance' },
+        ],
+        annotations: {},
+      },
+      {
+        findingId: 'f-both',
+        displayName: 'Metric and instance',
+        resources: [
+          { resourceId: 'm1', displayName: 'p99 API latency', resourceType: 'Metric' },
+          { resourceId: 'i-orders', displayName: 'p99 latency', resourceType: 'MetricInstance' },
+        ],
+        annotations: {},
+      },
+    ]
+    const w = mountList()
+    const latency = w.find('[data-row-id="m1"]')
+    expect(latency.find('[title="2 findings"]').text()).toBe('2')
+    expect(w.find('[data-row-id="m2"]').find('[title$="finding"]').exists()).toBe(false)
   })
 
   it('emits select for a metric row', async () => {
