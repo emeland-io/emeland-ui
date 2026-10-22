@@ -23,6 +23,7 @@ import {
   INSTANCE_STATUSES,
   INSTANCE_STATUS_LABEL,
   INSTANCE_STATUS_TITLE,
+  INSTANCE_STATUS_TONE,
   METRIC_ANN,
   evaluateThreshold,
   formatThreshold,
@@ -114,13 +115,6 @@ const fillerStyle = computed(() => (hasAuto.value ? { width: '0px' } : undefined
 
 /** thresholds listed per row before "+n more" takes over */
 const MAX_THRESHOLDS = 3
-
-const STATUS_TONE: Record<InstanceStatus, 'warning' | 'muted'> = {
-  breached: 'warning',
-  ok: 'muted',
-  unknown: 'muted',
-  'no-reading': 'muted',
-}
 
 const search = ref('')
 const showFilter = computed(() => props.instances.length > 8)
@@ -620,7 +614,7 @@ function expressionTitle(r: Row): string | undefined {
               />
               <TypeTag
                 v-else
-                :tone="STATUS_TONE[r.status]"
+                :tone="INSTANCE_STATUS_TONE[r.status]"
                 :title="INSTANCE_STATUS_TITLE[r.status]"
                 :class="r.status === 'unknown' || r.status === 'no-reading' ? 'text-text-4' : ''"
               >

@@ -178,6 +178,13 @@ export const INSTANCE_STATUS_LABEL: Record<InstanceStatus, string> = {
   'no-reading': 'no reading',
 }
 
+export const INSTANCE_STATUS_TONE: Record<InstanceStatus, 'warning' | 'muted'> = {
+  breached: 'warning',
+  ok: 'muted',
+  unknown: 'muted',
+  'no-reading': 'muted',
+}
+
 /** tooltip explaining each status, the derivation happens client-side */
 export const INSTANCE_STATUS_TITLE: Record<InstanceStatus, string> = {
   breached: 'A current value breaches an operator threshold (derived client-side)',

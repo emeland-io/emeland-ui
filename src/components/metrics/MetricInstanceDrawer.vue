@@ -17,18 +17,23 @@ import DrawerIdRow from '@/components/drawer/DrawerIdRow.vue'
 import DrawerAnnotationsSection from '@/components/drawer/DrawerAnnotationsSection.vue'
 import DetailFindingsSection from '@/components/detail/DetailFindingsSection.vue'
 import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
+import ValueScale from '@/components/metrics/ValueScale.vue'
 import { mappingStateOf } from '@/utils/mapping'
 import { resourceLabel } from '@/constants/resources'
 import {
+  INSTANCE_STATUS_LABEL,
+  INSTANCE_STATUS_TITLE,
+  INSTANCE_STATUS_TONE,
   METRIC_ANN,
   evaluateThreshold,
   formatThreshold,
   instanceUnit,
   metricExpression,
   metricLanguage,
+  orderedThresholds,
   thresholdLanguage,
 } from '@/types/metric'
-import type { Threshold } from '@/types/metric'
+import type { InstanceStatus, Threshold } from '@/types/metric'
 
 const props = defineProps<{
   open: boolean
@@ -58,8 +63,16 @@ const unit = computed(() =>
 const values = computed(() =>
   instance.value ? store.getValuesFor(instance.value.metricInstanceId) : [],
 )
+
 const thresholds = computed(() =>
-  instance.value ? store.getThresholdsFor(instance.value.metricInstanceId) : [],
+  instance.value
+    ? orderedThresholds(store.getThresholdsFor(instance.value.metricInstanceId), values.value)
+    : [],
+)
+const status = computed<InstanceStatus>(() =>
+  instance.value
+    ? (store.statusByInstance.get(instance.value.metricInstanceId) ?? 'no-reading')
+    : 'no-reading',
 )
 
 const mappingState = computed(() =>
@@ -87,6 +100,10 @@ const navTarget = computed(() => subjectNavTarget(instance.value?.subject))
 
 function breached(t: Threshold): boolean {
   return values.value.some((v) => evaluateThreshold(t, v.value) === 'breached')
+}
+
+function readingBreached(value: string): boolean {
+  return thresholds.value.some((t) => evaluateThreshold(t, value) === 'breached')
 }
 
 function goToSubject() {
@@ -129,6 +146,14 @@ const { navIndex, step: stepInstance } = useDrawerNav({
       >
         {{ unit }}
       </TypeTag>
+      <TypeTag
+        v-if="instance"
+        :tone="INSTANCE_STATUS_TONE[status]"
+        :title="INSTANCE_STATUS_TITLE[status]"
+        :class="status === 'unknown' || status === 'no-reading' ? 'text-text-4' : ''"
+      >
+        {{ INSTANCE_STATUS_LABEL[status] }}
+      </TypeTag>
     </template>
     <div
       v-if="instance"
@@ -167,7 +192,12 @@ const { navIndex, step: stepInstance } = useDrawerNav({
           :key="v.metricValueId"
           class="flex items-baseline gap-2 border-b border-border-1 py-2 last:border-b-0"
         >
-          <span class="font-mono text-display tabular-nums text-text-1">{{ v.value }}</span>
+          <span
+            class="font-mono text-display tabular-nums"
+            :class="readingBreached(v.value) ? 'text-warning' : 'text-text-1'"
+          >
+            {{ v.value }}
+          </span>
           <span
             v-if="unit"
             class="font-mono text-meta text-text-3"
@@ -183,6 +213,11 @@ const { navIndex, step: stepInstance } = useDrawerNav({
             {{ v.description }}
           </span>
         </div>
+        <ValueScale
+          :values="values"
+          :thresholds="thresholds"
+          :unit="unit"
+        />
       </div>
 
       <!-- thresholds -->
@@ -204,7 +239,10 @@ const { navIndex, step: stepInstance } = useDrawerNav({
           :key="t.thresholdId"
           class="flex flex-col gap-1 border-b border-border-1 py-2 last:border-b-0"
         >
-          <div class="flex min-w-0 items-center gap-2">
+          <div
+            class="flex min-w-0 items-center gap-2"
+            :title="t.thresholdId"
+          >
             <span class="min-w-0 truncate text-body text-text-1">{{ t.displayName }}</span>
             <TypeTag
               v-if="breached(t)"
@@ -213,9 +251,6 @@ const { navIndex, step: stepInstance } = useDrawerNav({
             >
               over limit
             </TypeTag>
-            <span class="ml-auto shrink-0 font-mono text-meta text-text-4">
-              {{ t.thresholdId }}
-            </span>
           </div>
           <div class="flex min-w-0 items-start gap-2">
             <span

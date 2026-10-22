@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
+  INSTANCE_STATUSES,
+  INSTANCE_STATUS_TONE,
   compareByName,
   evaluateThreshold,
   formatThreshold,
@@ -192,5 +194,13 @@ describe('compareByName', () => {
       'c',
       'b',
     ])
+  })
+})
+
+describe('INSTANCE_STATUS_TONE', () => {
+  it('draws attention to a breach only', () => {
+    for (const status of INSTANCE_STATUSES) {
+      expect(INSTANCE_STATUS_TONE[status]).toBe(status === 'breached' ? 'warning' : 'muted')
+    }
   })
 })
