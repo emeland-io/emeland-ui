@@ -18,6 +18,8 @@ import DrawerAnnotationsSection from '@/components/drawer/DrawerAnnotationsSecti
 import DetailFindingsSection from '@/components/detail/DetailFindingsSection.vue'
 import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
 import ValueScale from '@/components/metrics/ValueScale.vue'
+import ReadingMarker from '@/components/metrics/ReadingMarker.vue'
+import SubjectGlyph from '@/components/metrics/SubjectGlyph.vue'
 import { mappingStateOf } from '@/utils/mapping'
 import { resourceLabel } from '@/constants/resources'
 import {
@@ -180,7 +182,30 @@ const { navIndex, step: stepInstance } = useDrawerNav({
 
       <!-- current reading -->
       <div>
-        <SectionLabel :count="values.length">Current value</SectionLabel>
+        <div class="flex items-start justify-between gap-3">
+          <SectionLabel :count="values.length">Current value</SectionLabel>
+          <!-- what the readings describe -->
+          <component
+            :is="navTarget ? 'button' : 'span'"
+            v-if="instance.subject"
+            :type="navTarget ? 'button' : undefined"
+            data-reading-subject
+            class="group/subject mb-3 flex min-w-0 items-center gap-1.5 text-left font-mono text-micro"
+            :title="navTarget ? `Go to ${resourceLabel(navTarget.type)}` : undefined"
+            @click="goToSubject"
+          >
+            <SubjectGlyph :type="instance.subject.resourceType" />
+            <span class="shrink-0 text-text-4">
+              {{ resourceLabel(instance.subject.resourceType) }}
+            </span>
+            <span
+              class="truncate text-text-3 transition-colors"
+              :class="navTarget ? 'group-hover/subject:text-accent' : ''"
+            >
+              {{ subjectLabel(instance.subject) }}
+            </span>
+          </component>
+        </div>
         <p
           v-if="values.length === 0"
           class="text-data leading-snug text-text-4"
@@ -188,10 +213,17 @@ const { navIndex, step: stepInstance } = useDrawerNav({
           No current reading.
         </p>
         <div
-          v-for="v in values"
+          v-for="(v, i) in values"
           :key="v.metricValueId"
           class="flex items-baseline gap-2 border-b border-border-1 py-2 last:border-b-0"
         >
+          <ReadingMarker
+            v-if="values.length > 1"
+            class="self-center"
+            :index="i + 1"
+            :breached="readingBreached(v.value)"
+            numbered
+          />
           <span
             class="font-mono text-display tabular-nums"
             :class="readingBreached(v.value) ? 'text-warning' : 'text-text-1'"

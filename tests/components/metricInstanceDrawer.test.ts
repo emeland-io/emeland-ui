@@ -106,6 +106,22 @@ describe('MetricInstanceDrawer', () => {
     expect(names[1]!.text()).not.toContain('over limit')
   })
 
+  it('numbers the readings so they can be matched with the scale markers', () => {
+    const w = mountDrawer()
+    const rows = w.findAll('.text-display').map((n) => n.element.parentElement!)
+    expect(rows.map((r) => r.firstElementChild!.textContent!.trim())).toEqual(['1', '2'])
+    expect(w.findAll('[data-reading-marker]').map((m) => m.text())).toEqual(['1', '2'])
+  })
+
+  it('names the subject the readings belong to next to the current value', () => {
+    const w = mountDrawer()
+    const subject = w.find('[data-reading-subject]')
+    expect(subject.text()).toContain('Node')
+    expect(subject.text()).toContain('Sensor System A')
+    expect(subject.attributes('title')).toBe('Go to Node')
+    expect(mountDrawer('i-silent').find('[data-reading-subject]').exists()).toBe(false)
+  })
+
   it('draws the value scale with both limits', () => {
     const w = mountDrawer()
     expect(w.findAll('[data-reading-marker]')).toHaveLength(2)

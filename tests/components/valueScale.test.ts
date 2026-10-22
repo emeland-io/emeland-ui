@@ -44,6 +44,7 @@ describe('ValueScale', () => {
     expect(markers[0]!.attributes('style')).toContain('left: 91%')
     expect(markers[0]!.classes()).toContain('bg-warning')
     expect(markers[0]!.attributes('title')).toBe('1 minute average: 91 %')
+    expect(markers.map((m) => m.text())).toEqual(['1', '2'])
     expect(markers[1]!.classes()).toContain('bg-text-2')
     const band = w.find('.bg-warning\\/15')
     expect(band.attributes('style')).toContain('left: 85%')
@@ -65,6 +66,7 @@ describe('ValueScale', () => {
       },
     })
     // domain 0..33 (30 padded by 10 %), so the limit sits at ~91 %
+    expect(w.find('[data-reading-marker]').text()).toBe('')
     const band = w.find('.bg-warning\\/15')
     expect(band.attributes('style')).toContain('left: 0')
     expect(band.attributes('style')).toMatch(/right: 9\.0\d+%/)

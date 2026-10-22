@@ -16,6 +16,7 @@ import {
   thresholdCondition,
 } from '@/types/metric'
 import type { MetricValue, Threshold } from '@/types/metric'
+import ReadingMarker from '@/components/metrics/ReadingMarker.vue'
 
 const props = defineProps<{
   values: MetricValue[]
@@ -35,6 +36,8 @@ interface Limit {
 
 interface Reading {
   value: MetricValue
+  /** 1-based position among all readings, numeric or not, so it matches the list */
+  index: number
   n: number
   breached: boolean
 }
@@ -62,12 +65,13 @@ const limits = computed<Limit[]>(() => {
 })
 
 const readings = computed<Reading[]>(() =>
-  props.values.flatMap((value) => {
+  props.values.flatMap((value, i) => {
     const n = parseMetricNumber(value.value)
     if (n === undefined) return []
     return [
       {
         value,
+        index: i + 1,
         n,
         breached: props.thresholds.some((t) => evaluateThreshold(t, value.value) === 'breached'),
       },
@@ -159,12 +163,14 @@ function limitTitle(l: Limit): string {
           :title="limitTitle(l)"
         />
       </div>
-      <span
+      <ReadingMarker
         v-for="r in readings"
         :key="r.value.metricValueId"
         data-reading-marker
-        class="absolute -top-0.5 h-3.5 w-3.5 -translate-x-1/2 rounded-full ring-2 ring-bg-0"
-        :class="r.breached ? 'bg-warning' : 'bg-text-2'"
+        class="absolute -top-0.5 -translate-x-1/2 ring-2 ring-bg-0"
+        :index="r.index"
+        :breached="r.breached"
+        :numbered="values.length > 1"
         :style="{ left: `${x(r.n)}%` }"
         :title="readingTitle(r)"
       />
