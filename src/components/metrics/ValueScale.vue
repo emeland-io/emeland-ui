@@ -83,6 +83,7 @@ const domain = computed(() => {
   let hi = Math.max(...numbers)
   if (props.unit === '%' && hi <= 100) hi = 100
   else hi += (hi - lo) * 0.1
+  if (numbers.every(Number.isInteger)) hi = Math.ceil(hi)
   if (hi === lo) hi = lo + 1
   return { lo, hi }
 })
@@ -109,11 +110,15 @@ const labels = computed(() =>
 
 const labelRows = computed(() => (labels.value.some((l) => l.row === 1) ? 2 : 1))
 
+const EDGE = 8
+const showLo = computed(() => !labels.value.some((l) => l.row === 0 && x(l.limit) < EDGE))
+const showHi = computed(() => !labels.value.some((l) => l.row === 0 && x(l.limit) > 100 - EDGE))
+
 function labelStyle(l: { limit: number }): Record<string, string> {
   const pos = x(l.limit)
   // keep edge labels inside the track instead of centring them past it
-  if (pos < 8) return { left: '0' }
-  if (pos > 92) return { right: '0' }
+  if (pos < EDGE) return { left: '0' }
+  if (pos > 100 - EDGE) return { right: '0' }
   return { left: `${pos}%`, transform: 'translateX(-50%)' }
 }
 
@@ -124,6 +129,10 @@ function fmt(n: number): string {
 function readingTitle(r: Reading): string {
   return `${r.value.displayName}: ${r.value.value}${props.unit ? ` ${props.unit}` : ''}`
 }
+
+function limitTitle(l: Limit): string {
+  return `${l.threshold.displayName}: ${l.label}`
+}
 </script>
 
 <template>
@@ -133,26 +142,28 @@ function readingTitle(r: Reading): string {
     role="img"
     aria-label="Current values against thresholds"
   >
-    <div class="relative h-1.5 rounded-full bg-bg-3">
+    <div class="relative h-2.5 rounded-full bg-bg-3">
       <div class="absolute inset-0 overflow-hidden rounded-full">
         <span
           v-for="l in limits"
           :key="`band-${l.threshold.thresholdId}`"
           class="absolute inset-y-0 bg-warning/15"
           :style="bandStyle(l)"
+          :title="limitTitle(l)"
         />
         <span
           v-for="l in limits"
           :key="`tick-${l.threshold.thresholdId}`"
           class="absolute inset-y-0 w-px bg-warning/60"
           :style="{ left: `${x(l.limit)}%` }"
+          :title="limitTitle(l)"
         />
       </div>
       <span
         v-for="r in readings"
         :key="r.value.metricValueId"
         data-reading-marker
-        class="absolute -top-0.5 h-2.5 w-2.5 -translate-x-1/2 rounded-full ring-2 ring-bg-0"
+        class="absolute -top-0.5 h-3.5 w-3.5 -translate-x-1/2 rounded-full ring-2 ring-bg-0"
         :class="r.breached ? 'bg-warning' : 'bg-text-2'"
         :style="{ left: `${x(r.n)}%` }"
         :title="readingTitle(r)"
@@ -162,8 +173,18 @@ function readingTitle(r: Reading): string {
       class="relative mt-1.5 font-mono text-micro leading-none text-text-4"
       :style="{ height: `${labelRows * 0.875}rem` }"
     >
-      <span class="absolute left-0 top-0 tabular-nums">{{ fmt(domain.lo) }}</span>
-      <span class="absolute right-0 top-0 tabular-nums">{{ fmt(domain.hi) }}</span>
+      <span
+        v-if="showLo"
+        class="absolute left-0 top-0 tabular-nums"
+      >
+        {{ fmt(domain.lo) }}
+      </span>
+      <span
+        v-if="showHi"
+        class="absolute right-0 top-0 tabular-nums"
+      >
+        {{ fmt(domain.hi) }}
+      </span>
       <span
         v-for="l in labels"
         :key="`label-${l.threshold.thresholdId}`"

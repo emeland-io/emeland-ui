@@ -48,6 +48,7 @@ describe('ValueScale', () => {
     const band = w.find('.bg-warning\\/15')
     expect(band.attributes('style')).toContain('left: 85%')
     expect(band.attributes('style')).toContain('right: 0')
+    expect(band.attributes('title')).toBe('warn name: ≥ 85 %')
     const text = w.text()
     expect(text).toContain('0')
     expect(text).toContain('100')
@@ -68,6 +69,27 @@ describe('ValueScale', () => {
     expect(band.attributes('style')).toContain('left: 0')
     expect(band.attributes('style')).toMatch(/right: 9\.0\d+%/)
     expect(w.text()).toContain('33')
+  })
+
+  it('keeps a whole-number scale for whole-number inputs', () => {
+    const w = mount(ValueScale, {
+      props: { values: [value('v', '4')], thresholds: [threshold('t', 'gt', '5')] },
+    })
+    expect(w.text()).toContain('6')
+    expect(w.text()).not.toContain('5.5')
+  })
+
+  it('lets an edge limit label replace the axis number', () => {
+    const w = mount(ValueScale, {
+      props: {
+        values: [value('v', '7')],
+        thresholds: [threshold('present', 'gt', '0')],
+        unit: 'events',
+      },
+    })
+    const axis = w.findAll('.tabular-nums').map((n) => n.text())
+    expect(axis).toEqual(['8'])
+    expect(w.find('[data-limit-label]').text()).toBe('> 0 events')
   })
 
   it('stacks labels of limits that sit close together', () => {
