@@ -197,36 +197,6 @@ const tally = computed(() => {
   }))
 })
 
-/**
- * Spread of the current values across the instances: lowest and highest
- * reading. Only when every reading is numeric and all instances with a
- * reading share one unit, so the two numbers are comparable.
- */
-const range = computed(() => {
-  let min: number | undefined
-  let max: number | undefined
-  let unit: string | undefined
-  let first = true
-  for (const r of rows.value) {
-    if (r.values.length === 0) continue
-    if (first) {
-      unit = r.unit
-      first = false
-    } else if (r.unit !== unit) {
-      return undefined
-    }
-    for (const v of r.values) {
-      const n = parseMetricNumber(v.value)
-      if (n === undefined) return undefined
-      min = min === undefined ? n : Math.min(min, n)
-      max = max === undefined ? n : Math.max(max, n)
-    }
-  }
-  if (min === undefined || max === undefined) return undefined
-  const numbers = min === max ? `${min}` : `${min} – ${max}`
-  return unit ? `${numbers} ${unit}` : numbers
-})
-
 const stripPoints = computed<StripPoint[]>(() => {
   const points: StripPoint[] = []
   let unit: string | undefined
@@ -384,13 +354,6 @@ function expressionTitle(r: Row): string | undefined {
             >
               {{ count }} {{ INSTANCE_STATUS_LABEL[status] }}
             </span>
-            <span
-              v-if="range"
-              class="whitespace-nowrap tabular-nums"
-              title="Lowest and highest current value across the instances"
-            >
-              {{ range }}
-            </span>
           </template>
         </span>
         <span
@@ -417,7 +380,7 @@ function expressionTitle(r: Row): string | undefined {
       :points="stripPoints"
       :unit="stripUnit"
       :active-id="activeInstanceId"
-      class="mb-3"
+      class="mb-2.5"
       @select="emit('select', $event)"
     />
 

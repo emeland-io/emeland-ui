@@ -56,14 +56,16 @@ function title(p: StripPoint): string {
     v-if="visible"
     data-instance-strip
     aria-label="Instances on one scale"
+    class="flex items-center gap-2 font-mono text-micro leading-none text-text-4"
   >
-    <div class="relative h-2.5 rounded-full bg-bg-3">
+    <span class="shrink-0 tabular-nums">{{ formatScaleNumber(domain.lo) }}</span>
+    <div class="relative h-1.5 flex-1 rounded-full bg-bg-3">
       <button
         v-for="p in ordered"
         :key="p.id"
         type="button"
         data-strip-marker
-        class="absolute -top-0.5 -translate-x-1/2 rounded-full ring-2 transition-shadow hover:ring-accent/60 focus-visible:ring-accent focus-visible:outline-none"
+        class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 transition-shadow hover:ring-accent/60 focus-visible:ring-accent focus-visible:outline-none"
         :class="p.id === activeId ? 'ring-accent' : 'ring-bg-0'"
         :style="{ left: `${scalePosition(p.n, domain)}%` }"
         :title="title(p)"
@@ -73,14 +75,12 @@ function title(p: StripPoint): string {
         <ReadingMarker
           :index="0"
           :breached="p.breached"
+          size="sm"
         />
       </button>
     </div>
-    <div class="mt-1.5 flex justify-between font-mono text-micro leading-none text-text-4">
-      <span class="tabular-nums">{{ formatScaleNumber(domain.lo) }}</span>
-      <span class="tabular-nums">
-        {{ formatScaleNumber(domain.hi) }}{{ unit ? ` ${unit}` : '' }}
-      </span>
-    </div>
+    <span class="shrink-0 tabular-nums">
+      {{ formatScaleNumber(domain.hi) }}{{ unit ? ` ${unit}` : '' }}
+    </span>
   </div>
 </template>

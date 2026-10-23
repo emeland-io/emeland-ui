@@ -188,7 +188,6 @@ describe('MetricDetail', () => {
     expect(w.findAll('tbody tr')[0].text()).toContain('orders-api')
     expect(w.text()).toContain('1 over limit')
     expect(w.text()).toContain('1 within limits')
-    expect(w.text()).not.toContain('–')
     expect(w.find('[data-instance-strip]').exists()).toBe(false)
   })
 
@@ -203,11 +202,12 @@ describe('MetricDetail', () => {
     expect(w.emitted('open-instance')).toEqual([['i-orders']])
   })
 
-  it('shows the value range when all readings share one unit', () => {
+  it('spans the strip axis over the readings when all share one unit', () => {
     const w = mountDetail({
       instances: INSTANCES.map((i) => ({ ...i, annotations: {} })),
     })
-    expect(w.text()).toContain('0.188 – 412 ms')
+    // 412 padded by 10 % and printed to 3 significant digits
+    expect(w.find('[data-instance-strip]').text()).toContain('453 ms')
   })
 
   it('rolls findings on the instances up into the findings section', () => {
