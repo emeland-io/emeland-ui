@@ -228,6 +228,20 @@ describe('MetricDetail', () => {
     expect(w.find('[data-strip-caption]').exists()).toBe(false)
   })
 
+  it('flags thresholds that carry no condition annotation', () => {
+    expect(mountDetail().find('[data-unconditioned]').exists()).toBe(false)
+    useMetricsStore().thresholds.push({
+      thresholdId: 't-bare',
+      displayName: 'orders-api bare threshold',
+      metricInstanceId: 'i-orders',
+      annotations: {},
+    })
+    const tag = mountDetail().find('[data-unconditioned]')
+    expect(tag.text()).toBe('1 threshold without condition')
+    expect(tag.attributes('title')).toContain('emeland.io/threshold.operator')
+    expect(tag.attributes('title')).toContain('orders-api bare threshold')
+  })
+
   it('spans the strip axis over the readings when all share one unit', () => {
     const w = mountDetail({
       instances: INSTANCES.map((i) => ({ ...i, annotations: {} })),

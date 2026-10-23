@@ -12,8 +12,8 @@ import DetailAnnotationsSection from '@/components/detail/DetailAnnotationsSecti
 import DetailEmptyState from '@/components/detail/DetailEmptyState.vue'
 import MetricInstancesTable from '@/components/metrics/MetricInstancesTable.vue'
 import { pluralize } from '@/utils/text'
-import { metricDimension, metricUnit } from '@/types/metric'
-import type { Metric, MetricInstance } from '@/types/metric'
+import { THRESHOLD_ANN, metricDimension, metricUnit, thresholdCondition } from '@/types/metric'
+import type { Metric, MetricInstance, Threshold } from '@/types/metric'
 import type { Finding } from '@/types/finding'
 
 const props = defineProps<{
@@ -46,6 +46,18 @@ const breachedCount = computed(
     props.instances.filter((i) => store.statusByInstance.get(i.metricInstanceId) === 'breached')
       .length,
 )
+
+/** thresholds on this metric's instances that carry no condition annotation at all */
+const unconditioned = computed<Threshold[]>(() =>
+  props.instances
+    .flatMap((i) => store.getThresholdsFor(i.metricInstanceId))
+    .filter((t) => !thresholdCondition(t)),
+)
+
+const unconditionedTitle = computed(() => {
+  const names = unconditioned.value.map((t) => t.displayName || t.thresholdId).join(', ')
+  return `No condition annotation, so the threshold cannot be evaluated. Expected ${THRESHOLD_ANN.operator} + ${THRESHOLD_ANN.limit}, or ${THRESHOLD_ANN.expression}: ${names}`
+})
 
 // findings on the metric itself and on any of its instances
 const relatedFindings = useFindingsForResource(
@@ -93,6 +105,14 @@ function findingNote(f: Finding): string | undefined {
         :title="`${pluralize(breachedCount, 'instance')} over limit (derived from current values)`"
       >
         {{ breachedCount }} over limit
+      </TypeTag>
+      <TypeTag
+        v-if="unconditioned.length > 0"
+        tone="warning"
+        data-unconditioned
+        :title="unconditionedTitle"
+      >
+        {{ pluralize(unconditioned.length, 'threshold') }} without condition
       </TypeTag>
     </DetailHeader>
     <div class="flex flex-col gap-5 px-6 py-5">
