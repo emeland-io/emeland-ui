@@ -225,6 +225,27 @@ const stripPoints = computed<StripPoint[]>(() => {
 
 const stripUnit = computed(() => filtered.value.find((r) => r.primary !== undefined)?.unit)
 
+const hoverId = ref('')
+const stripHoverId = ref('')
+
+function onStripHighlight(id: string) {
+  hoverId.value = id
+  stripHoverId.value = id
+}
+
+const stripCaption = computed(() => {
+  const r = rows.value.find((row) => row.id === stripHoverId.value)
+  if (!r) return undefined
+  const limits = thresholdLimits(r.thresholds, r.unit)
+  const value = r.primary === undefined ? 'no reading' : `${r.primary}${r.unit ? ` ${r.unit}` : ''}`
+  const parts = [
+    r.inst.displayName,
+    value,
+    ...limits.map((l) => `${l.label} ${l.threshold.displayName}`),
+  ]
+  return parts.join(' · ')
+})
+
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
   if (!q) return rows.value
@@ -346,6 +367,14 @@ function expressionTitle(r: Row): string | undefined {
             v-if="relatedLoading"
             class="h-3 w-28"
           />
+          <span
+            v-else-if="stripCaption"
+            data-strip-caption
+            class="min-w-0 truncate text-text-3"
+            :title="stripCaption"
+          >
+            {{ stripCaption }}
+          </span>
           <template v-else>
             <span
               v-for="{ status, count } in tally"
@@ -382,8 +411,10 @@ function expressionTitle(r: Row): string | undefined {
       :points="stripPoints"
       :unit="stripUnit"
       :active-id="activeInstanceId"
+      :highlight-id="hoverId"
       class="mb-2.5"
       @select="emit('select', $event)"
+      @highlight="onStripHighlight"
     />
 
     <div class="overflow-x-auto">
@@ -446,10 +477,14 @@ function expressionTitle(r: Row): string | undefined {
             :data-instance-row-id="r.id"
             tabindex="0"
             class="cursor-pointer border-b border-border-1 transition-colors last:border-b-0 focus-visible:bg-accent/10 focus-visible:outline-none"
-            :class="r.id === activeInstanceId ? 'bg-bg-2' : 'hover:bg-bg-1'"
+            :class="
+              r.id === activeInstanceId ? 'bg-bg-2' : r.id === hoverId ? 'bg-bg-1' : 'hover:bg-bg-1'
+            "
             title="Show instance details"
             @click="emit('select', r.id)"
             @keydown="onRowKeydown($event, r.id)"
+            @mouseenter="hoverId = r.id"
+            @mouseleave="hoverId = ''"
           >
             <td class="py-2 pl-1">
               <IconLayoutSidebarRight

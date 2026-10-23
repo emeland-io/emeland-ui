@@ -202,6 +202,32 @@ describe('MetricDetail', () => {
     expect(w.emitted('open-instance')).toEqual([['i-orders']])
   })
 
+  it('links a hovered marker to its row and explains it in the header', async () => {
+    const w = mountDetail({ instances: INSTANCES.map((i) => ({ ...i, annotations: {} })) })
+    const orders = w
+      .findAll('[data-strip-marker]')
+      .find((m) => m.attributes('title')?.startsWith('p99 latency for orders'))!
+    await orders.trigger('mouseenter')
+    expect(w.find('[data-instance-row-id="i-orders"]').classes()).toContain('bg-bg-1')
+    expect(w.find('[data-strip-caption]').text()).toBe(
+      'p99 latency for orders-api · 412 ms · > 300 ms orders-api p99 warning · > 500 ms orders-api p99 critical',
+    )
+    expect(w.text()).not.toContain('1 within limits')
+    await orders.trigger('mouseleave')
+    expect(w.find('[data-strip-caption]').exists()).toBe(false)
+    expect(w.text()).toContain('1 within limits')
+  })
+
+  it('highlights the marker of a hovered row without swapping the header', async () => {
+    const w = mountDetail({ instances: INSTANCES.map((i) => ({ ...i, annotations: {} })) })
+    await w.find('[data-instance-row-id="i-payments"]').trigger('mouseenter')
+    const payments = w
+      .findAll('[data-strip-marker]')
+      .find((m) => m.attributes('title')?.startsWith('p99 latency for payments'))!
+    expect(payments.classes()).toContain('ring-accent/60')
+    expect(w.find('[data-strip-caption]').exists()).toBe(false)
+  })
+
   it('spans the strip axis over the readings when all share one unit', () => {
     const w = mountDetail({
       instances: INSTANCES.map((i) => ({ ...i, annotations: {} })),

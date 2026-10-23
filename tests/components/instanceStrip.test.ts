@@ -10,7 +10,10 @@ function limit(id: string, n: number, side: 'above' | 'below', label: string): T
       thresholdId: id,
       displayName: `${id} name`,
       metricInstanceId: 'i',
-      annotations: {},
+      annotations: {
+        'emeland.io/threshold.operator': side === 'above' ? 'ge' : 'lt',
+        'emeland.io/threshold.limit': `${n}`,
+      },
     },
     limit: n,
     side,
@@ -38,6 +41,10 @@ const POINTS: StripPoint[] = [
   { id: 'c', name: 'Grafana', value: '12', n: 12, breached: false, limits: [] },
 ]
 
+function markerOf(w: ReturnType<typeof mount>, prefix: string) {
+  return w.findAll('[data-strip-marker]').find((m) => m.attributes('title')?.startsWith(prefix))!
+}
+
 describe('InstanceStrip', () => {
   it('renders nothing for a single point', () => {
     const w = mount(InstanceStrip, { props: { points: POINTS.slice(0, 1), unit: '%' } })
@@ -46,13 +53,11 @@ describe('InstanceStrip', () => {
 
   it('places a marker per instance on a shared percent scale', () => {
     const w = mount(InstanceStrip, { props: { points: POINTS, unit: '%', activeId: 'b' } })
-    const byTitle = (prefix: string) =>
-      w.findAll('[data-strip-marker]').find((m) => m.attributes('title')?.startsWith(prefix))!
-    expect(byTitle('App Backend').attributes('style')).toContain('left: 91%')
-    expect(byTitle('App Backend').attributes('title')).toBe('App Backend: 91 %')
-    expect(byTitle('App Backend').find('.bg-warning').exists()).toBe(true)
-    expect(byTitle('Kong Gateway').classes()).toContain('ring-accent')
-    expect(byTitle('Grafana').classes()).toContain('ring-bg-0')
+    expect(markerOf(w, 'App Backend').attributes('style')).toContain('left: 91%')
+    expect(markerOf(w, 'App Backend').attributes('title')).toBe('App Backend: 91 %')
+    expect(markerOf(w, 'App Backend').find('.bg-warning').exists()).toBe(true)
+    expect(markerOf(w, 'Kong Gateway').classes()).toContain('ring-accent')
+    expect(markerOf(w, 'Grafana').classes()).toContain('ring-bg-0')
     expect(w.text()).toContain('0')
     expect(w.text()).toContain('100 %')
   })
@@ -72,25 +77,50 @@ describe('InstanceStrip', () => {
     expect(ticks[0]!.attributes('style')).toContain('left: 85%')
     expect(ticks[0]!.attributes('title')).toBe('App Backend: ≥ 85 %\nKong Gateway: ≥ 85 %')
     expect(ticks[1]!.attributes('title')).toBe('App Backend: ≥ 95 %')
+    expect(w.findAll('[data-strip-band]')).toHaveLength(0)
   })
 
-  it("shows the hovered instance's own bands only while hovered", async () => {
+  it('reports the marker under the pointer and clears it on leave', async () => {
     const w = mount(InstanceStrip, { props: { points: POINTS, unit: '%' } })
-    expect(w.findAll('[data-strip-band]')).toHaveLength(0)
-    const kong = w
-      .findAll('[data-strip-marker]')
-      .find((m) => m.attributes('title')?.startsWith('Kong'))!
+    const kong = markerOf(w, 'Kong')
     await kong.trigger('mouseenter')
+    await kong.trigger('mouseleave')
+    expect(w.emitted('highlight')).toEqual([['b'], ['']])
+  })
+
+  it("emphasises the highlighted instance's marker, ticks and bands and dims the rest", () => {
+    const w = mount(InstanceStrip, { props: { points: POINTS, unit: '%', highlightId: 'b' } })
     const bands = w.findAll('[data-strip-band]')
     expect(bands).toHaveLength(1)
     expect(bands[0]!.attributes('style')).toContain('left: 85%')
     expect(bands[0]!.attributes('style')).toContain('right: 0')
     expect(bands[0]!.attributes('title')).toBe('≥ 85 % b-warn name')
-    await kong.trigger('mouseleave')
-    expect(w.findAll('[data-strip-band]')).toHaveLength(0)
+    const ticks = w.findAll('[data-strip-tick]')
+    expect(ticks[0]!.classes()).toContain('bg-warning')
+    expect(ticks[1]!.classes()).toContain('bg-warning/15')
+    expect(markerOf(w, 'Kong').classes()).toContain('ring-accent/60')
+    expect(markerOf(w, 'App Backend').classes()).toContain('opacity-30')
+    // the highlighted marker paints on top
+    expect(w.findAll('[data-strip-marker]').at(-1)!.attributes('title')).toContain('Kong')
+    // connector from the reading (34) to its limit (85), capped at the limit
+    const link = w.find('[data-strip-link]')
+    expect(link.attributes('style')).toContain('left: 34%')
+    expect(link.attributes('style')).toContain('width: 51%')
+    expect(link.classes()).toContain('border-dashed')
+    expect(w.find('[data-strip-cap]').attributes('style')).toContain('left: 85%')
   })
 
-  it('puts a below-limit band on the low side and widens the domain to the limit', async () => {
+  it('draws a solid connector once the reading is past the limit', () => {
+    const w = mount(InstanceStrip, { props: { points: POINTS, unit: '%', highlightId: 'a' } })
+    const links = w.findAll('[data-strip-link]')
+    expect(links).toHaveLength(2)
+    expect(links[0]!.classes()).toContain('border-solid')
+    expect(links[0]!.attributes('style')).toContain('width: 6%')
+    expect(links[1]!.classes()).toContain('border-dashed')
+    expect(links[1]!.attributes('style')).toContain('width: 4%')
+  })
+
+  it('puts a below-limit band on the low side and widens the domain to the limit', () => {
     const points: StripPoint[] = [
       {
         id: 'x',
@@ -109,9 +139,8 @@ describe('InstanceStrip', () => {
         limits: [limit('y', 30, 'below', '< 30 days')],
       },
     ]
-    const w = mount(InstanceStrip, { props: { points, unit: 'days' } })
+    const w = mount(InstanceStrip, { props: { points, unit: 'days', highlightId: 'x' } })
     expect(w.text()).toContain('44 days')
-    await w.find('[data-strip-marker]').trigger('focus')
     const band = w.find('[data-strip-band]')
     expect(band.attributes('style')).toContain('left: 0')
     expect(band.attributes('style')).toMatch(/right: 31\.8\d*%/)
