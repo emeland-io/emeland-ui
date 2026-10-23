@@ -98,7 +98,7 @@ function linkStyle(p: StripPoint, l: ThresholdLimit): Record<string, string> {
 function linkClass(p: StripPoint, l: ThresholdLimit): string {
   return evaluateThreshold(l.threshold, p.value) === 'breached'
     ? 'border-solid border-warning'
-    : 'border-dashed border-warning/70'
+    : 'border-dashed border-text-3'
 }
 
 function tickClass(tick: { ids: Set<string> }): string {

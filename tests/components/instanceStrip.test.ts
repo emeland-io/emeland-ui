@@ -107,6 +107,7 @@ describe('InstanceStrip', () => {
     expect(link.attributes('style')).toContain('left: 34%')
     expect(link.attributes('style')).toContain('width: 51%')
     expect(link.classes()).toContain('border-dashed')
+    expect(link.classes()).toContain('border-text-3')
     expect(w.find('[data-strip-cap]').attributes('style')).toContain('left: 85%')
   })
 
@@ -115,6 +116,7 @@ describe('InstanceStrip', () => {
     const links = w.findAll('[data-strip-link]')
     expect(links).toHaveLength(2)
     expect(links[0]!.classes()).toContain('border-solid')
+    expect(links[0]!.classes()).toContain('border-warning')
     expect(links[0]!.attributes('style')).toContain('width: 6%')
     expect(links[1]!.classes()).toContain('border-dashed')
     expect(links[1]!.attributes('style')).toContain('width: 4%')
