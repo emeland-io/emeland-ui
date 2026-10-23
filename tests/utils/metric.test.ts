@@ -10,6 +10,7 @@ import {
   orderedThresholds,
   parseMetricNumber,
   thresholdCondition,
+  thresholdLimits,
 } from '@/types/metric'
 import type { Metric, MetricInstance, MetricValue, Threshold } from '@/types/metric'
 
@@ -202,5 +203,29 @@ describe('INSTANCE_STATUS_TONE', () => {
     for (const status of INSTANCE_STATUSES) {
       expect(INSTANCE_STATUS_TONE[status]).toBe(status === 'breached' ? 'warning' : 'muted')
     }
+  })
+})
+
+describe('thresholdLimits', () => {
+  const op = (operator: string, limit: string) =>
+    threshold({ 'emeland.io/threshold.operator': operator, 'emeland.io/threshold.limit': limit })
+
+  it('keeps comparison thresholds with numeric limits, sorted by limit', () => {
+    const limits = thresholdLimits([op('ge', '95'), op('lt', '5'), op('gt', '85')], '%')
+    expect(limits.map((l) => [l.limit, l.side, l.label])).toEqual([
+      [5, 'below', '< 5 %'],
+      [85, 'above', '> 85 %'],
+      [95, 'above', '≥ 95 %'],
+    ])
+  })
+
+  it('drops equality, expression and non-numeric thresholds', () => {
+    const limits = thresholdLimits([
+      op('eq', '5'),
+      op('ne', '5'),
+      op('gt', 'high'),
+      threshold({ 'emeland.io/threshold.expression': 'rate > 1' }),
+    ])
+    expect(limits).toEqual([])
   })
 })

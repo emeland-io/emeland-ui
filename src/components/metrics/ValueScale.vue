@@ -9,13 +9,8 @@
  * relate.
  */
 import { computed } from 'vue'
-import {
-  evaluateThreshold,
-  formatThreshold,
-  parseMetricNumber,
-  thresholdCondition,
-} from '@/types/metric'
-import type { MetricValue, Threshold } from '@/types/metric'
+import { evaluateThreshold, parseMetricNumber, thresholdLimits } from '@/types/metric'
+import type { MetricValue, Threshold, ThresholdLimit } from '@/types/metric'
 import ReadingMarker from '@/components/metrics/ReadingMarker.vue'
 import { formatScaleNumber, scaleDomain, scalePosition } from '@/utils/scale'
 
@@ -24,16 +19,6 @@ const props = defineProps<{
   thresholds: Threshold[]
   unit?: string
 }>()
-
-type Side = 'above' | 'below'
-
-interface Limit {
-  threshold: Threshold
-  limit: number
-  /** which side of the limit counts as a breach */
-  side: Side
-  label: string
-}
 
 interface Reading {
   value: MetricValue
@@ -46,24 +31,7 @@ interface Reading {
 /** how close two ticks may sit (in % of the width) before their labels stack */
 const LABEL_SPACING = 12
 
-const limits = computed<Limit[]>(() => {
-  const out: Limit[] = []
-  for (const t of props.thresholds) {
-    const c = thresholdCondition(t)
-    if (!c || c.kind !== 'operator') continue
-    const side: Side | undefined =
-      c.operator === 'gt' || c.operator === 'ge'
-        ? 'above'
-        : c.operator === 'lt' || c.operator === 'le'
-          ? 'below'
-          : undefined
-    if (!side) continue
-    const limit = parseMetricNumber(c.limit)
-    if (limit === undefined) continue
-    out.push({ threshold: t, limit, side, label: formatThreshold(t, props.unit) ?? `${limit}` })
-  }
-  return out.sort((a, b) => a.limit - b.limit)
-})
+const limits = computed(() => thresholdLimits(props.thresholds, props.unit))
 
 const readings = computed<Reading[]>(() =>
   props.values.flatMap((value, i) => {
@@ -91,7 +59,7 @@ function x(n: number): number {
 }
 
 /** band from the limit to the breaching edge */
-function bandStyle(l: Limit): Record<string, string> {
+function bandStyle(l: ThresholdLimit): Record<string, string> {
   return l.side === 'above'
     ? { left: `${x(l.limit)}%`, right: '0' }
     : { left: '0', right: `${100 - x(l.limit)}%` }
@@ -123,7 +91,7 @@ function readingTitle(r: Reading): string {
   return `${r.value.displayName}: ${r.value.value}${props.unit ? ` ${props.unit}` : ''}`
 }
 
-function limitTitle(l: Limit): string {
+function limitTitle(l: ThresholdLimit): string {
   return `${l.threshold.displayName}: ${l.label}`
 }
 </script>

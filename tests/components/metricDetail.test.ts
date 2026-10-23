@@ -206,8 +206,14 @@ describe('MetricDetail', () => {
     const w = mountDetail({
       instances: INSTANCES.map((i) => ({ ...i, annotations: {} })),
     })
-    // 412 padded by 10 % and printed to 3 significant digits
-    expect(w.find('[data-instance-strip]').text()).toContain('453 ms')
+    // 500 (the highest limit) padded by 10 %
+    expect(w.find('[data-instance-strip]').text()).toContain('550 ms')
+    const ticks = w.findAll('[data-strip-tick]').map((t) => t.attributes('title'))
+    expect(ticks).toEqual([
+      'p99 latency for payments-api: > 0.3 ms',
+      'p99 latency for orders-api: > 300 ms',
+      'p99 latency for orders-api: > 500 ms',
+    ])
   })
 
   it('rolls findings on the instances up into the findings section', () => {

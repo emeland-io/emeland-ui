@@ -36,6 +36,7 @@ import {
   orderedThresholds,
   parseMetricNumber,
   thresholdLanguage,
+  thresholdLimits,
 } from '@/types/metric'
 import type {
   InstanceStatus,
@@ -216,6 +217,7 @@ const stripPoints = computed<StripPoint[]>(() => {
       value: r.primary,
       n: r.numeric,
       breached: r.status === 'breached',
+      limits: thresholdLimits(r.thresholds, r.unit),
     })
   }
   return points

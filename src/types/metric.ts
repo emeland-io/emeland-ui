@@ -128,6 +128,38 @@ export function parseMetricNumber(value: string): number | undefined {
   return Number.isFinite(n) ? n : undefined
 }
 
+/** an operator threshold with a numeric limit, ready to be drawn on a scale */
+export interface ThresholdLimit {
+  threshold: Threshold
+  limit: number
+  side: 'above' | 'below'
+  label: string
+}
+
+/**
+ * Thresholds that can be placed on a linear scale: gt/ge (breach above) and
+ * lt/le (breach below) with a numeric limit, sorted by limit. Expression,
+ * equality and non-numeric thresholds are left out.
+ */
+export function thresholdLimits(thresholds: Threshold[], unit?: string): ThresholdLimit[] {
+  const out: ThresholdLimit[] = []
+  for (const t of thresholds) {
+    const c = thresholdCondition(t)
+    if (!c || c.kind !== 'operator') continue
+    const side: ThresholdLimit['side'] | undefined =
+      c.operator === 'gt' || c.operator === 'ge'
+        ? 'above'
+        : c.operator === 'lt' || c.operator === 'le'
+          ? 'below'
+          : undefined
+    if (!side) continue
+    const limit = parseMetricNumber(c.limit)
+    if (limit === undefined) continue
+    out.push({ threshold: t, limit, side, label: formatThreshold(t, unit) ?? `${limit}` })
+  }
+  return out.sort((a, b) => a.limit - b.limit)
+}
+
 export type ThresholdVerdict = 'breached' | 'ok' | 'unknown'
 
 export function evaluateThreshold(t: Threshold, value: string): ThresholdVerdict {
