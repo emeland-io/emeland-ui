@@ -80,7 +80,7 @@ function decodeThreshold(res: ThresholdWire): Threshold {
     thresholdId: responseId(res, 'thresholdId'),
     displayName: res.displayName ?? '',
     description: res.description ?? '',
-    metricInstanceId: res.metricInstanceRef.metricInstanceId,
+    metricInstanceId: res.metricInstanceRef?.metricInstanceId ?? '',
     annotations: decodeAnnotations(res.annotations),
   }
 }
@@ -107,8 +107,8 @@ function decodeMetricValue(res: MetricValueWire): MetricValue {
     metricValueId: responseId(res, 'metricValueId'),
     displayName: res.displayName ?? '',
     description: res.description ?? '',
-    metricInstanceId: res.metricInstanceRef.metricInstanceId,
-    value: res.value,
+    metricInstanceId: res.metricInstanceRef?.metricInstanceId ?? '',
+    value: res.value ?? '',
     annotations: decodeAnnotations(res.annotations),
   }
 }

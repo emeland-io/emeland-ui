@@ -224,6 +224,16 @@ describe('every module validates', () => {
     getJsonMock.mockResolvedValue([{ displayName: 'no id' }])
     await expect(fetchAll()).rejects.toBeInstanceOf(ApiValidationError)
   })
+
+  it('thresholds and metric values decode bare list items into placeholders', async () => {
+    getJsonMock.mockResolvedValue([{ instanceId: 't1', displayName: 'Latency SLO' }])
+    const [t] = await fetchThresholds()
+    expect(t).toMatchObject({ thresholdId: 't1', displayName: 'Latency SLO', metricInstanceId: '' })
+    expect(t!.annotations).toEqual({})
+    getJsonMock.mockResolvedValue([{ instanceId: 'v1', displayName: 'Current' }])
+    const [v] = await fetchMetricValues()
+    expect(v).toMatchObject({ metricValueId: 'v1', metricInstanceId: '', value: '' })
+  })
 })
 
 describe('bundled mocks satisfy the wire schemas', () => {
