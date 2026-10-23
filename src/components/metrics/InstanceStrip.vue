@@ -13,7 +13,7 @@
 import { computed } from 'vue'
 import ReadingMarker from '@/components/metrics/ReadingMarker.vue'
 import { formatScaleNumber, scaleDomain, scalePosition } from '@/utils/scale'
-import { evaluateThreshold } from '@/types/metric'
+import { describeLimit, evaluateThreshold } from '@/types/metric'
 import type { ThresholdLimit } from '@/types/metric'
 
 export interface StripPoint {
@@ -74,14 +74,7 @@ const highlighted = computed(() => props.points.find((p) => p.id === props.highl
 
 const bands = computed(() => highlighted.value?.limits ?? [])
 
-// highlighted marker last so it paints on top, otherwise breached ones on top
-const ordered = computed(() =>
-  [...props.points].sort(
-    (a, b) =>
-      Number(a.id === props.highlightId) - Number(b.id === props.highlightId) ||
-      Number(a.breached) - Number(b.breached),
-  ),
-)
+const ordered = computed(() => [...props.points].sort((a, b) => a.n - b.n))
 
 function bandStyle(l: ThresholdLimit): Record<string, string> {
   return l.side === 'above'
@@ -106,10 +99,17 @@ function tickClass(tick: { ids: Set<string> }): string {
   return tick.ids.has(highlighted.value.id) ? 'bg-warning' : 'bg-warning/15'
 }
 
-function markerClass(p: StripPoint): string {
-  if (p.id === props.activeId) return 'ring-accent'
-  if (!highlighted.value) return 'ring-bg-0'
-  return p.id === highlighted.value.id ? 'ring-accent/60' : 'ring-bg-0 opacity-30'
+function markerClass(p: StripPoint): string[] {
+  const ring =
+    p.id === props.activeId
+      ? 'ring-accent'
+      : !highlighted.value
+        ? 'ring-bg-0'
+        : p.id === highlighted.value.id
+          ? 'ring-accent/60'
+          : 'ring-bg-0 opacity-30'
+  const layer = highlighted.value?.id === p.id ? 'z-20' : p.breached ? 'z-10' : ''
+  return [ring, layer]
 }
 
 function title(p: StripPoint): string {
@@ -121,6 +121,7 @@ function title(p: StripPoint): string {
   <div
     v-if="visible"
     data-instance-strip
+    role="group"
     aria-label="Instances on one scale"
     class="flex items-center gap-2 font-mono text-micro leading-none text-text-4"
   >
@@ -133,7 +134,7 @@ function title(p: StripPoint): string {
           data-strip-band
           class="absolute inset-y-0 bg-warning/25"
           :style="bandStyle(l)"
-          :title="`${l.label} ${l.threshold.displayName}`"
+          :title="describeLimit(l)"
         />
         <span
           v-for="t in ticks"
@@ -160,7 +161,7 @@ function title(p: StripPoint): string {
           data-strip-cap
           class="absolute -inset-y-1 w-0.5 -translate-x-1/2 rounded-full bg-warning"
           :style="{ left: `${x(l.limit)}%` }"
-          :title="`${l.label} ${l.threshold.displayName}`"
+          :title="describeLimit(l)"
         />
       </template>
       <button
@@ -173,14 +174,13 @@ function title(p: StripPoint): string {
         :style="{ left: `${x(p.n)}%` }"
         :title="title(p)"
         :aria-label="title(p)"
-        @click.stop="emit('select', p.id)"
+        @click="emit('select', p.id)"
         @mouseenter="emit('highlight', p.id)"
         @mouseleave="emit('highlight', '')"
         @focus="emit('highlight', p.id)"
         @blur="emit('highlight', '')"
       >
         <ReadingMarker
-          :index="0"
           :breached="p.breached"
           size="sm"
         />

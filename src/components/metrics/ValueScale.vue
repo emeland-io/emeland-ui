@@ -9,7 +9,12 @@
  * relate.
  */
 import { computed } from 'vue'
-import { evaluateThreshold, parseMetricNumber, thresholdLimits } from '@/types/metric'
+import {
+  describeLimit,
+  evaluateThreshold,
+  parseMetricNumber,
+  thresholdLimits,
+} from '@/types/metric'
 import type { MetricValue, Threshold, ThresholdLimit } from '@/types/metric'
 import ReadingMarker from '@/components/metrics/ReadingMarker.vue'
 import { formatScaleNumber, scaleDomain, scalePosition } from '@/utils/scale'
@@ -28,7 +33,11 @@ interface Reading {
   breached: boolean
 }
 
-/** how close two ticks may sit (in % of the width) before their labels stack */
+/**
+ * How close two ticks may sit (in % of the track width) before their labels
+ * take different rows. A fixed share rather than measured text: the drawer
+ * track is 500px or wider, where 18 % holds a label like "≥ 10000 events".
+ */
 const LABEL_SPACING = 18
 
 const limits = computed(() => thresholdLimits(props.thresholds, props.unit))
@@ -65,13 +74,14 @@ function bandStyle(l: ThresholdLimit): Record<string, string> {
     : { left: '0', right: `${100 - x(l.limit)}%` }
 }
 
-/** label rows: a label drops to the next line when it would overlap the previous one */
-const labels = computed(() =>
-  limits.value.map((l, i) => ({
-    ...l,
-    row: i > 0 && x(l.limit) - x(limits.value[i - 1]!.limit) < LABEL_SPACING ? 1 : 0,
-  })),
-)
+const labels = computed(() => {
+  let row = 0
+  return limits.value.map((l, i) => {
+    const close = i > 0 && x(l.limit) - x(limits.value[i - 1]!.limit) < LABEL_SPACING
+    row = close ? 1 - row : 0
+    return { ...l, row }
+  })
+})
 
 const labelRows = computed(() => (labels.value.some((l) => l.row === 1) ? 2 : 1))
 
@@ -85,9 +95,13 @@ function readingTitle(r: Reading): string {
   return `${r.value.displayName}: ${r.value.value}${props.unit ? ` ${props.unit}` : ''}`
 }
 
-function limitTitle(l: ThresholdLimit): string {
-  return `${l.threshold.displayName}: ${l.label}`
-}
+const ariaLabel = computed(() => {
+  const unit = props.unit ? ` ${props.unit}` : ''
+  const values = readings.value.map((r) => `${r.value.value}${unit}`).join(', ')
+  const limits = limitsForAria.value
+  return `Current values ${values} against ${limits}`
+})
+const limitsForAria = computed(() => limits.value.map(describeLimit).join(', '))
 </script>
 
 <template>
@@ -95,7 +109,7 @@ function limitTitle(l: ThresholdLimit): string {
     v-if="visible"
     class="mt-3"
     role="img"
-    aria-label="Current values against thresholds"
+    :aria-label="ariaLabel"
   >
     <div class="flex items-start gap-2 font-mono text-micro leading-none text-text-4">
       <span class="flex h-2.5 shrink-0 items-center tabular-nums">
@@ -107,16 +121,17 @@ function limitTitle(l: ThresholdLimit): string {
             <span
               v-for="l in limits"
               :key="`band-${l.threshold.thresholdId}`"
+              data-limit-band
               class="absolute inset-y-0 bg-warning/15"
               :style="bandStyle(l)"
-              :title="limitTitle(l)"
+              :title="describeLimit(l)"
             />
             <span
               v-for="l in limits"
               :key="`tick-${l.threshold.thresholdId}`"
               class="absolute inset-y-0 w-px bg-warning/60"
               :style="{ left: `${x(l.limit)}%` }"
-              :title="limitTitle(l)"
+              :title="describeLimit(l)"
             />
           </div>
           <ReadingMarker

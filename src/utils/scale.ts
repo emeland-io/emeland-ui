@@ -13,8 +13,10 @@ export interface ScaleDomain {
  * Domain spanning the given numbers: starts at 0 unless a number is
  * negative, ends 10 % past the largest one. Percent scales stop at 100,
  * whole-number inputs get a whole-number end, equal bounds widen by 1.
+ * An empty input yields the unit domain 0–1 instead of infinities.
  */
 export function scaleDomain(numbers: number[], unit?: string): ScaleDomain {
+  if (numbers.length === 0) return { lo: 0, hi: 1 }
   const lo = Math.min(0, ...numbers)
   let hi = Math.max(...numbers)
   if (unit === '%' && hi <= 100) hi = 100

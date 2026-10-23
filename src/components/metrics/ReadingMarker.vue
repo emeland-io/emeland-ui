@@ -6,12 +6,12 @@
  */
 withDefaults(
   defineProps<{
-    index: number
+    index?: number
     breached: boolean
     numbered?: boolean
     size?: 'sm' | 'md'
   }>(),
-  { numbered: false, size: 'md' },
+  { index: undefined, numbered: false, size: 'md' },
 )
 </script>
 

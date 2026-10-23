@@ -24,6 +24,7 @@ import { mappingStateOf } from '@/utils/mapping'
 import { resourceLabel } from '@/constants/resources'
 import {
   INSTANCE_STATUS_LABEL,
+  INSTANCE_STATUS_TEXT_CLASS,
   INSTANCE_STATUS_TITLE,
   INSTANCE_STATUS_TONE,
   METRIC_ANN,
@@ -152,7 +153,7 @@ const { navIndex, step: stepInstance } = useDrawerNav({
         v-if="instance"
         :tone="INSTANCE_STATUS_TONE[status]"
         :title="INSTANCE_STATUS_TITLE[status]"
-        :class="status === 'unknown' || status === 'no-reading' ? 'text-text-4' : ''"
+        :class="INSTANCE_STATUS_TEXT_CLASS[status]"
       >
         {{ INSTANCE_STATUS_LABEL[status] }}
       </TypeTag>
@@ -225,6 +226,7 @@ const { navIndex, step: stepInstance } = useDrawerNav({
             numbered
           />
           <span
+            data-reading-value
             class="font-mono text-display tabular-nums"
             :class="readingBreached(v.value) ? 'text-warning' : 'text-text-1'"
           >

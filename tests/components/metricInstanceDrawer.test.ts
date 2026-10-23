@@ -91,7 +91,7 @@ describe('MetricInstanceDrawer', () => {
 
   it('tints only the reading that breaches a threshold', () => {
     const w = mountDrawer()
-    const numbers = w.findAll('.text-display')
+    const numbers = w.findAll('[data-reading-value]')
     expect(numbers.map((n) => n.text())).toEqual(['412', '250'])
     expect(numbers[0]!.classes()).toContain('text-warning')
     expect(numbers[1]!.classes()).toContain('text-text-1')
@@ -108,7 +108,7 @@ describe('MetricInstanceDrawer', () => {
 
   it('numbers the readings so they can be matched with the scale markers', () => {
     const w = mountDrawer()
-    const rows = w.findAll('.text-display').map((n) => n.element.parentElement!)
+    const rows = w.findAll('[data-reading-value]').map((n) => n.element.parentElement!)
     expect(rows.map((r) => r.firstElementChild!.textContent!.trim())).toEqual(['1', '2'])
     expect(w.findAll('[data-reading-marker]').map((m) => m.text())).toEqual(['1', '2'])
   })

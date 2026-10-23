@@ -24,9 +24,11 @@ import FindingsBadge from '@/components/list/FindingsBadge.vue'
 import {
   INSTANCE_STATUSES,
   INSTANCE_STATUS_LABEL,
+  INSTANCE_STATUS_TEXT_CLASS,
   INSTANCE_STATUS_TITLE,
   INSTANCE_STATUS_TONE,
   METRIC_ANN,
+  describeLimit,
   evaluateThreshold,
   formatThreshold,
   instanceUnit,
@@ -234,16 +236,10 @@ function onStripHighlight(id: string) {
 }
 
 const stripCaption = computed(() => {
-  const r = rows.value.find((row) => row.id === stripHoverId.value)
-  if (!r) return undefined
-  const limits = thresholdLimits(r.thresholds, r.unit)
-  const value = r.primary === undefined ? 'no reading' : `${r.primary}${r.unit ? ` ${r.unit}` : ''}`
-  const parts = [
-    r.inst.displayName,
-    value,
-    ...limits.map((l) => `${l.label} ${l.threshold.displayName}`),
-  ]
-  return parts.join(' · ')
+  const p = stripPoints.value.find((point) => point.id === stripHoverId.value)
+  if (!p) return undefined
+  const value = `${p.value}${stripUnit.value ? ` ${stripUnit.value}` : ''}`
+  return [p.name, value, ...p.limits.map(describeLimit)].join(' · ')
 })
 
 const filtered = computed(() => {
@@ -300,6 +296,16 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => filtered.value.map((r) => r.id),
+  (ids) => {
+    if (hoverId.value && !ids.includes(hoverId.value)) {
+      hoverId.value = ''
+      stripHoverId.value = ''
+    }
+  },
+)
+
 function sortBy(key: SortKey) {
   if (sortKey.value === key) {
     sortAsc.value = !sortAsc.value
@@ -354,7 +360,13 @@ function expressionTitle(r: Row): string | undefined {
 <template>
   <div>
     <div class="flex items-baseline justify-between gap-3">
-      <SectionLabel :count="instances.length">Metric instances</SectionLabel>
+      <!-- never wraps: a long strip caption on the right truncates instead -->
+      <SectionLabel
+        :count="instances.length"
+        class="shrink-0 whitespace-nowrap"
+      >
+        Metric instances
+      </SectionLabel>
       <span class="flex min-w-0 shrink items-center gap-3">
         <span
           class="flex min-w-0 shrink items-center gap-3 font-mono text-micro text-text-4"
@@ -653,7 +665,7 @@ function expressionTitle(r: Row): string | undefined {
                 v-else
                 :tone="INSTANCE_STATUS_TONE[r.status]"
                 :title="INSTANCE_STATUS_TITLE[r.status]"
-                :class="r.status === 'unknown' || r.status === 'no-reading' ? 'text-text-4' : ''"
+                :class="INSTANCE_STATUS_TEXT_CLASS[r.status]"
               >
                 {{ INSTANCE_STATUS_LABEL[r.status] }}
               </TypeTag>

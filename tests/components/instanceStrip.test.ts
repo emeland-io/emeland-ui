@@ -62,11 +62,17 @@ describe('InstanceStrip', () => {
     expect(w.text()).toContain('100 %')
   })
 
-  it('paints breached markers last and emits select on click', async () => {
+  it('keeps the markers in value order, raises breached ones, and emits select on click', async () => {
     const w = mount(InstanceStrip, { props: { points: POINTS, unit: '%' } })
     const markers = w.findAll('[data-strip-marker]')
-    expect(markers.at(-1)!.attributes('title')).toBe('App Backend: 91 %')
-    await markers.at(-1)!.trigger('click')
+    expect(markers.map((m) => m.attributes('title'))).toEqual([
+      'Grafana: 12 %',
+      'Kong Gateway: 34 %',
+      'App Backend: 91 %',
+    ])
+    expect(markers[2]!.classes()).toContain('z-10')
+    expect(markers[1]!.classes()).not.toContain('z-10')
+    await markers[2]!.trigger('click')
     expect(w.emitted('select')).toEqual([['a']])
   })
 
@@ -95,13 +101,15 @@ describe('InstanceStrip', () => {
     expect(bands[0]!.attributes('style')).toContain('left: 85%')
     expect(bands[0]!.attributes('style')).toContain('right: 0')
     expect(bands[0]!.attributes('title')).toBe('≥ 85 % b-warn name')
+    expect(w.find('[data-strip-cap]').attributes('title')).toBe('≥ 85 % b-warn name')
     const ticks = w.findAll('[data-strip-tick]')
     expect(ticks[0]!.classes()).toContain('bg-warning')
     expect(ticks[1]!.classes()).toContain('bg-warning/15')
     expect(markerOf(w, 'Kong').classes()).toContain('ring-accent/60')
     expect(markerOf(w, 'App Backend').classes()).toContain('opacity-30')
-    // the highlighted marker paints on top
-    expect(w.findAll('[data-strip-marker]').at(-1)!.attributes('title')).toContain('Kong')
+    // the highlighted marker paints on top without moving in the DOM
+    expect(markerOf(w, 'Kong').classes()).toContain('z-20')
+    expect(w.findAll('[data-strip-marker]')[1]!.attributes('title')).toContain('Kong')
     // connector from the reading (34) to its limit (85), capped at the limit
     const link = w.find('[data-strip-link]')
     expect(link.attributes('style')).toContain('left: 34%')

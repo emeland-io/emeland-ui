@@ -160,6 +160,10 @@ export function thresholdLimits(thresholds: Threshold[], unit?: string): Thresho
   return out.sort((a, b) => a.limit - b.limit)
 }
 
+export function describeLimit(l: ThresholdLimit): string {
+  return `${l.label} ${l.threshold.displayName}`
+}
+
 export type ThresholdVerdict = 'breached' | 'ok' | 'unknown'
 
 export function evaluateThreshold(t: Threshold, value: string): ThresholdVerdict {
@@ -215,6 +219,13 @@ export const INSTANCE_STATUS_TONE: Record<InstanceStatus, 'warning' | 'muted'> =
   ok: 'muted',
   unknown: 'muted',
   'no-reading': 'muted',
+}
+
+export const INSTANCE_STATUS_TEXT_CLASS: Record<InstanceStatus, string> = {
+  breached: '',
+  ok: '',
+  unknown: 'text-text-4',
+  'no-reading': 'text-text-4',
 }
 
 /** tooltip explaining each status, the derivation happens client-side */

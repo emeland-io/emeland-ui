@@ -46,10 +46,11 @@ describe('ValueScale', () => {
     expect(markers[0]!.attributes('title')).toBe('1 minute average: 91 %')
     expect(markers.map((m) => m.text())).toEqual(['1', '2'])
     expect(markers[1]!.classes()).toContain('bg-text-2')
-    const band = w.find('.bg-warning\\/15')
+    const band = w.find('[data-limit-band]')
     expect(band.attributes('style')).toContain('left: 85%')
     expect(band.attributes('style')).toContain('right: 0')
-    expect(band.attributes('title')).toBe('warn name: ≥ 85 %')
+    expect(band.attributes('title')).toBe('≥ 85 % warn name')
+    expect(w.attributes('aria-label')).toBe('Current values 91 %, 78 % against ≥ 85 % warn name')
     const text = w.text()
     expect(text).toContain('0')
     expect(text).toContain('100')
@@ -67,7 +68,7 @@ describe('ValueScale', () => {
     })
     // domain 0..33 (30 padded by 10 %), so the limit sits at ~91 %
     expect(w.find('[data-reading-marker]').text()).toBe('')
-    const band = w.find('.bg-warning\\/15')
+    const band = w.find('[data-limit-band]')
     expect(band.attributes('style')).toContain('left: 0')
     expect(band.attributes('style')).toMatch(/right: 9\.0\d+%/)
     expect(w.text()).toContain('33')
@@ -96,16 +97,21 @@ describe('ValueScale', () => {
     expect(w.find('[data-limit-label]').attributes('style')).toMatch(/right: 9\.09\d*%/)
   })
 
-  it('stacks labels of limits that sit close together', () => {
+  it('alternates the rows of limit labels that sit close together', () => {
     const w = mount(ValueScale, {
       props: {
         values: [value('v', '50')],
-        thresholds: [threshold('a', 'ge', '85'), threshold('b', 'ge', '90')],
+        thresholds: [
+          threshold('a', 'ge', '85'),
+          threshold('b', 'ge', '90'),
+          threshold('c', 'ge', '95'),
+        ],
         unit: '%',
       },
     })
-    const labels = w.findAll('[data-limit-label]')
-    expect(labels[0]!.attributes('style')).toContain('top: 0')
-    expect(labels[1]!.attributes('style')).toContain('top: 0.875rem')
+    const tops = w
+      .findAll('[data-limit-label]')
+      .map((l) => l.attributes('style')!.match(/top: ([^;]+)/)![1])
+    expect(tops).toEqual(['0px', '0.875rem', '0px'])
   })
 })

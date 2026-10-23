@@ -218,6 +218,19 @@ describe('MetricDetail', () => {
     expect(w.text()).toContain('1 within limits')
   })
 
+  it('drops a stale highlight when the hovered instance leaves the table', async () => {
+    const shared = INSTANCES.map((i) => ({ ...i, annotations: {} }))
+    const w = mountDetail({ instances: shared })
+    const orders = w
+      .findAll('[data-strip-marker]')
+      .find((m) => m.attributes('title')?.startsWith('p99 latency for orders'))!
+    await orders.trigger('mouseenter')
+    expect(w.find('[data-strip-caption]').exists()).toBe(true)
+    await w.setProps({ instances: shared.filter((i) => i.metricInstanceId !== 'i-orders') })
+    expect(w.find('[data-strip-caption]').exists()).toBe(false)
+    expect(w.find('[data-instance-row-id="i-payments"]').classes()).not.toContain('bg-bg-1')
+  })
+
   it('highlights the marker of a hovered row without swapping the header', async () => {
     const w = mountDetail({ instances: INSTANCES.map((i) => ({ ...i, annotations: {} })) })
     await w.find('[data-instance-row-id="i-payments"]').trigger('mouseenter')

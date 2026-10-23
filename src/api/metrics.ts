@@ -80,7 +80,7 @@ function decodeThreshold(res: ThresholdWire): Threshold {
     thresholdId: responseId(res, 'thresholdId'),
     displayName: res.displayName ?? '',
     description: res.description ?? '',
-    metricInstanceId: res.metricInstanceRef?.metricInstanceId ?? '',
+    metricInstanceId: res.metricInstanceRef.metricInstanceId,
     annotations: decodeAnnotations(res.annotations),
   }
 }
@@ -95,6 +95,13 @@ const thresholds = makeResourceApi<Threshold, ThresholdWire>({
   idOf: (t) => t.thresholdId,
   listSchema: zInstanceListItem,
   requireListFields: MINIMAL_LIST_FIELDS,
+  fromList: (item) => ({
+    thresholdId: item.instanceId ?? '',
+    displayName: item.displayName ?? '',
+    description: '',
+    metricInstanceId: '',
+    annotations: {},
+  }),
   responseSchema: zThreshold,
   decode: decodeThreshold,
 })
@@ -107,8 +114,8 @@ function decodeMetricValue(res: MetricValueWire): MetricValue {
     metricValueId: responseId(res, 'metricValueId'),
     displayName: res.displayName ?? '',
     description: res.description ?? '',
-    metricInstanceId: res.metricInstanceRef?.metricInstanceId ?? '',
-    value: res.value ?? '',
+    metricInstanceId: res.metricInstanceRef.metricInstanceId,
+    value: res.value,
     annotations: decodeAnnotations(res.annotations),
   }
 }
@@ -123,6 +130,14 @@ const metricValues = makeResourceApi<MetricValue, MetricValueWire>({
   idOf: (v) => v.metricValueId,
   listSchema: zInstanceListItem,
   requireListFields: MINIMAL_LIST_FIELDS,
+  fromList: (item) => ({
+    metricValueId: item.instanceId ?? '',
+    displayName: item.displayName ?? '',
+    description: '',
+    metricInstanceId: '',
+    value: '',
+    annotations: {},
+  }),
   responseSchema: zMetricValue,
   decode: decodeMetricValue,
 })

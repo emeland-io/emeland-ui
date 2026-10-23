@@ -20,6 +20,10 @@ describe('scaleDomain', () => {
     expect(scaleDomain([-4, 6])).toEqual({ lo: -4, hi: 7 })
   })
 
+  it('falls back to the unit domain for no numbers', () => {
+    expect(scaleDomain([])).toEqual({ lo: 0, hi: 1 })
+  })
+
   it('widens an empty span', () => {
     expect(scaleDomain([0, 0])).toEqual({ lo: 0, hi: 1 })
   })
