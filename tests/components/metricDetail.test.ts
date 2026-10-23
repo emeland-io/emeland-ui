@@ -188,8 +188,19 @@ describe('MetricDetail', () => {
     expect(w.findAll('tbody tr')[0].text()).toContain('orders-api')
     expect(w.text()).toContain('1 over limit')
     expect(w.text()).toContain('1 within limits')
-    // mixed units (ms vs s): no comparable range
     expect(w.text()).not.toContain('–')
+    expect(w.find('[data-instance-strip]').exists()).toBe(false)
+  })
+
+  it('spreads the instances on one strip and opens one on click', async () => {
+    const w = mountDetail({ instances: INSTANCES.map((i) => ({ ...i, annotations: {} })) })
+    const markers = w.findAll('[data-strip-marker]')
+    expect(markers).toHaveLength(2)
+    const orders = markers.find((m) => m.attributes('title')?.startsWith('p99 latency for orders'))!
+    expect(orders.attributes('title')).toBe('p99 latency for orders-api: 412 ms')
+    expect(orders.find('.bg-warning').exists()).toBe(true)
+    await orders.trigger('click')
+    expect(w.emitted('open-instance')).toEqual([['i-orders']])
   })
 
   it('shows the value range when all readings share one unit', () => {

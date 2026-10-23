@@ -15,6 +15,8 @@ import { useResourceNav } from '@/composables/useResourceNav'
 import { useColumnWidths } from '@/composables/useColumnWidths'
 import { resourceLabel } from '@/constants/resources'
 import SubjectGlyph from '@/components/metrics/SubjectGlyph.vue'
+import InstanceStrip from '@/components/metrics/InstanceStrip.vue'
+import type { StripPoint } from '@/components/metrics/InstanceStrip.vue'
 import TypeTag from '@/components/TypeTag.vue'
 import SkeletonBlock from '@/components/view/SkeletonBlock.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
@@ -225,6 +227,32 @@ const range = computed(() => {
   return unit ? `${numbers} ${unit}` : numbers
 })
 
+const stripPoints = computed<StripPoint[]>(() => {
+  const points: StripPoint[] = []
+  let unit: string | undefined
+  let first = true
+  for (const r of filtered.value) {
+    if (r.primary === undefined) continue
+    if (first) {
+      unit = r.unit
+      first = false
+    } else if (r.unit !== unit) {
+      return []
+    }
+    if (r.numeric === undefined) return []
+    points.push({
+      id: r.id,
+      name: r.inst.displayName,
+      value: r.primary,
+      n: r.numeric,
+      breached: r.status === 'breached',
+    })
+  }
+  return points
+})
+
+const stripUnit = computed(() => filtered.value.find((r) => r.primary !== undefined)?.unit)
+
 const filtered = computed(() => {
   const q = search.value.trim().toLowerCase()
   if (!q) return rows.value
@@ -383,6 +411,15 @@ function expressionTitle(r: Row): string | undefined {
         </span>
       </span>
     </div>
+
+    <InstanceStrip
+      v-if="!relatedLoading"
+      :points="stripPoints"
+      :unit="stripUnit"
+      :active-id="activeInstanceId"
+      class="mb-3"
+      @select="emit('select', $event)"
+    />
 
     <div class="overflow-x-auto">
       <table

@@ -17,6 +17,7 @@ import {
 } from '@/types/metric'
 import type { MetricValue, Threshold } from '@/types/metric'
 import ReadingMarker from '@/components/metrics/ReadingMarker.vue'
+import { formatScaleNumber, scaleDomain, scalePosition } from '@/utils/scale'
 
 const props = defineProps<{
   values: MetricValue[]
@@ -81,20 +82,12 @@ const readings = computed<Reading[]>(() =>
 
 const visible = computed(() => limits.value.length > 0 && readings.value.length > 0)
 
-const domain = computed(() => {
-  const numbers = [...limits.value.map((l) => l.limit), ...readings.value.map((r) => r.n)]
-  const lo = Math.min(0, ...numbers)
-  let hi = Math.max(...numbers)
-  if (props.unit === '%' && hi <= 100) hi = 100
-  else hi += (hi - lo) * 0.1
-  if (numbers.every(Number.isInteger)) hi = Math.ceil(hi)
-  if (hi === lo) hi = lo + 1
-  return { lo, hi }
-})
+const domain = computed(() =>
+  scaleDomain([...limits.value.map((l) => l.limit), ...readings.value.map((r) => r.n)], props.unit),
+)
 
 function x(n: number): number {
-  const { lo, hi } = domain.value
-  return Math.min(100, Math.max(0, ((n - lo) / (hi - lo)) * 100))
+  return scalePosition(n, domain.value)
 }
 
 /** band from the limit to the breaching edge */
@@ -124,10 +117,6 @@ function labelStyle(l: { limit: number }): Record<string, string> {
   if (pos < EDGE) return { left: '0' }
   if (pos > 100 - EDGE) return { right: '0' }
   return { left: `${pos}%`, transform: 'translateX(-50%)' }
-}
-
-function fmt(n: number): string {
-  return Number.isInteger(n) ? `${n}` : `${Number(n.toPrecision(3))}`
 }
 
 function readingTitle(r: Reading): string {
@@ -183,13 +172,13 @@ function limitTitle(l: Limit): string {
         v-if="showLo"
         class="absolute left-0 top-0 tabular-nums"
       >
-        {{ fmt(domain.lo) }}
+        {{ formatScaleNumber(domain.lo) }}
       </span>
       <span
         v-if="showHi"
         class="absolute right-0 top-0 tabular-nums"
       >
-        {{ fmt(domain.hi) }}
+        {{ formatScaleNumber(domain.hi) }}
       </span>
       <span
         v-for="l in labels"
