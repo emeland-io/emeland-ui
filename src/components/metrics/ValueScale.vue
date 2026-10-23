@@ -29,7 +29,7 @@ interface Reading {
 }
 
 /** how close two ticks may sit (in % of the width) before their labels stack */
-const LABEL_SPACING = 12
+const LABEL_SPACING = 18
 
 const limits = computed(() => thresholdLimits(props.thresholds, props.unit))
 
@@ -75,16 +75,10 @@ const labels = computed(() =>
 
 const labelRows = computed(() => (labels.value.some((l) => l.row === 1) ? 2 : 1))
 
-const EDGE = 8
-const showLo = computed(() => !labels.value.some((l) => l.row === 0 && x(l.limit) < EDGE))
-const showHi = computed(() => !labels.value.some((l) => l.row === 0 && x(l.limit) > 100 - EDGE))
-
 function labelStyle(l: { limit: number }): Record<string, string> {
   const pos = x(l.limit)
-  // keep edge labels inside the track instead of centring them past it
-  if (pos < EDGE) return { left: '0' }
-  if (pos > 100 - EDGE) return { right: '0' }
-  return { left: `${pos}%`, transform: 'translateX(-50%)' }
+  // labels grow inwards from their tick so they never leave the track
+  return pos <= 50 ? { left: `${pos}%` } : { right: `${100 - pos}%` }
 }
 
 function readingTitle(r: Reading): string {
@@ -103,60 +97,59 @@ function limitTitle(l: ThresholdLimit): string {
     role="img"
     aria-label="Current values against thresholds"
   >
-    <div class="relative h-2.5 rounded-full bg-bg-3">
-      <div class="absolute inset-0 overflow-hidden rounded-full">
-        <span
-          v-for="l in limits"
-          :key="`band-${l.threshold.thresholdId}`"
-          class="absolute inset-y-0 bg-warning/15"
-          :style="bandStyle(l)"
-          :title="limitTitle(l)"
-        />
-        <span
-          v-for="l in limits"
-          :key="`tick-${l.threshold.thresholdId}`"
-          class="absolute inset-y-0 w-px bg-warning/60"
-          :style="{ left: `${x(l.limit)}%` }"
-          :title="limitTitle(l)"
-        />
-      </div>
-      <ReadingMarker
-        v-for="r in readings"
-        :key="r.value.metricValueId"
-        data-reading-marker
-        class="absolute -top-0.5 -translate-x-1/2 ring-2 ring-bg-0"
-        :index="r.index"
-        :breached="r.breached"
-        :numbered="values.length > 1"
-        :style="{ left: `${x(r.n)}%` }"
-        :title="readingTitle(r)"
-      />
-    </div>
-    <div
-      class="relative mt-1.5 font-mono text-micro leading-none text-text-4"
-      :style="{ height: `${labelRows * 0.875}rem` }"
-    >
-      <span
-        v-if="showLo"
-        class="absolute left-0 top-0 tabular-nums"
-      >
+    <div class="flex items-start gap-2 font-mono text-micro leading-none text-text-4">
+      <span class="flex h-2.5 shrink-0 items-center tabular-nums">
         {{ formatScaleNumber(domain.lo) }}
       </span>
-      <span
-        v-if="showHi"
-        class="absolute right-0 top-0 tabular-nums"
-      >
-        {{ formatScaleNumber(domain.hi) }}
-      </span>
-      <span
-        v-for="l in labels"
-        :key="`label-${l.threshold.thresholdId}`"
-        data-limit-label
-        class="absolute whitespace-nowrap text-warning/80"
-        :style="{ ...labelStyle(l), top: l.row === 1 ? '0.875rem' : '0' }"
-        :title="l.threshold.displayName"
-      >
-        {{ l.label }}
+      <div class="min-w-0 flex-1">
+        <div class="relative h-2.5 rounded-full bg-bg-3">
+          <div class="absolute inset-0 overflow-hidden rounded-full">
+            <span
+              v-for="l in limits"
+              :key="`band-${l.threshold.thresholdId}`"
+              class="absolute inset-y-0 bg-warning/15"
+              :style="bandStyle(l)"
+              :title="limitTitle(l)"
+            />
+            <span
+              v-for="l in limits"
+              :key="`tick-${l.threshold.thresholdId}`"
+              class="absolute inset-y-0 w-px bg-warning/60"
+              :style="{ left: `${x(l.limit)}%` }"
+              :title="limitTitle(l)"
+            />
+          </div>
+          <ReadingMarker
+            v-for="r in readings"
+            :key="r.value.metricValueId"
+            data-reading-marker
+            class="absolute -top-0.5 -translate-x-1/2 ring-2 ring-bg-0"
+            :index="r.index"
+            :breached="r.breached"
+            :numbered="values.length > 1"
+            :style="{ left: `${x(r.n)}%` }"
+            :title="readingTitle(r)"
+          />
+        </div>
+        <!-- limit labels under their ticks, stacked when they would collide -->
+        <div
+          class="relative mt-1.5"
+          :style="{ height: `${labelRows * 0.875}rem` }"
+        >
+          <span
+            v-for="l in labels"
+            :key="`label-${l.threshold.thresholdId}`"
+            data-limit-label
+            class="absolute whitespace-nowrap text-warning/80"
+            :style="{ ...labelStyle(l), top: l.row === 1 ? '0.875rem' : '0' }"
+            :title="l.threshold.displayName"
+          >
+            {{ l.label }}
+          </span>
+        </div>
+      </div>
+      <span class="flex h-2.5 shrink-0 items-center whitespace-nowrap tabular-nums">
+        {{ formatScaleNumber(domain.hi) }}{{ unit ? ` ${unit}` : '' }}
       </span>
     </div>
   </div>

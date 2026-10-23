@@ -81,17 +81,19 @@ describe('ValueScale', () => {
     expect(w.text()).not.toContain('5.5')
   })
 
-  it('lets an edge limit label replace the axis number', () => {
+  it('keeps the axis numbers beside the track and the limit labels below it', () => {
     const w = mount(ValueScale, {
       props: {
-        values: [value('v', '7')],
-        thresholds: [threshold('present', 'gt', '0')],
+        values: [value('v', '42')],
+        thresholds: [threshold('warn', 'gt', '10000')],
         unit: 'events',
       },
     })
     const axis = w.findAll('.tabular-nums').map((n) => n.text())
-    expect(axis).toEqual(['8'])
-    expect(w.find('[data-limit-label]').text()).toBe('> 0 events')
+    expect(axis).toEqual(['0', '11000 events'])
+    expect(w.find('[data-limit-label]').text()).toBe('> 10000 events')
+    // a label in the right half ends at its tick and grows inwards, so it never leaves the track
+    expect(w.find('[data-limit-label]').attributes('style')).toMatch(/right: 9\.09\d*%/)
   })
 
   it('stacks labels of limits that sit close together', () => {
