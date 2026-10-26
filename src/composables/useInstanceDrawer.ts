@@ -1,5 +1,6 @@
 import { computed, ref, watch, type Ref } from 'vue'
 import { scrollRowIntoView } from '@/composables/useListKeyboardNav'
+import { useQueryTarget } from '@/composables/useResourceNav'
 
 export function useInstanceDrawer<TInst>(options: {
   /** every loaded instance */
@@ -38,6 +39,18 @@ export function useInstanceDrawer<TInst>(options: {
     selectedInstanceId.value = id
     drawerOpen.value = true
   }
+
+  // ?instance=<id> from another view, show the parent row and open the drawer
+  useQueryTarget(
+    'instance',
+    (id) => instances().some((i) => instanceId(i) === id),
+    (id) => {
+      const inst = instances().find((i) => instanceId(i) === id)
+      const parent = inst && instanceParent(inst)
+      if (parent) selectResource(parent)
+      openInstance(id)
+    },
+  )
 
   function openFirstUnmapped() {
     const first = unmappedOrderedIds()[0]

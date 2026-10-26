@@ -1,5 +1,5 @@
 /**
- * This module adds UI-only knowledge on top: which route lists a
+ * This module adds UI-only knowledge on top: which route shows a
  * resource and how to label it. It is the single source of truth for
  * cross-resource navigation.
  *
@@ -11,15 +11,24 @@
  */
 import type { ResourceType } from '@/types/common'
 
+/**
+ * Query key a view reads to show a resource of this type on arrival:
+ * `select` selects a list row, `instance` opens the instance drawer,
+ * `type` opens the types drawer.
+ */
+export type ResourceQueryKey = 'select' | 'instance' | 'type'
+
 interface ResourceMeta {
   /** Human-readable label */
   label: string
   /**
-   * Route name that lists this resource. When set, the resource is navigable:
-   * clicking routes to `{ name: route, query: { select: <id> } }`.
+   * Route name that shows this resource. When set, the resource is navigable:
+   * clicking routes to `{ name: route, query: { [query]: <id> } }`.
    * `null` = no view yet (renders as plain text, not a link)
    */
   route: string | null
+  /** defaults to `select` */
+  query?: ResourceQueryKey
   chip: string
 }
 
@@ -29,19 +38,24 @@ const RESOURCES: Record<ResourceType, ResourceMeta> = {
 
   // Landscape (modelsrv execution environment)
   Node: { label: 'Node', route: 'Nodes', chip: 'N' },
-  NodeType: { label: 'Node Type', route: null, chip: 'Nt' },
+  NodeType: { label: 'Node Type', route: 'Nodes', query: 'type', chip: 'Nt' },
 
   // Phase 0
   Context: { label: 'Context', route: 'Contexts', chip: 'C' },
-  ContextType: { label: 'Context Type', route: null, chip: 'Ct' },
+  ContextType: { label: 'Context Type', route: 'Contexts', query: 'type', chip: 'Ct' },
 
   // Phase 1
   System: { label: 'System', route: 'Systems', chip: 'S' },
-  SystemInstance: { label: 'System Instance', route: null, chip: 'I' },
+  SystemInstance: { label: 'System Instance', route: 'Systems', query: 'instance', chip: 'I' },
   API: { label: 'API', route: 'APIs', chip: 'A' },
-  ApiInstance: { label: 'API Instance', route: null, chip: 'I' },
+  ApiInstance: { label: 'API Instance', route: 'APIs', query: 'instance', chip: 'I' },
   Component: { label: 'Component', route: 'Components', chip: 'Co' },
-  ComponentInstance: { label: 'Component Instance', route: null, chip: 'I' },
+  ComponentInstance: {
+    label: 'Component Instance',
+    route: 'Components',
+    query: 'instance',
+    chip: 'I',
+  },
 
   // Phase 2
   OrgUnit: { label: 'Org Unit', route: null, chip: 'O' },
@@ -60,11 +74,12 @@ const RESOURCES: Record<ResourceType, ResourceMeta> = {
 
   // Phase 5
   Finding: { label: 'Finding', route: 'Findings', chip: 'F' },
-  FindingType: { label: 'Finding Type', route: null, chip: 'Ft' },
+  FindingType: { label: 'Finding Type', route: 'Findings', query: 'type', chip: 'Ft' },
   Product: { label: 'Product', route: null, chip: 'Pr' },
 
   // Phase 6
-  Metric: { label: 'Metric', route: null, chip: 'Me' },
+  Metric: { label: 'Metric', route: 'Metrics', chip: 'Me' },
+  MetricInstance: { label: 'Metric Instance', route: 'Metrics', query: 'instance', chip: 'Mi' },
   Threshold: { label: 'Threshold', route: null, chip: 'Th' },
   MetricValue: { label: 'Metric Value', route: null, chip: 'Mv' },
 
@@ -77,12 +92,26 @@ const RESOURCES: Record<ResourceType, ResourceMeta> = {
   ArtifactInstance: { label: 'Artifact Instance', route: null, chip: 'Ai' },
 }
 
+const INSTANCE_PARENT: Partial<Record<ResourceType, ResourceType>> = {
+  SystemInstance: 'System',
+  ApiInstance: 'API',
+  ComponentInstance: 'Component',
+}
+
+export function instanceParentType(type: ResourceType): ResourceType | undefined {
+  return INSTANCE_PARENT[type]
+}
+
 export function chipLetterFor(type: ResourceType): string {
   return RESOURCES[type]?.chip ?? '?'
 }
 
 export function routeForResource(type: ResourceType): string | null {
   return RESOURCES[type]?.route ?? null
+}
+
+export function resourceQueryKey(type: ResourceType): ResourceQueryKey {
+  return RESOURCES[type]?.query ?? 'select'
 }
 
 export function isResourceNavigable(type: ResourceType): boolean {

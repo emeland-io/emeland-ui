@@ -139,7 +139,7 @@ export const systems = [
 export const systemInstances = [
   {
     systemInstanceId: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e',
-    displayName: 'Application (prod-eu)',
+    displayName: 'Application (ber-prod)',
     system: '7a1b2c3d-4e5f-4a6b-8c9d-1e2f3a4b5c6d', // Application
     context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
     orderItem: '0a1b2c3d-0001-4d5e-8f00-00000000i1a1', // Payments DE mail capacity
@@ -162,7 +162,7 @@ export const systemInstances = [
   },
   {
     systemInstanceId: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f',
-    displayName: 'Kong (prod-eu)',
+    displayName: 'Kong (ber-prod)',
     system: '8b2c3d4e-5f6a-4b7c-9d1e-2f3a4b5c6d7e', // Kong
     context: '0a000000-0000-4211-8000-000000000004', // Berlin (prod region)
     orderItem: '0a1b2c3d-0001-4d5e-8f00-00000000i1e2', // Webshop API gateway route

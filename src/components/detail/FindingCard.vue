@@ -6,6 +6,7 @@ import type { Finding } from '@/types/finding'
 
 defineProps<{
   finding: Finding
+  note?: string
 }>()
 
 const emit = defineEmits<{
@@ -39,12 +40,19 @@ const findingsStore = useFindingsStore()
       />
     </span>
     <span class="flex items-center gap-1.5">
-      <span class="font-mono text-meta text-text-4">{{ finding.findingId }}</span>
+      <span class="shrink-0 font-mono text-meta text-text-4">{{ finding.findingId }}</span>
       <CopyButton
         :value="finding.findingId"
         :size="12"
         @click.stop
       />
+      <span
+        v-if="note"
+        class="min-w-0 truncate font-mono text-meta text-text-4"
+        :title="note"
+      >
+        {{ note }}
+      </span>
     </span>
   </button>
 </template>

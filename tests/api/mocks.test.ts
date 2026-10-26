@@ -12,6 +12,13 @@ import { fetchContexts, fetchContextById, fetchContextTypes } from '@/api/contex
 import { fetchFindings, fetchFindingById, fetchFindingTypes } from '@/api/findings'
 import { fetchNodes, fetchNodeById, fetchNodeTypes } from '@/api/nodes'
 import { fetchSystems, fetchSystemById, fetchSystemInstances } from '@/api/systems'
+import {
+  fetchMetrics,
+  fetchMetricById,
+  fetchMetricInstances,
+  fetchMetricValues,
+  fetchThresholds,
+} from '@/api/metrics'
 import { fetchModel } from '@/api/model'
 import { fetchCapabilities } from '@/api/capabilities'
 import { fetchParameters } from '@/api/parameters'
@@ -36,6 +43,10 @@ describe('bundled mocks (validated on the mock path too)', () => {
       ['capabilities', fetchCapabilities],
       ['parameters', fetchParameters],
       ['orders', fetchOrders],
+      ['metrics', fetchMetrics],
+      ['metric instances', fetchMetricInstances],
+      ['metric values', fetchMetricValues],
+      ['thresholds', fetchThresholds],
     ]
     for (const [name, fetchAll] of lists) {
       const items = await fetchAll()
@@ -74,6 +85,19 @@ describe('bundled mocks (validated on the mock path too)', () => {
     expect(f.findingId).toBeTruthy()
     expect(f.resources[0].resourceId).toBeTruthy()
     expect(f.findingType?.findingTypeId).toBeTruthy()
+  })
+
+  it('decodes observability metrics (annotations, instance refs, values)', async () => {
+    const list = await fetchMetrics()
+    expect(list[0].annotations['emeland.io/unit']).toBeTruthy()
+    const instances = await fetchMetricInstances()
+    const linked = instances.find((i) => i.metricId)
+    expect(linked?.subject?.resourceType).toBe('Node')
+    const values = await fetchMetricValues()
+    expect(values[0].value).toBeTruthy()
+    await expect(fetchMetricById(list[0].metricId)).resolves.toMatchObject({
+      metricId: list[0].metricId,
+    })
   })
 
   it('decodes the model', async () => {

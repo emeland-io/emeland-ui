@@ -6,7 +6,7 @@ import CopyButton from '@/components/CopyButton.vue'
 import SectionLabel from '@/components/SectionLabel.vue'
 import TypeTag from '@/components/TypeTag.vue'
 import AnnotationsTable from '@/components/AnnotationsTable.vue'
-import { isResourceNavigable } from '@/constants/resources'
+import { isResourceNavigable, resourceLabel } from '@/constants/resources'
 
 defineProps<{
   finding: Finding
@@ -104,7 +104,9 @@ const emit = defineEmits<{
               :key="res.resourceId"
               class="flex w-full flex-col gap-1 border-b border-border-1 py-2 text-left last:border-b-0"
               :title="
-                isResourceNavigable(res.resourceType) ? `Go to ${res.resourceType}` : undefined
+                isResourceNavigable(res.resourceType)
+                  ? `Go to ${resourceLabel(res.resourceType)}`
+                  : undefined
               "
               @click="
                 isResourceNavigable(res.resourceType) &&

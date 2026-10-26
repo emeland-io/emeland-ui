@@ -75,7 +75,7 @@ const routes = [
   { path: '/orders', name: 'Orders', component: () => import('@/views/OrdersView.vue') },
 
   // Observability P6
-  { path: '/metrics', name: 'Metrics', component: () => import('@/views/PlaceholderView.vue') },
+  { path: '/metrics', name: 'Metrics', component: () => import('@/views/MetricsView.vue') },
 
   // Capacity P7
   {

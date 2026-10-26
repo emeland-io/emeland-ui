@@ -46,3 +46,19 @@ export function useSystemRefGroups<T>(
 
   return { unmappedGroups: groups, unmappedGroupTitle: groupTitle, unmappedOrderedIds: orderedIds }
 }
+
+export function useMetricRefGroups<T>(
+  unmapped: MaybeRefOrGetter<T[]>,
+  refOf: (item: T) => string | undefined,
+  idOf: (item: T) => string,
+) {
+  const groups = computed(() => groupByBrokenRef(toValue(unmapped), refOf, 'No metric reference'))
+
+  function groupTitle(key: string): string {
+    return key ? `References missing metric ${key}` : 'No metric reference'
+  }
+
+  const orderedIds = computed(() => groups.value.flatMap((g) => g.items.map(idOf)))
+
+  return { unmappedGroups: groups, unmappedGroupTitle: groupTitle, unmappedOrderedIds: orderedIds }
+}

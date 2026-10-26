@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import {
   chipLetterFor,
+  instanceParentType,
   isKnownResourceType,
   isResourceNavigable,
   resourceLabel,
+  resourceQueryKey,
   routeForResource,
 } from '@/constants/resources'
 import type { ResourceType } from '@/types/common'
@@ -70,8 +72,8 @@ describe('resources constants', () => {
     expect(isKnownResourceType('NoSuchThing')).toBe(false)
   })
 
-  it('routes only the resources with a list view', () => {
-    const navigable: ResourceType[] = [
+  it('routes the resources with a list view to a selected row', () => {
+    const listed: ResourceType[] = [
       'Node',
       'Finding',
       'Context',
@@ -80,10 +82,33 @@ describe('resources constants', () => {
       'API',
       'Capability',
       'Order',
+      'Metric',
     ]
-    for (const type of navigable) {
+    for (const type of listed) {
       expect(routeForResource(type)).not.toBeNull()
       expect(isResourceNavigable(type)).toBe(true)
+      expect(resourceQueryKey(type)).toBe('select')
+    }
+  })
+
+  it('routes instances to the drawer of their parent view', () => {
+    expect(routeForResource('SystemInstance')).toBe('Systems')
+    expect(routeForResource('ApiInstance')).toBe('APIs')
+    expect(routeForResource('ComponentInstance')).toBe('Components')
+    expect(routeForResource('MetricInstance')).toBe('Metrics')
+    for (const type of ['SystemInstance', 'ApiInstance', 'ComponentInstance', 'MetricInstance']) {
+      expect(isResourceNavigable(type as ResourceType)).toBe(true)
+      expect(resourceQueryKey(type as ResourceType)).toBe('instance')
+    }
+  })
+
+  it('routes types to the types drawer of their view', () => {
+    expect(routeForResource('NodeType')).toBe('Nodes')
+    expect(routeForResource('ContextType')).toBe('Contexts')
+    expect(routeForResource('FindingType')).toBe('Findings')
+    for (const type of ['NodeType', 'ContextType', 'FindingType']) {
+      expect(isResourceNavigable(type as ResourceType)).toBe(true)
+      expect(resourceQueryKey(type as ResourceType)).toBe('type')
     }
   })
 
@@ -96,7 +121,6 @@ describe('resources constants', () => {
       'Permission',
       'Parameter',
       'Product',
-      'Metric',
       'Threshold',
       'MetricValue',
       'Capacity',
@@ -112,5 +136,19 @@ describe('resources constants', () => {
     expect(chipLetterFor('Nope' as ResourceType)).toBe('?')
     expect(resourceLabel('Nope' as ResourceType)).toBe('Nope')
     expect(routeForResource('Nope' as ResourceType)).toBeNull()
+    expect(resourceQueryKey('Nope' as ResourceType)).toBe('select')
+  })
+})
+
+describe('instanceParentType', () => {
+  it('maps instance types to the resource they instantiate', () => {
+    expect(instanceParentType('SystemInstance')).toBe('System')
+    expect(instanceParentType('ApiInstance')).toBe('API')
+    expect(instanceParentType('ComponentInstance')).toBe('Component')
+  })
+
+  it('is undefined for non-instance types', () => {
+    expect(instanceParentType('Node')).toBeUndefined()
+    expect(instanceParentType('Metric')).toBeUndefined()
   })
 })

@@ -110,9 +110,9 @@ export const apis = [
  *
  * api field references APIs above.
  * systemInstance field references SystemInstances from systems.ts:
- *   Application (prod-eu):   e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e
+ *   Application (ber-prod):   e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e
  *   Application (staging):   e8b9c1d2-0000-4b5c-8d7e-8f9a1b2c3d02
- *   Kong (prod-eu):          f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f
+ *   Kong (ber-prod):          f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f
  *   Kong (staging):          f9c1d2e3-0000-4c6d-8e8f-9a1b2c3d4e02
  *   Grafana (prod):          1a2b3c4d-5e6f-4a7b-8c9d-1e2f3a4b5c6d
  *   Prometheus (prod):       2b3c4d5e-6f7a-4b8c-9d1e-2f3a4b5c6d7e
@@ -124,12 +124,12 @@ export const apis = [
 export const apiInstances = [
   {
     apiInstanceId: 'ea1b2c3d-0000-4d5e-8f00-000000000001',
-    displayName: 'Command API (prod-eu)',
+    displayName: 'Command API (ber-prod)',
     api: 'aa1b2c3d-4e5f-4a6b-8c9d-1e2f3a4b5c6d', // Command API
-    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (ber-prod)
     annotations: [
       { key: 'emeland.io/endpoint.protocol', value: 'https' },
-      { key: 'emeland.io/endpoint.host', value: 'api.prod-eu.example.com' },
+      { key: 'emeland.io/endpoint.host', value: 'api.ber-prod.example.com' },
       { key: 'emeland.io/endpoint.port', value: '443' },
       { key: 'emeland.io/endpoint.path', value: '/api/v1/command' },
     ],
@@ -148,12 +148,12 @@ export const apiInstances = [
   },
   {
     apiInstanceId: 'eb1b2c3d-0000-4d5e-8f00-000000000001',
-    displayName: 'Query API (prod-eu)',
+    displayName: 'Query API (ber-prod)',
     api: 'ab2c3d4e-5f6a-4b7c-9d1e-2f3a4b5c6d7e', // Query API
-    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (ber-prod)
     annotations: [
       { key: 'emeland.io/endpoint.protocol', value: 'https' },
-      { key: 'emeland.io/endpoint.host', value: 'api.prod-eu.example.com' },
+      { key: 'emeland.io/endpoint.host', value: 'api.ber-prod.example.com' },
       { key: 'emeland.io/endpoint.path', value: '/api/v1/query' }, //port omitted -> 443
     ],
   },
@@ -171,9 +171,9 @@ export const apiInstances = [
   },
   {
     apiInstanceId: 'ed1b2c3d-0000-4d5e-8f00-000000000001',
-    displayName: 'Public Gateway (prod-eu)',
+    displayName: 'Public Gateway (ber-prod)',
     api: 'ad4e5f6a-7b8c-4d9e-1f2a-3b4c5d6e7f8a', // Public Gateway
-    systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (prod-eu)
+    systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (ber-prod)
     annotations: [
       { key: 'emeland.io/endpoint.protocol', value: 'https' },
       { key: 'emeland.io/endpoint.host', value: 'gateway.example.com' }, //port and path omitted -> 443 and /
@@ -204,9 +204,9 @@ export const apiInstances = [
   },
   {
     apiInstanceId: 'ef1b2c3d-0000-4d5e-8f00-000000000001',
-    displayName: 'Metrics Scrape (prod-eu)',
+    displayName: 'Metrics Scrape (ber-prod)',
     api: 'af6a7b8c-9d1e-4f2a-3b4c-5d6e7f8a9b1c', // Metrics Scrape Endpoint
-    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (ber-prod)
     annotations: [
       { key: 'emeland.io/endpoint.protocol', value: 'http' },
       { key: 'emeland.io/endpoint.host', value: 'app-backend.prod.internal' },
@@ -243,7 +243,7 @@ export const apiInstances = [
     apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000a1',
     displayName: 'Inventory Scrape',
     // no api: discovered by the k8s sensor, not yet mapped to an API resource
-    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (ber-prod)
     annotations: [
       { key: 'emeland.io/endpoint.protocol', value: 'http' },
       { key: 'emeland.io/endpoint.host', value: 'inventory.prod.internal' },
@@ -291,7 +291,7 @@ export const apiInstances = [
     apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000b1',
     displayName: 'Discovered REST Endpoint (orders)',
     api: 'ffffffff-0000-4211-8000-0000000000ab', // unresolvable API reference
-    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (ber-prod)
     annotations: [
       { key: 'emeland.io/endpoint.protocol', value: 'https' },
       { key: 'emeland.io/endpoint.host', value: 'orders.prod.internal' },
@@ -302,7 +302,7 @@ export const apiInstances = [
     apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000b2',
     displayName: 'Discovered REST Endpoint (billing)',
     api: 'ffffffff-0000-4211-8000-0000000000ab',
-    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (ber-prod)
     annotations: [
       { key: 'emeland.io/endpoint.protocol', value: 'https' },
       { key: 'emeland.io/endpoint.host', value: 'billing.prod.internal' },
@@ -324,7 +324,7 @@ export const apiInstances = [
     apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000b4',
     displayName: 'Discovered REST Endpoint (shipping)',
     api: 'ffffffff-0000-4211-8000-0000000000ab',
-    systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (prod-eu)
+    systemInstance: 'f9c1d2e3-4a5b-4c6d-7e8f-9a1b2c3d4e5f', // Kong (ber-prod)
     annotations: [
       { key: 'emeland.io/endpoint.protocol', value: 'https' },
       { key: 'emeland.io/endpoint.host', value: 'shipping.prod.internal' },
@@ -357,7 +357,7 @@ export const apiInstances = [
     apiInstanceId: 'ec1b2c3d-0000-4d5e-8f00-0000000000c1',
     displayName: 'Metrics Listener (iot)',
     // no api
-    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (prod-eu)
+    systemInstance: 'e8b9c1d2-3f4a-4b5c-6d7e-8f9a1b2c3d4e', // Application (ber-prod)
     annotations: [
       { key: 'emeland.io/endpoint.protocol', value: 'http' },
       { key: 'emeland.io/endpoint.host', value: 'iot-metrics.prod.internal' },
