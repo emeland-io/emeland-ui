@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { useListKeyboardNav } from './useListKeyboardNav'
+import { useQueryTarget } from './useResourceNav'
 
 export interface TypesDrawerOptions<T> {
   /** loaded type list from the store */
@@ -50,6 +51,13 @@ export function useTypesDrawer<T>(options: TypesDrawerOptions<T>) {
   function close() {
     open.value = false
   }
+
+  // ?type=<id> from another view: openType loads the list itself
+  useQueryTarget(
+    'type',
+    () => true,
+    (id) => void openType(id),
+  )
 
   useListKeyboardNav(
     computed(() => options.types().map(options.idOf)),

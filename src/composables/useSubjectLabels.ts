@@ -59,24 +59,8 @@ export function useSubjectLabels() {
   }
 
   function subjectNavTarget(s: MetricSubject | undefined): SubjectNavTarget | undefined {
-    if (!s) return undefined
-    if (isResourceNavigable(s.resourceType)) return { type: s.resourceType, id: s.resourceId }
-    switch (s.resourceType) {
-      case 'SystemInstance': {
-        const parent = systemStore.systemInstanceMap.get(s.resourceId)?.system
-        return parent ? { type: 'System', id: parent } : undefined
-      }
-      case 'ApiInstance': {
-        const parent = apiInstanceMap.value.get(s.resourceId)?.api
-        return parent ? { type: 'API', id: parent } : undefined
-      }
-      case 'ComponentInstance': {
-        const parent = componentInstanceMap.value.get(s.resourceId)?.component
-        return parent ? { type: 'Component', id: parent } : undefined
-      }
-      default:
-        return undefined
-    }
+    if (!s || !isResourceNavigable(s.resourceType)) return undefined
+    return { type: s.resourceType, id: s.resourceId }
   }
 
   /** loads only the stores needed for the given subject types (all load-once) */
