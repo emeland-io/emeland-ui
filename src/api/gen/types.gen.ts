@@ -2,10 +2,10 @@
 // spec:        EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml (v0.1.0)
 // source:      https://raw.githubusercontent.com/emeland-io/modelsrv/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
 // spec page:   https://github.com/emeland-io/modelsrv/blob/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
-// blob sha:    da3fec9b611197f350a6b531d666755d1c58d9e7
-// spec commit: 929ad49adf046d2c8ff3aeaf27eba9928cc1c4f5 (2026-10-07T14:49:23Z)
-//              extend information via API
-// commit url:  https://github.com/emeland-io/modelsrv/commit/929ad49adf046d2c8ff3aeaf27eba9928cc1c4f5
+// blob sha:    736853123427c0b08fe12705277c74e43d91f39c
+// spec commit: 7b0fc79d9556d2ca04a2595f5ae4c84f709c5229 (2026-10-20T07:57:18Z)
+//              feat(replication): carry origin and timestamp on the wire event envelope
+// commit url:  https://github.com/emeland-io/modelsrv/commit/7b0fc79d9556d2ca04a2595f5ae4c84f709c5229
 // regenerate:  npm run api:gen
 
 export type ClientOptions = {
@@ -909,6 +909,14 @@ export type Node = {
    */
   nodeType: string
   /**
+   * The base API URL at which this node is reachable. Stable across restarts (unlike the node id, which is regenerated per in-memory instance), so it is used as the key for subscription edges between nodes. Required: every node is a running modelsrv instance that knows its own reachable URL.
+   */
+  url: string
+  /**
+   * The peer node base API URLs this node pushes events to (its configured subscribers). These are directed data-flow edges keyed on stable URLs; the graph consumer resolves each URL to the currently-live node advertising it. Required and always present: a node that pushes to nobody carries an empty list.
+   */
+  subscriptions: Array<string>
+  /**
    * A set of key-value pairs for storing additional metadata about the node.
    */
   annotations?: Array<Annotation>
@@ -1241,6 +1249,16 @@ export type Event = {
    *
    */
   kind: string
+  /**
+   * Base API URL of the node that first produced this event. Stamped once at the origin node and preserved unchanged across every forwarding hop, so a receiver can always tell which node produced the change regardless of how many relays it passed through.
+   *
+   */
+  originUrl: string
+  /**
+   * Time at which the origin node produced this event. Like originUrl it is stamped once at the origin and preserved across forwarding.
+   *
+   */
+  timestamp: string
   /**
    * Set for delete events when no resource body is sent.
    */
