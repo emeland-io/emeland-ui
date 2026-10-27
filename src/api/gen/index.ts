@@ -2,10 +2,10 @@
 // spec:        EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml (v0.1.0)
 // source:      https://raw.githubusercontent.com/emeland-io/modelsrv/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
 // spec page:   https://github.com/emeland-io/modelsrv/blob/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
-// blob sha:    da3fec9b611197f350a6b531d666755d1c58d9e7
-// spec commit: 929ad49adf046d2c8ff3aeaf27eba9928cc1c4f5 (2026-10-07T14:49:23Z)
-//              extend information via API
-// commit url:  https://github.com/emeland-io/modelsrv/commit/929ad49adf046d2c8ff3aeaf27eba9928cc1c4f5
+// blob sha:    736853123427c0b08fe12705277c74e43d91f39c
+// spec commit: 7b0fc79d9556d2ca04a2595f5ae4c84f709c5229 (2026-10-20T07:57:18Z)
+//              feat(replication): carry origin and timestamp on the wire event envelope
+// commit url:  https://github.com/emeland-io/modelsrv/commit/7b0fc79d9556d2ca04a2595f5ae4c84f709c5229
 // regenerate:  npm run api:gen
 
 export type {
