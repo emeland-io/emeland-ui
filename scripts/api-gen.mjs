@@ -3,8 +3,9 @@
  * Regenerate src/api/gen (zod schemas + types) from the EmELand OpenAPI spec.
  *
  * Source selection (see USAGE below):
- *   --remote (default)  newest *.yaml in the modelsrv GitHub repo's
- *                       api/openapi/ directory (version parsed from the name)
+ *   --remote (default)  newest *.yaml in api/openapi/ of the modelsrv
+ *                       repository on GitLab (version parsed from the name),
+ *                       instance, project, ref and token: see modelsrv.mjs
  *   --local <path>      newest spec in a local modelsrv checkout at <path>
  *                       (required), provenance from local git
  *   --spec <url|file>   exact source, no resolution
@@ -18,13 +19,21 @@
 import { parseArgs } from 'node:util'
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
+import { blobUrl, commit, fetchFile, fetchText, listDir, rawUrl } from './modelsrv.mjs'
 
 const USAGE = `Usage: npm run api:gen [-- <flags>]
 
-  (no flags)          newest spec from the modelsrv GitHub repo (main)
+  (no flags)          newest spec from the modelsrv repository on GitLab
   --local <path>      newest spec from a local modelsrv checkout.
                       path is required: the checkout root, the spec
                       directory, or a spec file
@@ -32,20 +41,13 @@ const USAGE = `Usage: npm run api:gen [-- <flags>]
   --check             generate into a temp dir and fail on drift
   -h, --help          this help
 
-  GITHUB_TOKEN/GH_TOKEN are used for GitHub API calls when set
-  (anonymous calls are rate-limited to 60/hour per IP).`
+  GITLAB_TOKEN, or CI_JOB_TOKEN in GitLab CI, authenticates against the
+  private modelsrv project (see scripts/modelsrv.mjs).`
 
-const REPO = 'emeland-io/modelsrv'
 const SPECS_DIR = 'api/openapi'
 const GEN_DIR = 'src/api/gen'
 const ZOD_GEN = `${GEN_DIR}/zod.gen.ts`
 const GEN_FILES = [ZOD_GEN, `${GEN_DIR}/types.gen.ts`, `${GEN_DIR}/index.ts`]
-
-const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN
-const GH_HEADERS = {
-  Accept: 'application/vnd.github+json',
-  ...(token ? { Authorization: `Bearer ${token}` } : {}),
-}
 
 // ---------------------------------------------------------------- CLI
 
@@ -101,44 +103,22 @@ function newestByVersion(names) {
     .sort((a, b) => cmpSemver(b.version, a.version))[0]
 }
 
-// newest spec in the modelsrv GitHub repo, with blob sha + page link
+// newest spec in the modelsrv repository on GitLab, with blob sha + page link
 async function resolveRemoteSpec() {
-  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${SPECS_DIR}`, {
-    headers: GH_HEADERS,
-  })
-  if (!res.ok) throw new Error(`Failed to list modelsrv specs: HTTP ${res.status}`)
-  const files = (await res.json()).filter((f) => f.type === 'file')
-  const newest = newestByVersion(files.map((f) => f.name))
+  const newest = newestByVersion(await listDir(SPECS_DIR))
   if (!newest) throw new Error(`No *.yaml spec found in modelsrv ${SPECS_DIR}/`)
-  const f = files.find((x) => x.name === newest.name)
+  const path = `${SPECS_DIR}/${newest.name}`
+  const file = await fetchFile(path)
   return {
     mode: 'remote',
-    input: f.download_url,
-    name: f.name,
+    input: rawUrl(path),
+    text: file.text,
+    name: newest.name,
     version: newest.version,
-    blobSha: f.sha,
-    htmlUrl: f.html_url,
-    commit: await fetchRemoteSpecCommit(f.name),
-  }
-}
-
-// last commit touching the spec file — best effort, regen works without it
-async function fetchRemoteSpecCommit(name) {
-  try {
-    const url = `https://api.github.com/repos/${REPO}/commits?path=${SPECS_DIR}/${name}&per_page=1`
-    const res = await fetch(url, { headers: GH_HEADERS })
-    if (!res.ok) return undefined
-    const [c] = await res.json()
-    if (!c) return undefined
-    return {
-      sha: c.sha,
-      date: c.commit.author.date,
-      author: c.commit.author.name,
-      subject: c.commit.message.split('\n')[0],
-      htmlUrl: c.html_url,
-    }
-  } catch {
-    return undefined
+    blobSha: file.blobSha,
+    htmlUrl: blobUrl(path),
+    // best effort, regen works without it
+    commit: await commit(file.lastCommitId),
   }
 }
 
@@ -173,9 +153,18 @@ function resolveLocalSpec(pathArg) {
 // commit + dirty state of a file in a local git checkout
 function localGitInfo(file) {
   const git = (...argv) =>
-    execFileSync('git', ['-C', dirname(file), ...argv], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    execFileSync('git', ['-C', dirname(file), ...argv], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
   try {
-    const [sha, date, author, subject] = git('log', '-1', '--format=%H%n%aI%n%an%n%s', '--', file).split('\n')
+    const [sha, date, author, subject] = git(
+      'log',
+      '-1',
+      '--format=%H%n%aI%n%an%n%s',
+      '--',
+      file,
+    ).split('\n')
     if (!sha) return undefined
     return { sha, date, author, subject, dirty: git('status', '--porcelain', '--', file) !== '' }
   } catch {
@@ -183,13 +172,20 @@ function localGitInfo(file) {
   }
 }
 
+// a GitLab raw-file API URL carries the file path encoded before /raw
+function nameOfUrl(source) {
+  const { pathname } = new URL(source)
+  const api = pathname.match(/\/repository\/files\/([^/]+)\/raw$/)
+  return basename(api ? decodeURIComponent(api[1]) : pathname)
+}
+
 function resolveExplicitSpec(source) {
   const isUrl = /^https?:\/\//.test(source)
   return {
     mode: isUrl ? 'url' : 'local',
     input: isUrl ? source : resolve(source),
-    name: basename(new URL(source, 'file:///').pathname),
-    version: semverOf(source),
+    name: isUrl ? nameOfUrl(source) : basename(source),
+    version: semverOf(isUrl ? nameOfUrl(source) : basename(source)),
     commit: isUrl ? undefined : localGitInfo(resolve(source)),
   }
 }
@@ -222,14 +218,24 @@ if (spec.commit) {
 
 // ------------------------------------------------------ generation
 
+// a URL is downloaded here, the generator would fetch it without the token
+let input = spec.input
+if (/^https?:\/\//.test(input)) {
+  input = join(mkdtempSync(join(tmpdir(), 'emeland-api-spec-')), spec.name)
+  try {
+    writeFileSync(input, spec.text ?? (await fetchText(spec.input)))
+  } catch (e) {
+    console.error(`[api:gen] error: ${e.message}`)
+    process.exit(1)
+  }
+}
+
 // --check: generate into a temp dir and diff — no writes to src/api/gen
-const outDir = flags.check
-  ? mkdtempSync(join(tmpdir(), 'emeland-api-gen-'))
-  : GEN_DIR
+const outDir = flags.check ? mkdtempSync(join(tmpdir(), 'emeland-api-gen-')) : GEN_DIR
 
 const { createClient } = await import('@hey-api/openapi-ts')
 await createClient({
-  input: spec.input,
+  input,
   output: { path: outDir },
   // schemas + types only: the hand-written fetch/resource layer stays
   plugins: ['@hey-api/typescript', { name: 'zod' }],
