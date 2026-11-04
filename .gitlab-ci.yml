@@ -1,11 +1,10 @@
 stages:
-  - test
   - build
+  - test
   - release
   - security
 
 variables:
-  NODE_IMAGE: node:24-alpine
   SECRET_DETECTION_ENABLED: 'true'
   # The api-contract job reads modelsrv from this instance (scripts/modelsrv.mjs)
   # with the job token, so modelsrv has to allow this project under
@@ -17,6 +16,17 @@ variables:
   #   EMELAND_ANNOTATIONS_SPEC  exact well_known.yaml URL
 
 include:
+  - component: $CI_SERVER_FQDN/to-be-continuous/node/gitlab-ci-node@5.4.0
+    inputs:
+      image: docker.io/library/node:24-alpine
+      # node-lint appends --format=gitlab for the code quality report
+      lint-enabled: true
+      lint-args: run lint
+      # node-build runs the tests first, the junit file feeds the MR test summary
+      test-args: run test:run -- --reporter=default --reporter=junit --outputFile.junit=reports/node-test.xunit.xml
+      build-args: run build
+      audit-args: --audit-level=high
+      semgrep-disabled: true
   - template: Security/SAST.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
 
@@ -30,56 +40,60 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_PIPELINE_SOURCE == "web"
 
-.node:
-  image: $NODE_IMAGE
-  cache:
-    key:
-      files:
-        - package-lock.json
-    paths:
-      - .npm/
-  before_script:
-    - npm ci --cache .npm --prefer-offline
-
-.on-code-change:
+.skip-schedule:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
+
+# template jobs, rules redefined to keep them off the schedule, the rest of
+# each rule list is what the template has (.test-policy, .delivery-policy)
+node-lint:
+  rules:
+    - !reference [.skip-schedule, rules]
+    - !reference [.test-policy, rules]
+
+node-build:
+  rules:
+    - !reference [.skip-schedule, rules]
     - when: on_success
 
-lint:
-  extends: [.node, .on-code-change]
-  stage: test
+node-audit:
+  rules:
+    - !reference [.skip-schedule, rules]
+    - !reference [.test-policy, rules]
+
+node-outdated:
+  rules:
+    - !reference [.skip-schedule, rules]
+    - if: $CI_COMMIT_REF_NAME =~ $PROD_REF
+      allow_failure: true
+    - when: manual
+      allow_failure: true
+
+node-sbom:
+  rules:
+    - !reference [.skip-schedule, rules]
+    - !reference [.delivery-policy, rules]
+
+# disabled by default, the template puts it in a publish stage this pipeline
+# does not have, so it gets an existing stage to keep the config valid
+node-publish:
+  stage: release
+
+format:
+  extends: .node-base
+  stage: build
+  needs: []
+  rules:
+    - !reference [.skip-schedule, rules]
+    - !reference [.test-policy, rules]
   script:
-    - npm run lint
     - npm run format:check
 
-test:
-  extends: [.node, .on-code-change]
-  stage: test
-  script:
-    - npm run test:run
-
-audit:
-  extends: [.node, .on-code-change]
-  stage: test
-  script:
-    - npm audit --audit-level=high
-
-build:
-  extends: [.node, .on-code-change]
-  stage: build
-  needs: [lint, test]
-  script:
-    - npm run build
-  artifacts:
-    paths:
-      - dist/
-    expire_in: 1 week
-
 api-contract:
-  extends: .node
+  extends: .node-base
   stage: test
+  needs: []
   variables:
     EMELAND_GITLAB_URL: $CI_SERVER_URL
   rules:
@@ -116,8 +130,8 @@ api-contract:
 # api-contract failed on the default branch or the schedule: regenerate on a
 # branch and open (or refresh) the merge request
 api-contract-update:
-  extends: .node
-  stage: build
+  extends: .node-base
+  stage: test
   needs: [api-contract]
   variables:
     EMELAND_GITLAB_URL: $CI_SERVER_URL
@@ -152,16 +166,20 @@ api-contract-update:
         "$CI_REPOSITORY_URL" "HEAD:$UPDATE_BRANCH"
       echo "pushed $UPDATE_BRANCH, see the merge requests of this project"
 
-# tag v*: lint, build, publish the dist tarball to the generic package
+# tag v*: publish the dist tarball from node-build to the generic package
 # registry and create the release that links it
 release-dist:
-  extends: .node
   stage: release
+  image: alpine:3.22
+  needs:
+    - node-build
+    - job: node-lint
+      artifacts: false
+    - job: format
+      artifacts: false
   rules:
     - if: $CI_COMMIT_TAG =~ /^v/
   script:
-    - npm run lint
-    - npm run build
     - apk add --no-cache curl
     - tar -czf "emeland-ui-$CI_COMMIT_TAG.tar.gz" -C dist .
     - printf '%s\n' "${CI_COMMIT_TAG_MESSAGE:-Release $CI_COMMIT_TAG}" > release-notes.md
@@ -178,7 +196,6 @@ release-dist:
 
 release:
   stage: release
-  # release-cli is deprecated since GitLab 18.0, the release keyword now runs through glab
   image: registry.gitlab.com/gitlab-org/cli:latest
   needs: [release-dist]
   rules:
