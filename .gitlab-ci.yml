@@ -18,7 +18,6 @@ variables:
 include:
   - component: $CI_SERVER_FQDN/to-be-continuous/node/gitlab-ci-node@5.4.0
     inputs:
-      image: docker.io/library/node:24-alpine
       # node-lint appends --format=gitlab for the code quality report
       lint-enabled: true
       lint-args: run lint
@@ -44,6 +43,9 @@ workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
+
+.node-base:
+  image: docker.io/library/node:24-alpine
 
 # template jobs, rules redefined to keep them off the schedule, the rest of
 # each rule list is what the template has (.test-policy, .delivery-policy)
