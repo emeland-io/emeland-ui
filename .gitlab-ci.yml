@@ -1,3 +1,13 @@
+# Pipeline for emeland-ui on the to-be-continuous node template, synced on
+# this instance under to-be-continuous/node. The template brings node-lint,
+# node-build (tests, then build), node-audit, node-outdated and node-sbom,
+# the project adds format, api-contract, api-contract-update and the release.
+# The GitLab SAST and secret detection templates replace the template's
+# semgrep job.
+#
+# Runs for merge requests, the default branch, tags, the daily schedule and
+# manual web runs. The schedule only runs the api-contract check.
+
 stages:
   - build
   - test
@@ -16,7 +26,8 @@ variables:
   #   EMELAND_ANNOTATIONS_SPEC  exact well_known.yaml URL
 
 include:
-  - component: $CI_SERVER_FQDN/to-be-continuous/node/gitlab-ci-node@5.4.0
+  # literal host instead of $CI_SERVER_FQDN so Renovate can resolve the version
+  - component: gitlab.opendefense.cloud/to-be-continuous/node/gitlab-ci-node@5.4.0
     inputs:
       # node-lint appends --format=gitlab for the code quality report
       lint-enabled: true
@@ -44,11 +55,11 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: never
 
+# the image sits on the base job rather than in the component inputs, where
+# Renovate would not find it
 .node-base:
   image: docker.io/library/node:24-alpine
 
-# template jobs, rules redefined to keep them off the schedule, the rest of
-# each rule list is what the template has (.test-policy, .delivery-policy)
 node-lint:
   rules:
     - !reference [.skip-schedule, rules]
@@ -77,8 +88,7 @@ node-sbom:
     - !reference [.skip-schedule, rules]
     - !reference [.delivery-policy, rules]
 
-# disabled by default, the template puts it in a publish stage this pipeline
-# does not have, so it gets an existing stage to keep the config valid
+# disabled by default
 node-publish:
   stage: release
 
