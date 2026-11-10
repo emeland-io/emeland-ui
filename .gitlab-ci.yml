@@ -1,0 +1,231 @@
+# Pipeline for emeland-ui on the to-be-continuous node template, synced on
+# this instance under to-be-continuous/node. The template brings node-lint,
+# node-build (tests, then build), node-audit, node-outdated and node-sbom,
+# the project adds format, api-contract, api-contract-update and the release.
+# The GitLab SAST and secret detection templates replace the template's
+# semgrep job.
+#
+# Runs for merge requests, the default branch, tags, the daily schedule and
+# manual web runs. The schedule only runs the api-contract check.
+
+stages:
+  - build
+  - test
+  - release
+  - security
+
+variables:
+  SECRET_DETECTION_ENABLED: 'true'
+  # The api-contract job reads modelsrv from this instance (scripts/modelsrv.mjs)
+  # with the job token, so modelsrv has to allow this project under
+  # Settings > CI/CD > Job token permissions. A GITLAB_TOKEN variable with
+  # read_api takes precedence when set. Optional overrides:
+  #   EMELAND_MODELSRV_PROJECT  modelsrv project path, default odc/emeland/modelsrv
+  #   EMELAND_MODELSRV_REF      branch or tag, default main
+  #   EMELAND_OAPI_SPEC         exact modelsrv OpenAPI spec URL
+  #   EMELAND_ANNOTATIONS_SPEC  exact well_known.yaml URL
+
+include:
+  # literal host instead of $CI_SERVER_FQDN so Renovate can resolve the version
+  - component: gitlab.opendefense.cloud/to-be-continuous/node/gitlab-ci-node@5.4.0
+    inputs:
+      # node-lint appends --format=gitlab for the code quality report
+      lint-enabled: true
+      lint-args: run lint
+      # node-build runs the tests first, the junit file feeds the MR test summary
+      test-args: run test:run -- --reporter=default --reporter=junit --outputFile.junit=reports/node-test.xunit.xml
+      build-args: run build
+      audit-args: --audit-level=high
+      semgrep-disabled: true
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+.skip-schedule:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+
+# the image sits on the base job rather than in the component inputs, where
+# Renovate would not find it
+.node-base:
+  image: docker.io/library/node:24-alpine
+
+node-lint:
+  rules:
+    - !reference [.skip-schedule, rules]
+    - !reference [.test-policy, rules]
+
+node-build:
+  rules:
+    - !reference [.skip-schedule, rules]
+    - when: on_success
+
+node-audit:
+  rules:
+    - !reference [.skip-schedule, rules]
+    - !reference [.test-policy, rules]
+
+node-outdated:
+  rules:
+    - !reference [.skip-schedule, rules]
+    - if: $CI_COMMIT_REF_NAME =~ $PROD_REF
+      allow_failure: true
+    - when: manual
+      allow_failure: true
+
+node-sbom:
+  rules:
+    - !reference [.skip-schedule, rules]
+    - !reference [.delivery-policy, rules]
+
+# disabled by default
+node-publish:
+  stage: release
+
+format:
+  extends: .node-base
+  stage: build
+  needs: []
+  rules:
+    - !reference [.skip-schedule, rules]
+    - !reference [.test-policy, rules]
+  script:
+    - npm run format:check
+
+api-contract:
+  extends: .node-base
+  stage: test
+  needs: []
+  variables:
+    EMELAND_GITLAB_URL: $CI_SERVER_URL
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: on_success
+  script:
+    - |
+      drift=false
+      if npm run api:gen -- --check; then
+        echo "src/api/gen matches the modelsrv spec"
+      else
+        drift=true
+        echo "WARNING: src/api/gen is stale, the modelsrv spec changed upstream."
+      fi
+    - npm run annotations:gen -- --check
+    - |
+      if [ "$drift" = true ]; then
+        npm run api:gen
+        apk add --no-cache git >/dev/null
+        git --no-pager diff --stat src/api/gen
+        typecheck=success
+        tests=success
+        npm run type-check || typecheck=failure
+        npm run test:run || tests=failure
+        if [ "$typecheck" = success ] && [ "$tests" = success ]; then
+          echo "ERROR: Spec drift, FE compatible: run 'npm run api:gen' and commit src/api/gen."
+        else
+          echo "ERROR: Spec drift AND the FE breaks against the new contract (type-check: $typecheck, tests: $tests). The contract change needs FE work."
+        fi
+        exit 1
+      fi
+
+# api-contract failed on the default branch or the schedule: regenerate on a
+# branch and open (or refresh) the merge request
+api-contract-update:
+  extends: .node-base
+  stage: test
+  needs: [api-contract]
+  variables:
+    EMELAND_GITLAB_URL: $CI_SERVER_URL
+    UPDATE_BRANCH: ci/api-contract-update
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: on_failure
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: on_failure
+  script:
+    - apk add --no-cache git >/dev/null
+    - npm run api:gen
+    - npm run annotations:gen
+    - |
+      if git diff --quiet -- src/api/gen src/annotations; then
+        echo "no generated changes, api-contract failed for another reason"
+        exit 0
+      fi
+      npm run type-check
+      npm run test:run
+      git config user.name "emeland-ui api-contract-update"
+      git config user.email "api-contract-update@noreply.$CI_SERVER_HOST"
+      git checkout -B "$UPDATE_BRANCH"
+      git add src/api/gen src/annotations
+      git commit -q -m "chore: api contract update" -m "Regenerated by the api-contract-update job from pipeline $CI_PIPELINE_URL"
+      git push --force \
+        -o merge_request.create \
+        -o merge_request.target="$CI_DEFAULT_BRANCH" \
+        -o merge_request.title="chore: api contract update" \
+        -o merge_request.description="Regenerated src/api/gen and src/annotations from the modelsrv spec. Type-check and tests passed in $CI_PIPELINE_URL" \
+        -o merge_request.remove_source_branch \
+        "$CI_REPOSITORY_URL" "HEAD:$UPDATE_BRANCH"
+      echo "pushed $UPDATE_BRANCH, see the merge requests of this project"
+
+# tag v*: publish the dist tarball from node-build to the generic package
+# registry and create the release that links it
+release-dist:
+  stage: release
+  image: alpine:3.22
+  needs:
+    - node-build
+    - job: node-lint
+      artifacts: false
+    - job: format
+      artifacts: false
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+  script:
+    - apk add --no-cache curl
+    - tar -czf "emeland-ui-$CI_COMMIT_TAG.tar.gz" -C dist .
+    - printf '%s\n' "${CI_COMMIT_TAG_MESSAGE:-Release $CI_COMMIT_TAG}" > release-notes.md
+    - >-
+      curl --fail --silent --show-error
+      --header "JOB-TOKEN: $CI_JOB_TOKEN"
+      --upload-file "emeland-ui-$CI_COMMIT_TAG.tar.gz"
+      "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/emeland-ui/$CI_COMMIT_TAG/emeland-ui-$CI_COMMIT_TAG.tar.gz"
+  artifacts:
+    paths:
+      - emeland-ui-$CI_COMMIT_TAG.tar.gz
+      - release-notes.md
+    expire_in: 4 weeks
+
+release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/cli:latest
+  needs: [release-dist]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/
+  script:
+    - echo "releasing $CI_COMMIT_TAG"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: $CI_COMMIT_TAG
+    description: release-notes.md
+    assets:
+      links:
+        - name: emeland-ui-$CI_COMMIT_TAG.tar.gz
+          url: $CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/emeland-ui/$CI_COMMIT_TAG/emeland-ui-$CI_COMMIT_TAG.tar.gz
+          link_type: package
+
+sast:
+  stage: security
+
+secret_detection:
+  stage: security

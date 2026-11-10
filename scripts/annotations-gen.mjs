@@ -7,7 +7,9 @@
  * Source selection:
  *   --spec <path|url>          exact YAML source (local file or URL)
  *   EMELAND_ANNOTATIONS_SPEC   env equivalent (flag wins)
- *   (default)                  modelsrv main: pkg/annotations/well_known.yaml
+ *   (default)                  pkg/annotations/well_known.yaml in the modelsrv
+ *                              repository on GitLab, instance, project, ref and
+ *                              token: see modelsrv.mjs
  *
  * The generated header is source-independent (no path or hash), so a regen
  * from any location with identical content is byte-identical — the --check
@@ -23,20 +25,22 @@ import { join, basename, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { load as loadYaml } from 'js-yaml'
 import { z } from 'zod'
+import { REF, fetchText, rawUrl } from './modelsrv.mjs'
 
-const DEFAULT_SPEC =
-  'https://raw.githubusercontent.com/emeland-io/modelsrv/main/pkg/annotations/well_known.yaml'
+const DEFAULT_SPEC = rawUrl('pkg/annotations/well_known.yaml')
 const GEN_FILE = 'src/annotations/catalog.gen.ts'
 
 const USAGE = `Usage: npm run annotations:gen [-- <flags>]
 
   (no flags)          generate from the modelsrv source of truth:
                       ${DEFAULT_SPEC}
-  --spec <path|url>   exact YAML source (local file or URL), or a GitHub API
-                      directory like https://api.github.com/repos/<o>/<r>/contents/<dir>
+  --spec <path|url>   exact YAML source (local file or URL)
   EMELAND_ANNOTATIONS_SPEC  same, without the flag
   --check             generate into a temp dir and fail on drift; writes nothing
-  -h, --help          this help`
+  -h, --help          this help
+
+  GITLAB_TOKEN, or CI_JOB_TOKEN in GitLab CI, authenticates against the
+  private modelsrv project (see scripts/modelsrv.mjs).`
 
 const { values: flags } = parseArgs({
   options: {
@@ -52,64 +56,17 @@ if (flags.help) {
 
 // ---- source
 
-// option A: a GitHub API contents directory
-// (https://api.github.com/repos/<owner>/<repo>/contents/<dir>) — the script
-// picks the newest *.yaml in it; option B: a raw-file URL or a local path
 const explicit = flags.spec ?? process.env.EMELAND_ANNOTATIONS_SPEC
 
-/** Resolve the newest *.yaml in a GitHub API directory listing */
-async function resolveRemoteDir(url) {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`Failed to list ${url}: HTTP ${res.status}`)
-  const files = (await res.json()).filter((f) => f.type === 'file')
-  const specs = files
-    .filter((f) => /\.ya?ml$/.test(f.name))
-    .map((f) => ({
-      name: f.name,
-      input: f.download_url,
-      version: f.name
-        .match(/(\d+)\.(\d+)\.(\d+)/)
-        ?.slice(1)
-        .map(Number) ?? [0, 0, 0],
-    }))
-    .sort((a, b) => {
-      for (let i = 0; i < 3; i++)
-        if (a.version[i] !== b.version[i]) return b.version[i] - a.version[i]
-      return 0
-    })
-  if (specs.length === 0) throw new Error(`No *.yaml found in ${url}`)
-  return specs[0]
-}
-
 let source = DEFAULT_SPEC
-let mode = 'default (modelsrv main)'
+let mode = `default (modelsrv ${REF})`
 if (explicit) {
-  if (/^https?:\/\//.test(explicit)) {
-    if (explicit.startsWith('https://api.github.com/repos/')) {
-      const newest = await resolveRemoteDir(explicit)
-      source = newest.input
-      mode = `remote dir -> ${newest.name}`
-    } else {
-      source = explicit
-      mode = 'remote'
-    }
-  } else {
-    source = explicit
-    mode = 'local override'
-  }
+  source = explicit
+  mode = /^https?:\/\//.test(explicit) ? 'remote' : 'local override'
 }
 
 async function readSource(input) {
-  if (/^https?:\/\//.test(input)) {
-    const res = await fetch(input)
-    if (!res.ok) {
-      throw new Error(
-        `Failed to fetch ${input}: HTTP ${res.status}` +
-          (res.status === 404 ? ' (not published yet? see modelsrv pkg/annotations)' : ''),
-      )
-    }
-    return res.text()
-  }
+  if (/^https?:\/\//.test(input)) return fetchText(input)
   return readFileSync(resolve(input), 'utf8')
 }
 
@@ -131,7 +88,15 @@ const catalogSchema = z.object({
   annotations: z.array(entrySchema).min(1),
 })
 
-const parsed = catalogSchema.safeParse(loadYaml(await readSource(source)))
+let text
+try {
+  text = await readSource(source)
+} catch (e) {
+  console.error(`[annotations:gen] error: ${e.message}`)
+  process.exit(1)
+}
+
+const parsed = catalogSchema.safeParse(loadYaml(text))
 if (!parsed.success) {
   console.error(`Invalid annotations catalog in ${source}:`)
   console.error(z.prettifyError(parsed.error))
