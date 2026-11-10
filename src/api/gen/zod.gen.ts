@@ -2,15 +2,23 @@
 // spec:        EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml (v0.1.0)
 // source:      https://gitlab.opendefense.cloud/api/v4/projects/odc%2Femeland%2Fmodelsrv/repository/files/api%2Fopenapi%2FEmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml/raw?ref=main
 // spec page:   https://gitlab.opendefense.cloud/odc/emeland/modelsrv/-/blob/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
-// blob sha:    736853123427c0b08fe12705277c74e43d91f39c
-// spec commit: 7b0fc79d9556d2ca04a2595f5ae4c84f709c5229 (2026-10-20T07:57:18Z)
-//              feat(replication): carry origin and timestamp on the wire event envelope
-// commit url:  https://gitlab.opendefense.cloud/odc/emeland/modelsrv/-/commit/7b0fc79d9556d2ca04a2595f5ae4c84f709c5229
+// blob sha:    8527a6347476f1c5bee6856e3f1b279092b8bd3b
+// spec commit: 80ad427a2cdf632976221230ca759f18d6ba7d68 (2026-11-09T11:40:33Z)
+//              feat(replication): reconcile subscribers by per-origin live count
+// commit url:  https://gitlab.opendefense.cloud/odc/emeland/modelsrv/-/commit/80ad427a2cdf632976221230ca759f18d6ba7d68
 // regenerate:  npm run api:gen
 
 import * as z from 'zod'
 
 export const zErrorString = z.string()
+
+/**
+ * Live-resource count for one OriginURL in this node's latest state.
+ */
+export const zOriginCount = z.object({
+  originUrl: z.string(),
+  count: z.int().gte(0),
+})
 
 /**
  * A resolved finding type reference for read API responses.
@@ -1281,3 +1289,12 @@ export const zGetEventsQueryBySequenceIdPath = z.object({
 })
 
 export const zPostEventsPushBody = zEvent
+
+export const zGetEventsOriginCountQuery = z.object({
+  originUrl: z.string(),
+})
+
+/**
+ * OK
+ */
+export const zGetEventsOriginCountResponse = zOriginCount
