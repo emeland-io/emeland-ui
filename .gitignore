@@ -26,3 +26,6 @@ dist-ssr
 *.sln
 *.sw?
 tsconfig.app.tsbuildinfo
+
+# to-be-continuous job reports (lint, junit, audit)
+reports

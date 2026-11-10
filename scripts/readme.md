@@ -5,8 +5,8 @@ Development scripts, run through their npm script entries (also see `package.jso
 ## api-gen.mjs — OpenAPI code generator
 
 `api-gen.mjs` regenerates `src/api/gen/` from the
-[EmELand OpenAPI spec](https://github.com/emeland-io/modelsrv/tree/main/api/openapi)
-in [modelsrv](https://github.com/emeland-io/modelsrv): TypeScript wire types
+[EmELand OpenAPI spec](https://gitlab.opendefense.cloud/odc/emeland/modelsrv/-/tree/main/api/openapi)
+in [modelsrv](https://gitlab.opendefense.cloud/odc/emeland/modelsrv): TypeScript wire types
 (`types.gen.ts`) and zod runtime schemas (`zod.gen.ts`), produced by
 [@hey-api/openapi-ts](https://heyapi.dev/) from the same source so they can
 never drift apart. The spec itself is never vendored into this repo.
@@ -14,22 +14,21 @@ never drift apart. The spec itself is never vendored into this repo.
 ### Usage
 
 ```sh
-npm run api:gen                          # newest spec from the modelsrv GitHub repo (main)
+npm run api:gen                          # newest spec from the modelsrv repository on GitLab (main)
 npm run api:gen:local -- <path>          # newest spec from a local modelsrv checkout
 npm run api:gen -- --spec <url|file>     # exact spec source, no resolution
 npm run api:gen -- --help
 ```
 
-| Flag | Meaning |
-| --- | --- |
-| `--remote` (default) | List `api/openapi/` in the modelsrv repo, pick the newest `*.yaml` by the semver in its file name |
-| `--local <path>` | Same newest-version pick from a local checkout. `<path>` is required — the checkout root, the spec directory, or a spec file |
-| `--spec <url\|file>` | Use exactly this source |
+| Flag                 | Meaning                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `--remote` (default) | List `api/openapi/` in the modelsrv repo, pick the newest `*.yaml` by the semver in its file name                            |
+| `--local <path>`     | Same newest-version pick from a local checkout. `<path>` is required — the checkout root, the spec directory, or a spec file |
+| `--spec <url\|file>` | Use exactly this source                                                                                                      |
 
-Environment:
-
-- `GITHUB_TOKEN` / `GH_TOKEN` — used for GitHub API calls when set.
-  Anonymous calls are rate-limited to 60/hour per IP, which can bite on CI.
+Environment: see the `modelsrv.mjs` section below for the instance, project,
+ref and token. The modelsrv project is private, so a
+remote run needs `GITLAB_TOKEN` outside of GitLab CI.
 
 ### What it writes
 
@@ -51,7 +50,7 @@ Headers deliberately carry **no wall-clock timestamp**: regenerating from an
 unchanged spec produces an empty diff, so a dirty diff always means the spec
 (or the generator) actually changed. Output is formatted with the repo's
 prettier config, so regeneration is byte-stable against the committed files —
-the API contract workflow (`.github/workflows/api-contract.yml`) depends on this.
+the `api-contract` job in `.gitlab-ci.yml` depends on this.
 
 ### Format shim (boundary policy)
 
@@ -96,5 +95,21 @@ The generated header carries no source path or hash, a regen from any
 location with identical content is byte-identical, so the `--check` gate
 compares content.
 
-`EMELAND_ANNOTATIONS_SPEC` (repo variable) overrides the
+`EMELAND_ANNOTATIONS_SPEC` (CI variable) overrides the
 source URL when needed.
+
+## modelsrv.mjs - modelsrv on GitLab
+
+Shared by both generators: where the modelsrv repository lives and how to
+authenticate. The project is private, an anonymous request gets a 404.
+
+| Variable                   | Default                            | Meaning                                                                                                                   |
+| -------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `EMELAND_GITLAB_URL`       | `https://gitlab.opendefense.cloud` | GitLab instance (CI sets it to `$CI_SERVER_URL`)                                                                          |
+| `EMELAND_MODELSRV_PROJECT` | `odc/emeland/modelsrv`             | project path                                                                                                              |
+| `EMELAND_MODELSRV_REF`     | `main`                             | branch or tag to read                                                                                                     |
+| `GITLAB_TOKEN`             |                                    | personal, group or project access token with `read_api`                                                                   |
+| `CI_JOB_TOKEN`             | set by GitLab CI                   | fallback when no `GITLAB_TOKEN` is set. modelsrv has to allow this project under Settings > CI/CD > Job token permissions |
+
+The token is only sent to the configured instance, never to a `--spec` URL on
+another host.
