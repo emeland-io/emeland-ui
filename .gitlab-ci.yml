@@ -14,6 +14,10 @@ stages:
   - release
   - security
 
+default:
+  tags:
+    - emeland
+
 variables:
   SECRET_DETECTION_ENABLED: 'true'
   # The api-contract job reads modelsrv from this instance (scripts/modelsrv.mjs)
