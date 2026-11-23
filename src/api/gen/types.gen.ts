@@ -2,10 +2,10 @@
 // spec:        EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml (v0.1.0)
 // source:      https://gitlab.opendefense.cloud/api/v4/projects/odc%2Femeland%2Fmodelsrv/repository/files/api%2Fopenapi%2FEmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml/raw?ref=main
 // spec page:   https://gitlab.opendefense.cloud/odc/emeland/modelsrv/-/blob/main/api/openapi/EmergingEnterpriseLandscape-0.1.0-oapi-3.0.3.yaml
-// blob sha:    8527a6347476f1c5bee6856e3f1b279092b8bd3b
-// spec commit: 80ad427a2cdf632976221230ca759f18d6ba7d68 (2026-11-09T11:40:33Z)
-//              feat(replication): reconcile subscribers by per-origin live count
-// commit url:  https://gitlab.opendefense.cloud/odc/emeland/modelsrv/-/commit/80ad427a2cdf632976221230ca759f18d6ba7d68
+// blob sha:    b32a30e6d95d2372253465d32dea579550106af6
+// spec commit: af516d3ca7211f2ed09af0568cc24be862e8ab5b (2026-11-17T12:02:42Z)
+//              Carry group members through the wire converters (refs #226)
+// commit url:  https://gitlab.opendefense.cloud/odc/emeland/modelsrv/-/commit/af516d3ca7211f2ed09af0568cc24be862e8ab5b
 // regenerate:  npm run api:gen
 
 export type ClientOptions = {
@@ -974,6 +974,10 @@ export type Group = {
    * A brief description of the group's purpose and characteristics.
    */
   description?: string
+  /**
+   * The ids of the identities that are members of the group.
+   */
+  members?: Array<string>
   /**
    * A set of key-value pairs for storing additional metadata about the group.
    */
